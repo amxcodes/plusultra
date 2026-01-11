@@ -129,7 +129,9 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     };
 
     const handleShare = () => {
-        const link = siteUrl ? `${siteUrl}/playlist/${playlistId}` : `${window.location.origin}/playlist/${playlistId}`;
+        // Strip trailing slash from siteUrl if present to prevent double slash (//)
+        const baseUrl = siteUrl ? siteUrl.replace(/\/$/, '') : window.location.origin;
+        const link = `${baseUrl}/playlist/${playlistId}`;
         navigator.clipboard.writeText(link);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
