@@ -95,7 +95,7 @@ export const useWatchParty = (partyId: string | null, onSync: (e: SyncEvent) => 
                 }
             }
         };
-    }, [partyId, user, isHost]); // Re-run only if Party ID or User changes
+    }, [partyId, user, isHost, onSync]); // Re-run if Party ID, User, or sync handler changes
 
     // Helper to send sync events
     const sendSync = useCallback(async (event: Omit<SyncEvent, 'userId' | 'username'>) => {

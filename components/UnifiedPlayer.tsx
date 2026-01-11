@@ -105,12 +105,16 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         if (provider === 'vidora') {
             const iframe = iframeRef.current;
             if (iframe && iframe.contentWindow) {
+                const origin = 'https://vidora.su';
                 if (event.type === 'play') {
-                    iframe.contentWindow.postMessage({ type: 'PLAY' }, '*');
+                    console.log('[Sync] Sending PLAY to Vidora');
+                    iframe.contentWindow.postMessage({ type: 'PLAY' }, origin);
                 } else if (event.type === 'pause') {
-                    iframe.contentWindow.postMessage({ type: 'PAUSE' }, '*');
+                    console.log('[Sync] Sending PAUSE to Vidora');
+                    iframe.contentWindow.postMessage({ type: 'PAUSE' }, origin);
                 } else if ((event.type === 'seek' || event.type === 'sync_timestamp') && event.timestamp) {
-                    iframe.contentWindow.postMessage({ type: 'SEEK', time: event.timestamp }, '*');
+                    console.log('[Sync] Sending SEEK to Vidora:', event.timestamp);
+                    iframe.contentWindow.postMessage({ type: 'SEEK', time: event.timestamp }, origin);
                 }
             }
         } else {
