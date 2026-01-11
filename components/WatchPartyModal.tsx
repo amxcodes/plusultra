@@ -30,7 +30,11 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
             if (autoJoinCode) {
                 setActiveTab('join');
                 setJoinCode(autoJoinCode);
-                handleJoin(autoJoinCode); // Auto trigger
+                // We don't auto-join here anymore, we let the user click "Join" or we could auto-click
+                // But typically auto-join is handled by the parent passing `autoJoinCode` to modal?
+                // Actually the parent UnifiedPlayer handles the CONNECTION. The modal is just UI.
+                // If autoJoinCode is present, we might want to auto-trigger handleJoin?
+                // For now let's just prefill.
             }
             SocialService.getAppSettings().then(settings => {
                 if (settings.site_url) setSiteUrl(settings.site_url);

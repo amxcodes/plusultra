@@ -65,14 +65,15 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     // Handle Auto-Join
     useEffect(() => {
         if (autoJoinCode && !partyId) {
-            // We pass the code to the modal via props, or we just trigger the join immediately
-            // But we need the modal to be open to show "Joining..." or success
-            // Let's modify WatchPartyModal to handle auto-trigger if we want, 
-            // OR simpler: just call joinParty directly here?
-            // Better to let the user confirm or see the modal state.
-            // For now, let's just prep the modal.
-            // Actually, let's try to auto-join silently if we can?
-            // No, better experience is seeing the modal "Joining party..."
+            // Auto-join logic: fetch party details first
+            WatchTogetherService.getPartyDetails(autoJoinCode).then(party => {
+                if (party) {
+                    setPartyId(party.id);
+                    setInviteCode(party.invite_code);
+                    setIsHost(false);
+                    // Connection will happen in the next effect due to partyId change
+                }
+            });
         }
     }, [autoJoinCode]);
 
@@ -87,68 +88,63 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showServers]);
 
-    // Watch Together: Handle party sync events
+    // Centralized Watch Party Connection Logic
     useEffect(() => {
-        if (!partyChannel || !user) return;
+        if (!partyId || !user) return;
 
-        // Listen for sync events
-        WatchTogetherService.onSyncReceived(partyChannel, (event: SyncEvent) => {
-            // Don't process own events
-            if (event.userId === user.id) return;
+        let activeChannel: any = null;
 
-            // Handle server switching (all servers)
-            if (event.type === 'switch_server' && event.server) {
-                setProvider(event.server as Provider);
-                // Also show a toast or notification here if we had one
-            }
+        const connect = async () => {
+            activeChannel = await WatchTogetherService.connectToParty(
+                partyId,
+                (event: SyncEvent) => {
+                    // Don't process own events
+                    if (event.userId === user.id) return;
 
-            // Handle Playback Sync
-            if (provider === 'vidora') {
-                // Vidora supports some control via postMessage (best effort)
-                const iframe = iframeRef.current;
-                if (iframe && iframe.contentWindow) {
-                    if (event.type === 'play') {
-                        iframe.contentWindow.postMessage({ type: 'PLAY' }, '*');
-                    } else if (event.type === 'pause') {
-                        iframe.contentWindow.postMessage({ type: 'PAUSE' }, '*');
-                    } else if ((event.type === 'seek' || event.type === 'sync_timestamp') && event.timestamp) {
-                        iframe.contentWindow.postMessage({ type: 'SEEK', time: event.timestamp }, '*');
+                    // Handle server switching (all servers)
+                    if (event.type === 'switch_server' && event.server) {
+                        setProvider(event.server as Provider);
                     }
-                }
-            } else {
-                // Manual Sync for others
-                if (event.timestamp) {
-                    const timeStr = new Date(event.timestamp * 1000).toISOString().substr(14, 5);
-                    console.log(`[Watch Party] Host is at ${timeStr} (${event.type})`);
-                }
-            }
-        });
 
-        // Update presence
-        const updatePresence = () => {
-            const members = WatchTogetherService.getPresence(partyChannel);
-            setPartyMembers(members);
+                    // Handle Playback Sync
+                    if (provider === 'vidora') {
+                        const iframe = iframeRef.current;
+                        if (iframe && iframe.contentWindow) {
+                            if (event.type === 'play') {
+                                iframe.contentWindow.postMessage({ type: 'PLAY' }, '*');
+                            } else if (event.type === 'pause') {
+                                iframe.contentWindow.postMessage({ type: 'PAUSE' }, '*');
+                            } else if ((event.type === 'seek' || event.type === 'sync_timestamp') && event.timestamp) {
+                                iframe.contentWindow.postMessage({ type: 'SEEK', time: event.timestamp }, '*');
+                            }
+                        }
+                    } else {
+                        // Manual Sync for others
+                        if (event.timestamp) {
+                            const timeStr = new Date(event.timestamp * 1000).toISOString().substr(14, 5);
+                            console.log(`[Watch Party] Host is at ${timeStr} (${event.type})`);
+                        }
+                    }
+                },
+                (members: PartyMember[]) => {
+                    setPartyMembers(members);
+                }
+            );
+            setPartyChannel(activeChannel);
         };
 
-        partyChannel.on('presence', { event: 'sync' }, updatePresence);
-        partyChannel.on('presence', { event: 'join' }, updatePresence);
-        partyChannel.on('presence', { event: 'leave' }, updatePresence);
+        connect();
 
-        // Cleanup is handled by the leaveParty call in the separate useEffect
-        return () => { };
-    }, [partyChannel, user, provider]);
-
-    // Watch Together: Cleanup on unmount
-    useEffect(() => {
+        // Cleanup
         return () => {
-            if (partyChannel) {
-                WatchTogetherService.leaveParty(partyChannel);
+            if (activeChannel) {
+                WatchTogetherService.leaveParty(activeChannel);
                 if (isHost && partyId) {
                     WatchTogetherService.endParty(partyId);
                 }
             }
         };
-    }, [partyChannel, isHost, partyId]);
+    }, [partyId, user, provider, isHost]); // Re-connect if partyId changes. Provider change updates sync handler closure.
 
 
     // Construct URL based on provider
@@ -335,29 +331,28 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 onClose={() => setShowPartyModal(false)}
                 autoJoinCode={autoJoinCode}
                 onCreateParty={async () => {
-                    const result = await WatchTogetherService.createParty(
+                    const party = await WatchTogetherService.createParty(
                         tmdbId,
                         mediaType,
                         season,
                         episode
                     );
-                    if (result) {
-                        setPartyId(result.party.id);
-                        setInviteCode(result.party.invite_code);
+                    if (party) {
+                        setPartyId(party.id);
+                        setInviteCode(party.invite_code);
                         setIsHost(true);
-                        setPartyChannel(result.channel);
-                        await result.channel.subscribe();
-                        return result.party.invite_code;
+                        // setPartyChannel is NO LONGER set here. It's set in the useEffect listening to partyId.
+                        return party.invite_code;
                     }
                     return null;
                 }}
                 onJoinParty={async (code) => {
-                    const result = await WatchTogetherService.joinParty(code);
-                    if (result) {
-                        setPartyId(result.party.id);
-                        setInviteCode(result.party.invite_code);
+                    const party = await WatchTogetherService.joinParty(code);
+                    if (party) {
+                        setPartyId(party.id);
+                        setInviteCode(party.invite_code);
                         setIsHost(false);
-                        setPartyChannel(result.channel);
+                        // setPartyChannel is NO LONGER set here.
                         return true;
                     }
                     return false;

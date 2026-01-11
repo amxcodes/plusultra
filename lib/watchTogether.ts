@@ -31,13 +31,13 @@ export interface PartyMember {
 }
 
 export const WatchTogetherService = {
-    // Create a new watch party
+    // Create query - DB ONLY
     async createParty(
         tmdbId: string,
         mediaType: 'movie' | 'tv',
         season?: number,
         episode?: number
-    ): Promise<{ party: WatchParty; channel: any } | null> {
+    ): Promise<WatchParty | null> {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
 
@@ -58,32 +58,11 @@ export const WatchTogetherService = {
             return null;
         }
 
-        // Join the realtime channel
-        const channel = supabase.channel(`party:${data.id}`, {
-            config: { presence: { key: user.id } }
-        });
-
-        // Debug: Log subscription status
-        channel.subscribe(async (status) => {
-            console.log(`[WatchParty] Host subscription status: ${status}`);
-            if (status === 'SUBSCRIBED') {
-                const trackStatus = await channel.track({
-                    user_id: user.id,
-                    username: user.user_metadata?.username || 'Host',
-                    avatar: user.user_metadata?.avatar_url || ''
-                });
-                console.log('[WatchParty] Host track result:', trackStatus);
-            }
-        });
-
-        return { party: data, channel };
+        return data;
     },
 
-    // Join existing party by invite code
-    async joinParty(inviteCode: string): Promise<{ party: WatchParty; channel: any } | null> {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return null;
-
+    // Join query - DB ONLY
+    async joinParty(inviteCode: string): Promise<WatchParty | null> {
         const { data, error } = await supabase
             .from('watch_parties')
             .select('*')
@@ -94,37 +73,53 @@ export const WatchTogetherService = {
             console.error('Party not found:', error);
             return null;
         }
+        return data;
+    },
 
-        // Check participant limit via presence
-        const channel = supabase.channel(`party:${data.id}`, {
+    // Unified Connection Logic
+    async connectToParty(partyId: string, onSync: (e: SyncEvent) => void, onPresence: (m: PartyMember[]) => void) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        console.log(`[WatchParty] Connecting to ${partyId}...`);
+
+        const channel = supabase.channel(`party:${partyId}`, {
             config: { presence: { key: user.id } }
         });
 
+        // 1. Subscribe
         channel.subscribe(async (status) => {
-            console.log(`[WatchParty] Joiner subscription status: ${status}`);
+            console.log(`[WatchParty] Subscription status: ${status}`);
             if (status === 'SUBSCRIBED') {
-                const trackStatus = await channel.track({
+                // 2. Track Presence (Full Metadata)
+                await channel.track({
                     user_id: user.id,
                     username: user.user_metadata?.username || 'User',
                     avatar: user.user_metadata?.avatar_url || ''
                 });
-                console.log('[WatchParty] Joiner track result:', trackStatus);
             }
         });
 
-        // Count current participants
-        // Note: Presence might not be immediately available, but we check what we can
-        const presence = channel.presenceState();
-        const participantCount = Object.keys(presence).length;
+        // 3. Listen for Sync Events
+        channel.on('broadcast', { event: 'sync' }, ({ payload }: { payload: SyncEvent }) => {
+            onSync(payload);
+        });
 
-        if (participantCount > data.max_participants) {
-            await channel.untrack();
-            await channel.unsubscribe();
-            console.error('Party is full');
-            return null;
-        }
+        // 4. Listen for Presence Changes
+        const updatePresence = () => {
+            const state = channel.presenceState();
+            const members = Object.values(state).flat().map((p: any) => ({
+                userId: p.user_id,
+                username: p.username || 'User',
+                avatar: p.avatar || ''
+            }));
+            onPresence(members);
+        };
+        channel.on('presence', { event: 'sync' }, updatePresence);
+        channel.on('presence', { event: 'join' }, updatePresence);
+        channel.on('presence', { event: 'leave' }, updatePresence);
 
-        return { party: data, channel };
+        return channel;
     },
 
     // Get party details without joining (for auto-join routing)
@@ -172,19 +167,9 @@ export const WatchTogetherService = {
         });
     },
 
-    // Subscribe to sync events
-    onSyncReceived(channel: any, callback: (event: SyncEvent) => void) {
-        if (!channel) return;
-
-        channel.on('broadcast', { event: 'sync' }, ({ payload }: { payload: SyncEvent }) => {
-            callback(payload);
-        });
-    },
-
-    // Get current participants
+    // Get current participants (helper)
     getPresence(channel: any): PartyMember[] {
         if (!channel) return [];
-
         const state = channel.presenceState();
         return Object.values(state).flat().map((p: any) => ({
             userId: p.user_id,
