@@ -39,14 +39,14 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
     }, [isOpen]);
 
     const handleJoin = async (codeOverride?: string) => {
-        const codeToUse = (codeOverride || joinCode || '').trim();
+        const codeToUse = String(codeOverride || joinCode || '').trim().toUpperCase();
         if (codeToUse.length !== 6) {
             setError('Code must be 6 characters');
             return;
         }
         setLoading(true);
         setError('');
-        const success = await onJoinParty(codeToUse.toUpperCase());
+        const success = await onJoinParty(codeToUse);
         if (success) {
             onClose();
         } else {
