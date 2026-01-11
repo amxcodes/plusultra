@@ -262,7 +262,7 @@ function StreamApp() {
           </div>
         ) : (
           <div>
-            {activeTab === NavItem.DASHBOARD && (
+            {activeTab === NavItem.DASHBOARD && !selectedPlaylistId && (
               <Hero
                 movie={heroMovie || {
                   id: 0,
@@ -414,7 +414,7 @@ function StreamApp() {
 
               {/* ACTIVITY VIEW */}
               {activeTab === NavItem.ACTIVITY && (
-                <ActivityPage />
+                <ActivityPage onNavigate={handleNavigate} />
               )}
 
               {/* Add To Playlist Modal (Global generic overlay) */}

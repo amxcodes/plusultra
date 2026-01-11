@@ -5,7 +5,11 @@ import { SocialService } from '../lib/social';
 import { Profile } from '../types';
 import { UserPlus, UserCheck, Activity } from 'lucide-react';
 
-export const ActivityPage: React.FC = () => {
+interface ActivityPageProps {
+    onNavigate?: (page: string, params?: any) => void;
+}
+
+export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
     const { user } = useAuth();
     const [followers, setFollowers] = useState<Profile[]>([]);
     const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
@@ -102,7 +106,10 @@ export const ActivityPage: React.FC = () => {
 
                             return (
                                 <div key={follower.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors group">
-                                    <div className="flex items-center gap-4">
+                                    <div
+                                        onClick={() => onNavigate?.('profile', { id: follower.id })}
+                                        className="flex items-center gap-4 cursor-pointer"
+                                    >
                                         <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10">
                                             <img
                                                 src={follower.avatar_url || `https://ui-avatars.com/api/?name=${follower.username}`}
