@@ -7,6 +7,7 @@ import { WatchTogetherService, SyncEvent, PartyMember } from '../lib/watchTogeth
 import { WatchPartyModal } from './WatchPartyModal';
 import { PartyIndicator } from './PartyIndicator';
 import { useAuth } from '../lib/AuthContext';
+import { useWatchParty } from '../hooks/useWatchParty';
 
 type MediaType = 'movie' | 'tv';
 
@@ -88,63 +89,42 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showServers]);
 
-    // Centralized Watch Party Connection Logic
-    useEffect(() => {
-        if (!partyId || !user) return;
+    // Watch Together Hook
+    const { members, isConnected, sendSync } = useWatchParty(partyId, (event) => {
+        // Handle incoming sync events (already filtered by hook for self)
 
-        let activeChannel: any = null;
+        // Handle server switching
+        if (event.type === 'switch_server' && event.server) {
+            setProvider(event.server as Provider);
+        }
 
-        const connect = async () => {
-            activeChannel = await WatchTogetherService.connectToParty(
-                partyId,
-                (event: SyncEvent) => {
-                    // Don't process own events
-                    if (event.userId === user.id) return;
-
-                    // Handle server switching (all servers)
-                    if (event.type === 'switch_server' && event.server) {
-                        setProvider(event.server as Provider);
-                    }
-
-                    // Handle Playback Sync
-                    if (provider === 'vidora') {
-                        const iframe = iframeRef.current;
-                        if (iframe && iframe.contentWindow) {
-                            if (event.type === 'play') {
-                                iframe.contentWindow.postMessage({ type: 'PLAY' }, '*');
-                            } else if (event.type === 'pause') {
-                                iframe.contentWindow.postMessage({ type: 'PAUSE' }, '*');
-                            } else if ((event.type === 'seek' || event.type === 'sync_timestamp') && event.timestamp) {
-                                iframe.contentWindow.postMessage({ type: 'SEEK', time: event.timestamp }, '*');
-                            }
-                        }
-                    } else {
-                        // Manual Sync for others
-                        if (event.timestamp) {
-                            const timeStr = new Date(event.timestamp * 1000).toISOString().substr(14, 5);
-                            console.log(`[Watch Party] Host is at ${timeStr} (${event.type})`);
-                        }
-                    }
-                },
-                (members: PartyMember[]) => {
-                    setPartyMembers(members);
-                }
-            );
-            setPartyChannel(activeChannel);
-        };
-
-        connect();
-
-        // Cleanup
-        return () => {
-            if (activeChannel) {
-                WatchTogetherService.leaveParty(activeChannel);
-                if (isHost && partyId) {
-                    WatchTogetherService.endParty(partyId);
+        // Handle Playback Sync
+        if (provider === 'vidora') {
+            const iframe = iframeRef.current;
+            if (iframe && iframe.contentWindow) {
+                if (event.type === 'play') {
+                    iframe.contentWindow.postMessage({ type: 'PLAY' }, '*');
+                } else if (event.type === 'pause') {
+                    iframe.contentWindow.postMessage({ type: 'PAUSE' }, '*');
+                } else if ((event.type === 'seek' || event.type === 'sync_timestamp') && event.timestamp) {
+                    iframe.contentWindow.postMessage({ type: 'SEEK', time: event.timestamp }, '*');
                 }
             }
-        };
-    }, [partyId, user, provider, isHost]); // Re-connect if partyId changes. Provider change updates sync handler closure.
+        } else {
+            // Manual Sync log
+            if (event.timestamp) {
+                const timeStr = new Date(event.timestamp * 1000).toISOString().substr(14, 5);
+                console.log(`[Watch Party] Host is at ${timeStr} (${event.type})`);
+            }
+        }
+    }, isHost); // Pass isHost to the hook for cleanup logic
+
+    // Update local state when hook members change
+    useEffect(() => {
+        setPartyMembers(members);
+    }, [members]);
+
+    // Note: We don't need the old useEffect connection logic anymore!
 
 
     // Construct URL based on provider
@@ -316,7 +296,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                         setIsHost(false);
                     }}
                     onSync={isHost && provider !== 'vidora' ? () => {
-                        WatchTogetherService.broadcastSync(partyChannel, {
+                        sendSync({
                             type: 'sync_timestamp',
                             timestamp: lastTime
                         });
