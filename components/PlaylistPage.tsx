@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { Playlist, Movie } from '../types';
-import { Trash2, Share2, ChevronLeft, X } from 'lucide-react';
+import { Trash2, Share2, ChevronLeft, X, CheckCircle } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 
 interface PlaylistPageProps {
@@ -81,19 +81,23 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     const [loading, setLoading] = useState(true);
     const [removeTargetId, setRemoveTargetId] = useState<string | null>(null);
     const [showDeletePlaylistModal, setShowDeletePlaylistModal] = useState(false);
+    const [siteUrl, setSiteUrl] = useState('');
+    const [copied, setCopied] = useState(false);
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
                 // Fetch items and details in parallel
-                const [playlistItems, playlistDetails] = await Promise.all([
+                const [playlistItems, playlistDetails, settings] = await Promise.all([
                     SocialService.getPlaylistItems(playlistId),
-                    SocialService.getPlaylistDetails(playlistId)
+                    SocialService.getPlaylistDetails(playlistId),
+                    SocialService.getAppSettings()
                 ]);
 
                 setItems(playlistItems);
                 setPlaylist(playlistDetails);
+                if (settings.site_url) setSiteUrl(settings.site_url);
             } catch (e) {
                 console.error("Failed to load playlist data:", e);
             } finally {
@@ -122,6 +126,13 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
         } catch (e) {
             console.error("Failed to delete playlist", e);
         }
+    };
+
+    const handleShare = () => {
+        const link = siteUrl ? `${siteUrl}/playlist/${playlistId}` : `${window.location.origin}/playlist/${playlistId}`;
+        navigator.clipboard.writeText(link);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     if (loading) return <div className="h-screen flex items-center justify-center text-zinc-500 font-light tracking-wide">loading...</div>;
@@ -171,14 +182,19 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
                                 <Trash2 size={18} /> Delete Helper
                             </button>
                         )}
-                        <button className="group px-6 py-3 rounded-xl font-bold flex items-center gap-3 bg-gradient-to-r from-zinc-900 to-zinc-900 border border-zinc-800 hover:border-pink-500/50 transition-all duration-300 shadow-lg shadow-black/20 hover:shadow-pink-500/10 active:scale-95">
-                            <Share2 size={18} className="text-zinc-400 group-hover:text-white transition-colors" />
-                            <span className="bg-gradient-to-r from-zinc-200 to-zinc-400 bg-clip-text text-transparent group-hover:from-white group-hover:to-pink-200 transition-all">
-                                Share some love
+                        <button
+                            onClick={handleShare}
+                            className="group px-6 py-3 rounded-xl font-bold flex items-center gap-3 bg-gradient-to-r from-zinc-900 to-zinc-900 border border-zinc-800 hover:border-pink-500/50 transition-all duration-300 shadow-lg shadow-black/20 hover:shadow-pink-500/10 active:scale-95"
+                        >
+                            {copied ? <CheckCircle size={18} className="text-green-400" /> : <Share2 size={18} className="text-zinc-400 group-hover:text-white transition-colors" />}
+                            <span className={`bg-clip-text text-transparent transition-all ${copied ? 'bg-green-400' : 'bg-gradient-to-r from-zinc-200 to-zinc-400 group-hover:from-white group-hover:to-pink-200'}`}>
+                                {copied ? 'Link Copied!' : 'Share Playlist'}
                             </span>
-                            <span className="text-red-500 group-hover:scale-125 transition-transform duration-300 inline-block">
-                                ❤️
-                            </span>
+                            {!copied && (
+                                <span className="text-red-500 group-hover:scale-125 transition-transform duration-300 inline-block">
+                                    ❤️
+                                </span>
+                            )}
                         </button>
                     </div>
                 </div>

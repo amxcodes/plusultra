@@ -199,3 +199,69 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- 9. WATCH PARTIES
+create table public.watch_parties (
+  id uuid default uuid_generate_v4() primary key,
+  host_id uuid references public.profiles(id) on delete cascade not null,
+  tmdb_id text not null,
+  media_type text not null check (media_type in ('movie', 'tv')),
+  season int,
+  episode int,
+  current_server text default 'cinemaos',
+  invite_code text unique not null,
+  created_at timestamptz default now(),
+  expires_at timestamptz default now() + interval '4 hours',
+  max_participants int default 4
+);
+
+-- Generate 6-character invite codes
+create or replace function generate_invite_code()
+returns text as $$
+  select upper(substring(md5(random()::text) from 1 for 6));
+$$ language sql;
+
+-- Set default invite code
+alter table public.watch_parties 
+  alter column invite_code set default generate_invite_code();
+
+-- RLS Policies
+alter table public.watch_parties enable row level security;
+create policy "Users can create parties" on public.watch_parties 
+  for insert with check (auth.uid() = host_id);
+create policy "Anyone can view active parties" on public.watch_parties 
+  for select using (expires_at > now());
+create policy "Host can update party" on public.watch_parties 
+  for update using (auth.uid() = host_id);
+create policy "Host can delete party" on public.watch_parties 
+  for delete using (auth.uid() = host_id);
+
+-- Auto-cleanup expired parties
+create or replace function cleanup_expired_parties()
+returns void as $$
+  delete from public.watch_parties where expires_at < now();
+$$ language sql;
+
+-- 10. APP SETTINGS
+create table public.app_settings (
+  key text primary key,
+  value text
+);
+
+alter table public.app_settings enable row level security;
+
+-- Everyone can read settings (needed for site URL and donation link)
+create policy "Settings viewable by everyone" 
+  on public.app_settings for select using (true);
+
+-- Only admins can modify
+create policy "Admins can manage settings" 
+  on public.app_settings for all using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+  );
+
+-- Insert default values
+insert into public.app_settings (key, value) values 
+  ('site_url', 'http://localhost:5173'),
+  ('donation_url', 'https://ko-fi.com')
+on conflict do nothing;

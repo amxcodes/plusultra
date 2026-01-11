@@ -481,5 +481,30 @@ export const SocialService = {
             .delete()
             .eq('user_id', userId);
         if (error) throw error;
+    },
+
+    // --- App Settings ---
+
+    async getAppSettings() {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('*');
+
+        if (error) {
+            console.error('Error fetching settings:', error);
+            return { site_url: '', donation_url: '' };
+        }
+
+        // Convert array to object
+        const settings: Record<string, string> = {};
+        data?.forEach((s: any) => settings[s.key] = s.value);
+        return settings;
+    },
+
+    async updateAppSetting(key: string, value: string) {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ key, value });
+        if (error) throw error;
     }
 };

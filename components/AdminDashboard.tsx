@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
 import { Profile } from '../types';
-import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star } from 'lucide-react';
+import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { TmdbService } from '../services/tmdb';
 
@@ -11,12 +11,13 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [allPlaylists, setAllPlaylists] = useState<any[]>([]);
     const [featuredMovies, setFeaturedMovies] = useState<any[]>([]);
+    const [settings, setSettings] = useState<any>({});
     const [loading, setLoading] = useState(true);
 
     // Filter/Search State
@@ -38,22 +39,34 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     const loadAllData = async () => {
         setLoading(true);
         try {
-            const [statsData, usersData, announcementsData, playlistsData, featuredData] = await Promise.all([
+            const [statsData, usersData, announcementsData, playlistsData, featuredData, settingsData] = await Promise.all([
                 SocialService.getAdminStats(),
                 SocialService.getAllUsers(),
                 SocialService.getAnnouncements(),
                 SocialService.getAllPlaylists(),
-                SocialService.getFeaturedMovies()
+                SocialService.getFeaturedMovies(),
+                SocialService.getAppSettings()
             ]);
             setStats(statsData);
             setUsers(usersData);
             setAnnouncements(announcementsData);
             setAllPlaylists(playlistsData);
             setFeaturedMovies(featuredData);
+            setSettings(settingsData);
         } catch (e) {
             console.error(e);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSaveSetting = async (key: string, value: string) => {
+        try {
+            await SocialService.updateAppSetting(key, value);
+            alert('Setting saved!');
+        } catch (e) {
+            console.error(e);
+            alert('Failed to save setting');
         }
     };
 
@@ -166,12 +179,89 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 >
                     Featured Movies
                 </button>
+                <button
+                    onClick={() => setActiveTab('settings')}
+                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'settings' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    Settings
+                </button>
             </div>
 
             {loading ? (
                 <div className="text-zinc-500 text-sm">Loading data...</div>
             ) : (
                 <div className="space-y-8">
+                    {/* SETTINGS TAB */}
+                    {activeTab === 'settings' && (
+                        <div className="max-w-3xl mx-auto">
+                            <div className="bg-[#0f1014] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                                <div className="p-8 border-b border-white/5 bg-zinc-900/20">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
+                                            <Settings size={24} className="text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-white tracking-tight">System Configuration</h3>
+                                            <p className="text-zinc-500 text-sm">Manage global application settings and URLs</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-8 space-y-8">
+                                    {/* Site URL */}
+                                    <div className="space-y-3">
+                                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider">
+                                            <Globe size={14} /> Site Base URL
+                                        </label>
+                                        <div className="flex gap-0 relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <span className="text-zinc-600 font-mono text-sm">https://</span>
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={settings.site_url?.replace('https://', '').replace('http://', '') || ''}
+                                                onChange={(e) => setSettings(prev => ({ ...prev, site_url: `https://${e.target.value.replace(/^https?:\/\//, '')}` }))}
+                                                placeholder="stream.app"
+                                                className="flex-1 bg-black/50 border border-white/10 rounded-l-xl pl-16 pr-4 py-4 text-white placeholder:text-zinc-800 focus:border-white/20 focus:bg-white/5 outline-none transition-all font-mono text-sm"
+                                            />
+                                            <button
+                                                onClick={() => handleSaveSetting('site_url', settings.site_url)}
+                                                className="px-6 bg-white/5 hover:bg-white/10 border-y border-r border-white/10 rounded-r-xl text-white font-bold text-sm transition-all hover:px-8 active:scale-95"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-600 pl-1">
+                                            Used for generating Watch Party invites and Playlist share links.
+                                        </p>
+                                    </div>
+
+                                    {/* Donation URL (Optional) */}
+                                    <div className="space-y-3 pt-6 border-t border-white/5">
+                                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider">
+                                            <Heart size={14} /> Donation / Support URL
+                                        </label>
+                                        <div className="flex gap-3">
+                                            <input
+                                                type="text"
+                                                value={settings.donation_url || ''}
+                                                onChange={(e) => setSettings(prev => ({ ...prev, donation_url: e.target.value }))}
+                                                placeholder="https://ko-fi.com/username"
+                                                className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-zinc-800 focus:border-white/20 focus:bg-white/5 outline-none transition-all font-mono text-sm"
+                                            />
+                                            <button
+                                                onClick={() => handleSaveSetting('donation_url', settings.donation_url)}
+                                                className="px-6 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors active:scale-95"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
