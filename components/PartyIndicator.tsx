@@ -25,69 +25,68 @@ export const PartyIndicator: React.FC<PartyIndicatorProps> = ({
     showSyncButton
 }) => {
     return (
-        <div className="fixed top-6 left-6 z-50 flex flex-col gap-2">
-            {/* Participant Avatars */}
-            <div className="flex items-center gap-2 bg-black/50 backdrop-blur-md px-3 py-2 rounded-full border border-white/10">
-                <Users size={14} className="text-white" />
-                <div className="flex -space-x-2">
-                    {members.slice(0, 4).map((member) => (
-                        <div
-                            key={member.userId}
-                            className="w-6 h-6 rounded-full border-2 border-black overflow-hidden bg-zinc-800"
-                            title={member.username}
-                        >
-                            {member.avatar ? (
-                                <img
-                                    src={member.avatar}
-                                    alt={member.username}
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white">
-                                    {member.username[0]?.toUpperCase()}
-                                </div>
-                            )}
-                        </div>
-                    ))}
+        <div className="fixed top-1/2 -translate-y-1/2 left-0 z-50 flex flex-col gap-4 p-4 rounded-r-2xl bg-black/80 backdrop-blur-xl border-y border-r border-white/5 transition-all duration-300 opacity-30 hover:opacity-100 group shadow-2xl">
+            {/* Header / Count */}
+            <div className="flex flex-col items-center gap-1">
+                <div className="p-2 rounded-full bg-white/5 border border-white/10">
+                    <Users size={16} className="text-zinc-200" />
                 </div>
-                <span className="text-xs text-white font-medium ml-1">
+                <span className="text-[10px] font-bold text-zinc-400">
                     {members.length}/4
                 </span>
             </div>
 
-            {/* Invite Code (Host Only) */}
+            {/* Avatars Vertical Stack */}
+            <div className="flex flex-col -space-y-2 items-center">
+                {members.map((member) => (
+                    <div
+                        key={member.userId}
+                        className="w-8 h-8 rounded-full border-2 border-black overflow-hidden bg-zinc-800 relative z-0 hover:z-10 transition-all hover:scale-110"
+                        title={member.username}
+                    >
+                        {member.avatar ? (
+                            <img
+                                src={member.avatar}
+                                alt={member.username}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white uppercase">
+                                {member.username[0]}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Invite Code */}
             {isHost && inviteCode && (
-                <div className="bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider">
-                        Code:
-                    </span>
-                    <span className="text-xs text-white font-mono font-bold ml-1.5">
+                <div className="flex flex-col items-center gap-1 py-2 border-t border-white/5 w-full">
+                    <span className="text-[9px] text-zinc-500 uppercase font-black tracking-widest">Code</span>
+                    <span className="font-mono font-bold text-white text-xs tracking-wider bg-white/5 px-2 py-0.5 rounded text-center w-full">
                         {inviteCode}
                     </span>
                 </div>
             )}
 
-            {/* Controls */}
-            <div className="flex gap-2">
-                {/* Sync Button (Host Only, Non-Vidora) */}
-                {isHost && showSyncButton && onSync && (
-                    <button
-                        onClick={onSync}
-                        className="bg-black/50 hover:bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 transition-colors text-xs text-white font-medium"
-                    >
-                        Sync All
-                    </button>
-                )}
-
-                {/* Leave Button */}
+            {/* Sync Button */}
+            {isHost && showSyncButton && onSync && (
                 <button
-                    onClick={onLeave}
-                    className="bg-black/50 hover:bg-red-500/20 backdrop-blur-md p-1.5 rounded-full border border-white/10 hover:border-red-500/20 transition-colors group"
-                    title="Leave Party"
+                    onClick={onSync}
+                    className="w-full py-1.5 bg-blue-500/20 hover:bg-blue-500/40 text-[10px] text-blue-200 font-bold uppercase tracking-wider rounded transition-colors"
                 >
-                    <LogOut size={14} className="text-white group-hover:text-red-400 transition-colors" />
+                    Sync
                 </button>
-            </div>
+            )}
+
+            {/* Leave Button */}
+            <button
+                onClick={onLeave}
+                className="mt-2 p-2 rounded-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all flex items-center justify-center"
+                title="Leave Party"
+            >
+                <LogOut size={16} />
+            </button>
         </div>
     );
 };

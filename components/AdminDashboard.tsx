@@ -17,7 +17,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [allPlaylists, setAllPlaylists] = useState<any[]>([]);
     const [featuredMovies, setFeaturedMovies] = useState<any[]>([]);
-    const [settings, setSettings] = useState<any>({});
+    const [appSettings, setAppSettings] = useState<any>({});
     const [loading, setLoading] = useState(true);
 
     // Filter/Search State
@@ -52,7 +52,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             setAnnouncements(announcementsData);
             setAllPlaylists(playlistsData);
             setFeaturedMovies(featuredData);
-            setSettings(settingsData);
+            setAppSettings(settingsData);
         } catch (e) {
             console.error(e);
         } finally {
@@ -219,13 +219,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             </div>
                                             <input
                                                 type="text"
-                                                value={settings.site_url?.replace('https://', '').replace('http://', '') || ''}
-                                                onChange={(e) => setSettings(prev => ({ ...prev, site_url: `https://${e.target.value.replace(/^https?:\/\//, '')}` }))}
+                                                value={appSettings.site_url?.replace('https://', '').replace('http://', '') || ''}
+                                                onChange={(e) => setAppSettings((prev: any) => ({ ...prev, site_url: `https://${e.target.value.replace(/^https?:\/\//, '')}` }))}
                                                 placeholder="stream.app"
                                                 className="flex-1 bg-black/50 border border-white/10 rounded-l-xl pl-16 pr-4 py-4 text-white placeholder:text-zinc-800 focus:border-white/20 focus:bg-white/5 outline-none transition-all font-mono text-sm"
                                             />
                                             <button
-                                                onClick={() => handleSaveSetting('site_url', settings.site_url)}
+                                                onClick={() => handleSaveSetting('site_url', appSettings.site_url)}
                                                 className="px-6 bg-white/5 hover:bg-white/10 border-y border-r border-white/10 rounded-r-xl text-white font-bold text-sm transition-all hover:px-8 active:scale-95"
                                             >
                                                 Save
@@ -244,13 +244,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         <div className="flex gap-3">
                                             <input
                                                 type="text"
-                                                value={settings.donation_url || ''}
-                                                onChange={(e) => setSettings(prev => ({ ...prev, donation_url: e.target.value }))}
+                                                value={appSettings.donation_url || ''}
+                                                onChange={(e) => setAppSettings((prev: any) => ({ ...prev, donation_url: e.target.value }))}
                                                 placeholder="https://ko-fi.com/username"
                                                 className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-zinc-800 focus:border-white/20 focus:bg-white/5 outline-none transition-all font-mono text-sm"
                                             />
                                             <button
-                                                onClick={() => handleSaveSetting('donation_url', settings.donation_url)}
+                                                onClick={() => handleSaveSetting('donation_url', appSettings.donation_url)}
                                                 className="px-6 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors active:scale-95"
                                             >
                                                 Save

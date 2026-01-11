@@ -20,6 +20,7 @@ interface UnifiedPlayerProps {
     voteAverage?: number;
     backdropUrl?: string;
     episodeImage?: string;
+    autoJoinCode?: string;
 }
 
 type Provider = 'cinemaos' | 'vidora' | 'rive' | 'aeon' | 'cinezo';
@@ -41,8 +42,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     posterUrl = '',
     voteAverage = 0,
     backdropUrl = '',
-    episodeImage = ''
+    episodeImage = '',
+    autoJoinCode
 }) => {
+    // ... existing state ...
     const [provider, setProvider] = useState<Provider>('cinemaos');
     const [lastTime, setLastTime] = useState(0);
     const [showServers, setShowServers] = useState(false);
@@ -52,12 +55,26 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
     // Watch Together State
     const { user } = useAuth();
-    const [showPartyModal, setShowPartyModal] = useState(false);
+    const [showPartyModal, setShowPartyModal] = useState(!!autoJoinCode); // Open if auto-joining
     const [partyId, setPartyId] = useState<string | null>(null);
     const [inviteCode, setInviteCode] = useState('');
     const [isHost, setIsHost] = useState(false);
     const [partyChannel, setPartyChannel] = useState<any>(null);
     const [partyMembers, setPartyMembers] = useState<PartyMember[]>([]);
+
+    // Handle Auto-Join
+    useEffect(() => {
+        if (autoJoinCode && !partyId) {
+            // We pass the code to the modal via props, or we just trigger the join immediately
+            // But we need the modal to be open to show "Joining..." or success
+            // Let's modify WatchPartyModal to handle auto-trigger if we want, 
+            // OR simpler: just call joinParty directly here?
+            // Better to let the user confirm or see the modal state.
+            // For now, let's just prep the modal.
+            // Actually, let's try to auto-join silently if we can?
+            // No, better experience is seeing the modal "Joining party..."
+        }
+    }, [autoJoinCode]);
 
     // Close server menu on click outside
     useEffect(() => {
@@ -117,10 +134,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         partyChannel.on('presence', { event: 'join' }, updatePresence);
         partyChannel.on('presence', { event: 'leave' }, updatePresence);
 
-        return () => {
-            partyChannel.off('presence');
-        };
-    }, [partyChannel, user, provider]); // Added provider dependency
+        // Cleanup is handled by the leaveParty call in the separate useEffect
+        return () => { };
+    }, [partyChannel, user, provider]);
 
     // Watch Together: Cleanup on unmount
     useEffect(() => {
@@ -317,6 +333,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             <WatchPartyModal
                 isOpen={showPartyModal}
                 onClose={() => setShowPartyModal(false)}
+                autoJoinCode={autoJoinCode}
                 onCreateParty={async () => {
                     const result = await WatchTogetherService.createParty(
                         tmdbId,

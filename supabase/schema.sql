@@ -7,8 +7,27 @@ create table public.profiles (
   username text unique,
   avatar_url text,
   role text default 'user' check (role in ('user', 'admin', 'moderator')),
+  watch_history jsonb default '{}'::jsonb, -- Netflix-style bundled history
   created_at timestamptz default now()
 );
+
+-- RPC to atomically update a single history item inside the JSON blob
+create or replace function update_watch_history(
+  p_user_id uuid,
+  p_tmdb_id text,
+  p_data jsonb
+)
+returns void as $$
+begin
+  update public.profiles
+  set watch_history = jsonb_set(
+    coalesce(watch_history, '{}'::jsonb), 
+    array[p_tmdb_id], 
+    p_data
+  )
+  where id = p_user_id;
+end;
+$$ language plpgsql security definer;
 
 -- Secure Profiles (RLS)
 alter table public.profiles enable row level security;
@@ -67,25 +86,9 @@ create policy "Users can remove items from own playlists" on public.playlist_ite
   exists ( select 1 from public.playlists p where p.id = playlist_items.playlist_id and p.user_id = auth.uid() )
 );
 
--- 4. WATCH HISTORY
-create table public.watch_history (
-  user_id uuid references public.profiles(id) not null,
-  tmdb_id text not null,
-  media_type text not null,
-  progress float default 0,
-  duration int default 0,
-  metadata jsonb,
-  last_watched timestamptz default now(),
-  primary key (user_id, tmdb_id)
-);
+-- 4. WATCH HISTORY (Legacy / Deprecated in favor of profiles.watch_history JSONB)
+-- create table public.watch_history ... (Deprecated)
 
-alter table public.watch_history enable row level security;
-create policy "Users can view own history" on public.watch_history for select using (auth.uid() = user_id);
-create policy "Admins can view all history" on public.watch_history for select using (
-  exists ( select 1 from public.profiles where id = auth.uid() and role = 'admin' )
-);
-create policy "Users can insert/update own history" on public.watch_history for insert with check (auth.uid() = user_id);
-create policy "Users can update own history" on public.watch_history for update using (auth.uid() = user_id);
 
 -- 5. ANNOUNCEMENTS (Admin)
 create table public.announcements (

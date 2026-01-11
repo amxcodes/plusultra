@@ -7,17 +7,19 @@ interface WatchPartyModalProps {
     onClose: () => void;
     onCreateParty: () => Promise<string | null>; // Returns invite code
     onJoinParty: (code: string) => Promise<boolean>;
+    autoJoinCode?: string;
 }
 
 export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
     isOpen,
     onClose,
     onCreateParty,
-    onJoinParty
+    onJoinParty,
+    autoJoinCode
 }) => {
     const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
     const [inviteCode, setInviteCode] = useState('');
-    const [joinCode, setJoinCode] = useState('');
+    const [joinCode, setJoinCode] = useState(autoJoinCode || '');
     const [copied, setCopied] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -25,11 +27,33 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
 
     useEffect(() => {
         if (isOpen) {
+            if (autoJoinCode) {
+                setActiveTab('join');
+                setJoinCode(autoJoinCode);
+                handleJoin(autoJoinCode); // Auto trigger
+            }
             SocialService.getAppSettings().then(settings => {
                 if (settings.site_url) setSiteUrl(settings.site_url);
             });
         }
     }, [isOpen]);
+
+    const handleJoin = async (codeOverride?: string) => {
+        const codeToUse = codeOverride || joinCode;
+        if (codeToUse.length !== 6) {
+            setError('Code must be 6 characters');
+            return;
+        }
+        setLoading(true);
+        setError('');
+        const success = await onJoinParty(codeToUse.toUpperCase());
+        if (success) {
+            onClose();
+        } else {
+            setError('Party not found or full');
+        }
+        setLoading(false);
+    };
 
     if (!isOpen) return null;
 
@@ -45,21 +69,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
         setLoading(false);
     };
 
-    const handleJoin = async () => {
-        if (joinCode.length !== 6) {
-            setError('Code must be 6 characters');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        const success = await onJoinParty(joinCode.toUpperCase());
-        if (success) {
-            onClose();
-        } else {
-            setError('Party not found or full');
-        }
-        setLoading(false);
-    };
+
 
     const copyCode = () => {
         const textToCopy = siteUrl

@@ -27,6 +27,7 @@ import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { AnnouncementsPage } from './components/AnnouncementsPage';
 import { PlayerPage } from './components/PlayerPage';
 import { ActivityPage } from './components/ActivityPage';
+import { WatchTogetherService } from './lib/watchTogether';
 
 function StreamApp() {
   const { user, loading } = useAuth();
@@ -86,30 +87,89 @@ function StreamApp() {
     loadData();
   }, []);
 
+
+  // ... imports
+
+
   // Hydrate Continue Watching from History
   useEffect(() => {
-    const historyItems = getContinueWatching();
-    const movies: Movie[] = historyItems.map(h => ({
-      id: parseInt(h.tmdbId),
-      tmdbId: parseInt(h.tmdbId),
-      title: h.title || "Untitled",
-      year: h.year || new Date().getFullYear(),
-      match: h.voteAverage ? Math.round(h.voteAverage * 10) : 0,
-      imageUrl: h.mediaType === 'tv' && h.episodeImage
-        ? h.episodeImage
-        : (h.backdropUrl || h.posterUrl || ""),
-      mediaType: h.type,
-      ...({
-        progress: h.duration > 0 ? h.time / h.duration : 0,
-        season: h.season,
-        episode: h.episode
-      } as any)
-    }));
-    setContinueWatching(movies);
+    if (activeTab === NavItem.DASHBOARD) {
+      const items = getContinueWatching();
+      const mappedItems = items.map(item => {
+        // Calculate progress
+        const progress = item.duration > 0 ? (item.time / item.duration) : 0;
+
+        // Determine best image
+        // prioritizing 16:9 images for continue watching cards
+        const image = item.episodeImage || item.backdropUrl || item.posterUrl || "";
+
+        // Ensure imageUrl is fully qualified if it's a relative path (though usually they are full URLs or TMDB paths)
+        // Note: Our history saves them as full strings usually, but if relying on TMDB paths:
+        const finalImage = image.startsWith('/') ? `https://image.tmdb.org/t/p/w500${image}` : image;
+
+        return {
+          ...item,
+          id: parseInt(item.tmdbId),
+          title: item.title || "Untitled",
+          imageUrl: finalImage, // Critical fix for thumbnails
+          year: item.year || new Date().getFullYear(),
+          match: item.voteAverage || 0,
+          mediaType: item.type,
+          progress, // For ContinueWatchingCard
+          timeLeft: item.duration - item.time
+        } as unknown as Movie;
+      });
+      setContinueWatching(mappedItems);
+    }
   }, [getContinueWatching, activeTab]);
 
   // Player State
-  const [playerState, setPlayerState] = useState<{ movie: Movie; season?: number; episode?: number } | null>(null);
+  const [playerState, setPlayerState] = useState<{ movie: Movie; season?: number; episode?: number; autoJoinCode?: string } | null>(null);
+
+  // Auto-Join Logic
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get('join');
+
+    if (joinCode) {
+      const handleAutoJoin = async () => {
+        // We need to fetch party details to know WHAT to play
+        // We'll reuse joinParty to get details, but we won't subscribe yet (UnifiedPlayer does that)
+        // Actually, we can just query the table directly or use a specific service method
+        // Let's add getPartyDetails to service first? Or just try to join.
+
+        // Simplest: Just use joinParty to get metadata, then unmount (since we switch to player)
+        // But wait, joinParty subscribes.
+        // Let's just blindly trust the code? No we need TMDB ID.
+
+        // Let's assume we can fetch it.
+        // I'll add `getPartyDetails` to WatchTogetherService in a moment.
+        const party = await WatchTogetherService.getPartyDetails(joinCode);
+        if (party) {
+          // Fetch movie details to construct full object
+          const details = await TmdbService.getDetails(party.tmdb_id, party.media_type);
+          const movieReq = {
+            id: parseInt(party.tmdb_id),
+            tmdbId: parseInt(party.tmdb_id),
+            mediaType: party.media_type,
+            title: details.title,
+            ...details
+          };
+
+          setPlayerState({
+            movie: movieReq as Movie,
+            season: party.season,
+            episode: party.episode,
+            autoJoinCode: joinCode
+          });
+
+          // Clean URL
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      };
+      handleAutoJoin();
+    }
+  }, []);
 
   const handleMovieSelect = (movie: Movie) => {
     setSelectedMovie(movie);

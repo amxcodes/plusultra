@@ -104,6 +104,18 @@ export const WatchTogetherService = {
         return { party: data, channel };
     },
 
+    // Get party details without joining (for auto-join routing)
+    async getPartyDetails(inviteCode: string): Promise<WatchParty | null> {
+        const { data, error } = await supabase
+            .from('watch_parties')
+            .select('*')
+            .eq('invite_code', inviteCode.toUpperCase())
+            .single();
+
+        if (error) return null;
+        return data;
+    },
+
     // Leave party and cleanup
     async leaveParty(channel: any) {
         if (channel) {
