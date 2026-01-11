@@ -60,7 +60,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [partyId, setPartyId] = useState<string | null>(null);
     const [inviteCode, setInviteCode] = useState('');
     const [isHost, setIsHost] = useState(false);
-    const [partyChannel, setPartyChannel] = useState<any>(null);
     const [partyMembers, setPartyMembers] = useState<PartyMember[]>([]);
 
     // Handle Auto-Join
@@ -192,8 +191,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                         });
 
                         // Broadcast sync for Vidora if in a party and is host
-                        if (partyChannel && isHost) {
-                            WatchTogetherService.broadcastSync(partyChannel, {
+                        // Broadcast sync for Vidora if in a party and is host
+                        if (isConnected && isHost) {
+                            sendSync({
                                 type: isPlaying ? 'play' : 'pause',
                                 timestamp: progress
                             });
@@ -205,7 +205,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, partyChannel, isHost]);
+    }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, isConnected, isHost, sendSync]);
 
     // Automatic progress tracking
     useEffect(() => {
@@ -282,16 +282,15 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             />
 
             {/* Party Indicator */}
-            {partyId && partyChannel && (
+            {partyId && isConnected && (
                 <PartyIndicator
                     members={partyMembers}
                     inviteCode={isHost ? inviteCode : undefined}
                     isHost={isHost}
                     onLeave={async () => {
-                        await WatchTogetherService.leaveParty(partyChannel);
-                        if (isHost) await WatchTogetherService.endParty(partyId);
+                        // Hook handles cleanup on unmount/partyId change
+                        // We just need to clear local state to trigger hook cleanup
                         setPartyId(null);
-                        setPartyChannel(null);
                         setInviteCode('');
                         setIsHost(false);
                     }}
