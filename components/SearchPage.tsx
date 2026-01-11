@@ -194,14 +194,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
                     <div
                       key={user.id}
                       onClick={() => handleUserClick(user.id)}
-                      className="bg-black/40 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 hover:border-white/10 transition-all cursor-pointer group hover:-translate-y-1 duration-300"
+                      className="bg-black/40 border border-white/5 p-4 rounded-2xl flex items-center gap-4 hover:bg-white/5 hover:border-white/10 transition-all cursor-pointer group duration-200"
                     >
                       <img
                         src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.username}&background=random`}
                         className="w-14 h-14 rounded-full border-2 border-transparent group-hover:border-white/20 transition-all"
                       />
                       <div>
-                        <h3 className="font-bold text-white group-hover:text-amber-400 transition-colors">{user.username}</h3>
+                        <h3 className="font-bold text-white transition-colors">{user.username}</h3>
                         <p className="text-xs text-zinc-500 capitalize flex items-center gap-1">
                           {user.role} {user.role === 'admin' && <Sparkles size={10} className="text-amber-400" />}
                         </p>

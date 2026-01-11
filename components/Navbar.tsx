@@ -14,7 +14,8 @@ import {
   Drama,
   User,
   Shield, // For Admin
-  Bell // Announcements
+  Bell, // Announcements
+  Activity // Activity Log
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -35,6 +36,7 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.PROFILE]: User,
   [NavItem.ADMIN]: Shield,
   [NavItem.ANNOUNCEMENTS]: Bell,
+  [NavItem.ACTIVITY]: Activity,
 };
 
 import { useAuth } from '../lib/AuthContext';
@@ -82,6 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           item !== NavItem.PROFILE &&
           item !== NavItem.MY_LIST &&
           item !== NavItem.ANNOUNCEMENTS &&
+          item !== NavItem.ACTIVITY &&
           (item !== NavItem.ADMIN || profile?.role === 'admin')
         ).map((item) => {
           const Icon = NAV_ICONS[item];
@@ -120,6 +123,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ANNOUNCEMENTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
         >
           <Bell size={18} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
+        </button>
+
+        <button
+          onClick={() => setActiveTab(NavItem.ACTIVITY)}
+          className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ACTIVITY ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+        >
+          <Activity size={18} strokeWidth={activeTab === NavItem.ACTIVITY ? 2.5 : 2} />
         </button>
 
         <button

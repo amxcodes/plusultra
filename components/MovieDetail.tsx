@@ -3,18 +3,17 @@ import { Movie } from '../types';
 import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
-import { UnifiedPlayer } from './UnifiedPlayer';
 import { TmdbService } from '../services/tmdb';
 
 interface MovieDetailProps {
     movie: Movie & { numberOfSeasons?: number; seasons?: any[] };
     onClose: () => void;
-    similarMovies?: Movie[]; // Optional now, as we fetch internally
+    onPlay: (movie: Movie, season?: number, episode?: number) => void;
+    similarMovies?: Movie[];
 }
 
-export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
+export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay }) => {
     const [isVisible, setIsVisible] = useState(false);
-    const [isPlaying, setIsPlaying] = useState(false);
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
     // Detailed Movie State (Merges prop with fetched details)
@@ -48,7 +47,6 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
         setCurrentSeason(1);
         setCurrentEpisode(1);
         setEpisodePage(1);
-        setIsPlaying(false);
         setRecommendations([]);
 
         // Default mock seasons if none yet
@@ -142,8 +140,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
 
     const handleEpisodeSelect = (epNum: number) => {
         setCurrentEpisode(epNum);
-        setIsPlaying(true);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        onPlay(activeMovie, currentSeason, epNum);
     }
 
     // Handle switching to a recommended movie
@@ -206,39 +203,6 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
                             </div>
                         </div>
                     </div>
-                ) : isPlaying ? (
-                    <div className="w-full max-w-6xl mx-auto px-4 pt-20 pb-10">
-                        <UnifiedPlayer
-                            tmdbId={activeMovie.id.toString()}
-                            mediaType={activeMovie.mediaType || "movie"}
-                            season={currentSeason}
-                            episode={currentEpisode}
-                            title={activeMovie.title}
-                            posterUrl={activeMovie.imageUrl}
-                            voteAverage={activeMovie.match / 10}
-                            backdropUrl={activeMovie.backdropUrl || activeMovie.imageUrl}
-                            episodeImage={
-                                activeMovie.mediaType === 'tv'
-                                    ? episodes.find(e => e.episode_number === currentEpisode)?.still_path
-                                        ? `https://image.tmdb.org/t/p/w500${episodes.find(e => e.episode_number === currentEpisode)?.still_path}`
-                                        : undefined
-                                    : undefined
-                            }
-                        />
-                        <div className='flex items-center gap-4 mt-4'>
-                            <button
-                                onClick={() => setIsPlaying(false)}
-                                className="text-white/50 hover:text-white text-sm underline"
-                            >
-                                Close Player
-                            </button>
-                            {activeMovie.mediaType === 'tv' && (
-                                <span className="text-white text-sm font-bold bg-purple-600 px-3 py-1 rounded">
-                                    Playing: S{currentSeason} : E{currentEpisode}
-                                </span>
-                            )}
-                        </div>
-                    </div>
                 ) : (
                     <>
                         <div className="absolute inset-0">
@@ -273,7 +237,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
 
                             <div className="flex items-center gap-4 mt-2">
                                 <button
-                                    onClick={() => setIsPlaying(true)}
+                                    onClick={() => onPlay(activeMovie, currentSeason, currentEpisode)}
                                     className="flex items-center gap-3 bg-white hover:bg-gray-200 text-black px-8 py-3.5 rounded-full font-bold tracking-wide transition-transform hover:scale-105 active:scale-95"
                                 >
                                     <Play size={20} className="fill-black" />
@@ -411,7 +375,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
                                                         key={ep.id}
                                                         onClick={() => handleEpisodeSelect(ep.episode_number)}
                                                         className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all border group
-                                    ${currentEpisode === ep.episode_number && isPlaying
+                                    ${currentEpisode === ep.episode_number
                                                                 ? 'bg-purple-900/40 border-purple-500/50'
                                                                 : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'}`}
                                                     >
@@ -433,7 +397,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
 
                                                         <div className="flex-1">
                                                             <div className="flex items-center justify-between mb-1">
-                                                                <h4 className={`text-base font-semibold ${currentEpisode === ep.episode_number && isPlaying ? 'text-purple-400' : 'text-gray-200'}`}>
+                                                                <h4 className={`text-base font-semibold ${currentEpisode === ep.episode_number ? 'text-purple-400' : 'text-gray-200'}`}>
                                                                     {ep.episode_number}. {ep.name || `Episode ${ep.episode_number}`}
                                                                 </h4>
                                                                 <div className="flex items-center gap-2">

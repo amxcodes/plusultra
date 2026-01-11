@@ -25,6 +25,8 @@ import { SocialService } from './lib/social';
 import { PlaylistRow } from './components/PlaylistRow';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { AnnouncementsPage } from './components/AnnouncementsPage';
+import { PlayerPage } from './components/PlayerPage';
+import { ActivityPage } from './components/ActivityPage';
 
 function StreamApp() {
   const { user, loading } = useAuth();
@@ -106,8 +108,15 @@ function StreamApp() {
     setContinueWatching(movies);
   }, [getContinueWatching, activeTab]);
 
+  // Player State
+  const [playerState, setPlayerState] = useState<{ movie: Movie; season?: number; episode?: number } | null>(null);
+
   const handleMovieSelect = (movie: Movie) => {
     setSelectedMovie(movie);
+  };
+
+  const handlePlay = (movie: Movie, season?: number, episode?: number) => {
+    setPlayerState({ movie, season, episode });
   };
 
   const handlePlaylistSelect = (playlist: Playlist) => {
@@ -122,6 +131,7 @@ function StreamApp() {
     if (tab !== NavItem.PROFILE) setSelectedProfileId(undefined);
     if (tab !== activeTab) setSelectedPlaylistId(undefined);
     setSelectedMovie(null); // Close movie detail when navigating
+    setPlayerState(null); // Close player on tab change
     setActiveTab(tab);
     setIsSearchOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -142,6 +152,18 @@ function StreamApp() {
   if (loading) return <div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white">Loading...</div>;
   if (!user) return <AuthPage />;
 
+  // Render Player Page if active
+  if (playerState) {
+    return (
+      <PlayerPage
+        movie={playerState.movie}
+        season={playerState.season}
+        episode={playerState.episode}
+        onBack={() => setPlayerState(null)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0f1014] text-white selection:bg-white/30 selection:text-white font-sans overflow-x-hidden">
       <Navbar
@@ -154,10 +176,12 @@ function StreamApp() {
         <MovieDetail
           movie={selectedMovie}
           onClose={handleCloseDetail}
+          onPlay={handlePlay}
           similarMovies={[]}
         />
       )}
 
+      {/* Rest of the app... */}
       <div className={`transition-opacity duration-300 ${selectedMovie ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {isSearchOpen ? (
           <div className="animate-in fade-in duration-500 pl-24 pt-8">
@@ -179,10 +203,11 @@ function StreamApp() {
                   backdropUrl: "",
                   description: ""
                 }}
-                onPlay={(m) => handleMovieSelect(m as Movie)}
+                onPlay={(m) => handlePlay(m as Movie)}
                 onAddToPlaylist={(m) => setPlaylistModalMovie(m as Movie)}
               />
             )}
+
 
             <div className={`${activeTab === NavItem.DASHBOARD ? '-mt-32' : 'pt-20'} relative z-20 pl-4 md:pl-10 space-y-2`}>
 
@@ -315,6 +340,11 @@ function StreamApp() {
               {/* ANNOUNCEMENTS VIEW */}
               {activeTab === NavItem.ANNOUNCEMENTS && (
                 <AnnouncementsPage />
+              )}
+
+              {/* ACTIVITY VIEW */}
+              {activeTab === NavItem.ACTIVITY && (
+                <ActivityPage />
               )}
 
               {/* Add To Playlist Modal (Global generic overlay) */}

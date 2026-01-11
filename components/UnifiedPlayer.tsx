@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
 import { useSkipData } from './useSkipData';
+import { Settings, Check } from 'lucide-react';
 
 type MediaType = 'movie' | 'tv';
 
@@ -9,20 +11,20 @@ interface UnifiedPlayerProps {
     mediaType: MediaType;
     season?: number;
     episode?: number;
-    title?: string; // Needed for QuickWatch
-    posterUrl?: string; // Needed for Continue Watching UI
-    voteAverage?: number; // Needed for Continue Watching UI
-    backdropUrl?: string; // NEW: For CW Card
-    episodeImage?: string; // NEW: For CW Card
+    title?: string;
+    posterUrl?: string;
+    voteAverage?: number;
+    backdropUrl?: string;
+    episodeImage?: string;
 }
 
 type Provider = 'cinemaos' | 'vidora' | 'rive' | 'aeon';
 
 const PROVIDERS: { id: Provider; name: string; hasEvents: boolean }[] = [
-    { id: 'cinemaos', name: 'ZXC Stream (Best)', hasEvents: false },
-    { id: 'vidora', name: 'Vidora (Sync)', hasEvents: true },
-    { id: 'rive', name: 'Rive Stream', hasEvents: false },
-    { id: 'aeon', name: 'AeonWatch', hasEvents: false },
+    { id: 'cinemaos', name: 'Server 1 (Best)', hasEvents: false },
+    { id: 'vidora', name: 'Server 2 (Backup)', hasEvents: true },
+    { id: 'rive', name: 'Server 3', hasEvents: false },
+    { id: 'aeon', name: 'Server 4', hasEvents: false },
 ];
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
@@ -38,45 +40,47 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 }) => {
     const [provider, setProvider] = useState<Provider>('cinemaos');
     const [lastTime, setLastTime] = useState(0);
-    const { updateProgress, getProgress } = useWatchHistory();
+    const [showServers, setShowServers] = useState(false);
+    const { updateProgress } = useWatchHistory();
     const { skipData } = useSkipData(title, season, episode);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
+    // Close server menu on click outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (showServers && !(e.target as Element).closest('#server-menu')) {
+                setShowServers(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showServers]);
 
 
     // Construct URL based on provider
     const getUrl = () => {
         switch (provider) {
             case 'cinemaos':
-                // https://zxcstream.xyz/player/movie/{tmdb-Id}/{language}?autoplay=false&back=true&server=0
-                // https://zxcstream.xyz/player/tv/{tmdb-Id}/{season}/{episode}/{language}?autoplay=false&back=true&server=0
                 const baseUrl = 'https://zxcstream.xyz/player';
                 const commonQuery = 'autoplay=false&back=true&server=0';
-
                 if (mediaType === 'movie') {
                     return `${baseUrl}/movie/${tmdbId}/en?${commonQuery}`;
                 }
                 return `${baseUrl}/tv/${tmdbId}/${season}/${episode}/en?${commonQuery}`;
 
             case 'vidora':
-                // https://vidora.su/movie/[tmdbId]
-                // https://vidora.su/tv/[tmdbId]/[season]/[episode]
                 if (mediaType === 'movie') {
                     return `https://vidora.su/movie/${tmdbId}?autoplay=false`;
                 }
                 return `https://vidora.su/tv/${tmdbId}/${season}/${episode}?autoplay=false`;
 
             case 'rive':
-                // https://rivestream.org/embed?type=movie&id={tmdbId}
-                // https://rivestream.org/embed?type=tv&id={tmdbId}&season={season}&episode={episode}
                 if (mediaType === 'movie') {
                     return `https://rivestream.org/embed?type=movie&id=${tmdbId}`;
                 }
                 return `https://rivestream.org/embed?type=tv&id=${tmdbId}&season=${season}&episode=${episode}`;
 
             case 'aeon':
-                // https://thisiscinema.pages.dev/?type=movie&version=v3&id={id}
-                // https://thisiscinema.pages.dev/?type=tv&version=v3&id={id}&season={s}&episode={e}
                 if (mediaType === 'movie') {
                     return `https://thisiscinema.pages.dev/?type=movie&version=v3&id=${tmdbId}`;
                 }
@@ -90,16 +94,11 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     // Event Listener for PostMessage (P-Stream / Vidora)
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-
-
-            // VIDORA Handler (Based on API docs: type === 'MEDIA_DATA')
-            // Note: Vidora docs mention 'MEDIA_DATA' but let's be defensive
             if (event.origin.includes("vidora.su") && provider === 'vidora') {
                 if (event.data?.type === 'MEDIA_DATA') {
-                    const { id, progress, duration } = event.data.data || {};
-                    // Vidora might send its own ID structure, we assume it matches or we just log for now
+                    const { progress, duration } = event.data.data || {};
                     if (progress) {
-                        setLastTime(progress); // Assuming progress is in seconds
+                        setLastTime(progress);
                         updateProgress({
                             tmdbId,
                             type: mediaType,
@@ -124,16 +123,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         return () => window.removeEventListener("message", handleMessage);
     }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage]);
 
-    // Automatic progress tracking for all providers
-    // Save progress every 30 seconds to ensure Continue Watching works
+    // Automatic progress tracking
     useEffect(() => {
         let progressInterval: NodeJS.Timeout;
         let elapsedTime = 0;
 
         const saveProgress = () => {
-            elapsedTime += 30; // Increment by 30 seconds
-
-            // Only save if we've been watching for at least 10 seconds
+            elapsedTime += 30;
             if (elapsedTime >= 10) {
                 updateProgress({
                     tmdbId,
@@ -141,26 +137,24 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     season,
                     episode,
                     time: elapsedTime,
-                    duration: 0, // We don't know duration without events, but that's OK
+                    duration: 0,
                     lastUpdated: Date.now(),
                     provider,
                     title,
                     posterUrl,
                     voteAverage,
-                    year: new Date().getFullYear(), // Approximate
+                    year: new Date().getFullYear(),
                     backdropUrl,
                     episodeImage
                 });
             }
         };
 
-        // Start interval after component mounts
-        progressInterval = setInterval(saveProgress, 30000); // Every 30 seconds
+        progressInterval = setInterval(saveProgress, 30000);
 
         return () => {
             if (progressInterval) {
                 clearInterval(progressInterval);
-                // Save one final time on unmount
                 if (elapsedTime >= 10) {
                     updateProgress({
                         tmdbId,
@@ -184,81 +178,77 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage]);
 
 
-    // Logic for showing Skip Button
-    // We only know 'lastTime' if the provider sends updates.
-    // If lastTime is within skipData.intro.start and end, we show button.
     const showSkipIntro = skipData?.intro?.start && skipData?.intro?.end &&
         lastTime >= skipData.intro.start && lastTime < skipData.intro.end;
 
 
     return (
-        <div className="w-full flex flex-col gap-4 bg-black/90 p-4 rounded-xl border border-white/10">
+        <div className="w-full h-full relative bg-black group">
 
-            {/* Header / Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-xl font-bold text-white">Unified Player</h2>
+            {/* Iframe spans entire container */}
+            <iframe
+                ref={iframeRef}
+                src={getUrl()}
+                width="100%"
+                height="100%"
+                allowFullScreen
+                className="w-full h-full border-none"
+                title={`Player - ${provider}`}
+                id="unified-iframe"
+                sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"
+            />
 
-                <div className="flex gap-2">
-                    {PROVIDERS.map((p) => (
-                        <button
-                            key={p.id}
-                            onClick={() => setProvider(p.id)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all
-                        ${provider === p.id
-                                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
-                                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
-                                }`}
-                        >
-                            {p.name}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Player Container */}
-            <div className="relative aspect-video w-full bg-black rounded-lg overflow-hidden shadow-2xl border border-zinc-900 group">
-
-                <iframe
-                    ref={iframeRef}
-                    src={getUrl()}
-                    width="100%"
-                    height="100%"
-                    allowFullScreen
-                    className="w-full h-full"
-                    title={`Player - ${provider}`}
-                    id="unified-iframe"
-                />
-
-                {/* Overlays */}
-                {showSkipIntro && (
+            {/* Controls Overlay (Top Right) */}
+            <div className="absolute top-6 right-6 z-50 flex gap-4">
+                <div className="relative" id="server-menu">
                     <button
-                        className="absolute bottom-20 right-8 px-6 py-2 bg-white text-black font-bold rounded-full shadow-lg 
-                           hover:bg-gray-200 transition-transform hover:scale-105 z-50 animate-in fade-in slide-in-from-bottom-4"
-                        onClick={() => {
-                            // This is tricky. We can't easily SEEK the iframe unless the API supports it via postMessage.
-                            // P-Stream docs don't explicitly show a 'seek' command listener, only 'time update' outputs.
-                            // So for now, this is visual only or minimal support.
-                            console.log("Skip clicked - Implementation depends on strict bi-directional API support");
-                            alert("Skip Request Sent (Note: Seek support varies by provider)");
-                        }}
+                        onClick={() => setShowServers(!showServers)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md transition-all
+                        ${showServers ? 'bg-white text-black' : 'bg-black/50 text-white hover:bg-white/20'}`}
                     >
-                        Skip Intro
+                        <Settings size={16} />
+                        <span className="text-sm font-medium">Servers</span>
                     </button>
-                )}
 
-                {/* Provider Badge */}
-                <div className="absolute top-4 right-4 px-2 py-1 bg-black/50 backdrop-blur-md rounded text-xs text-white/50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    Using {PROVIDERS.find(p => p.id === provider)?.name}
+                    {showServers && (
+                        <div className="absolute right-0 top-full mt-2 w-48 bg-[#0f1014] border border-white/10 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
+                            {PROVIDERS.map((p) => (
+                                <button
+                                    key={p.id}
+                                    onClick={() => {
+                                        setProvider(p.id);
+                                        setShowServers(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg flex items-center justify-between group/item transition-colors
+                                    ${provider === p.id
+                                            ? 'bg-white text-black'
+                                            : 'text-zinc-400 hover:bg-white/10 hover:text-white'}`}
+                                >
+                                    {p.name}
+                                    {provider === p.id && <Check size={14} />}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
-
             </div>
 
-            {/* Status Bar */}
-            <div className="flex justify-between text-xs text-zinc-500 px-2">
-                <span>ID: {tmdbId}</span>
-                <span>
-                    {lastTime > 0 ? `Resuming from ${Math.floor(lastTime / 60)}:${Math.floor(lastTime % 60).toString().padStart(2, '0')}` : 'Ready to play'}
-                </span>
+            {/* Skip Intro Button */}
+            {showSkipIntro && (
+                <button
+                    className="absolute bottom-24 right-8 px-6 py-2 bg-white text-black font-bold rounded-full shadow-lg 
+                            hover:bg-gray-200 transition-transform hover:scale-105 z-50 animate-in fade-in slide-in-from-bottom-4"
+                    onClick={() => {
+                        console.log("Skip clicked");
+                    }}
+                >
+                    Skip Intro
+                </button>
+            )}
+
+            {/* Provider Watermark (Fades out) */}
+            <div className="absolute bottom-6 right-6 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] text-white/30 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                {PROVIDERS.find(p => p.id === provider)?.name}
             </div>
 
         </div>

@@ -73,10 +73,27 @@ export const SocialService = {
     async isFollowing(followerId: string, followingId: string): Promise<boolean> {
         const { data } = await supabase
             .from('follows')
-            .select('id')
+            .select('*')
             .match({ follower_id: followerId, following_id: followingId })
-            .single();
+            .maybeSingle();
         return !!data;
+    },
+
+    async getFollowers(userId: string): Promise<Profile[]> {
+        const { data, error } = await supabase
+            .from('follows')
+            .select(`
+                follower:follower_id (*)
+            `)
+            .eq('following_id', userId);
+
+        if (error) {
+            console.error('Error fetching followers:', error);
+            return [];
+        }
+
+        // Flatten the structure
+        return data.map((d: any) => d.follower) || [];
     },
 
     // --- Playlists ---

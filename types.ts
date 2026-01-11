@@ -36,7 +36,8 @@ export enum NavItem {
   SETTINGS = 'Settings',
   PROFILE = 'Profile',
   ADMIN = 'Admin',
-  ANNOUNCEMENTS = 'Announcements'
+  ANNOUNCEMENTS = 'Announcements',
+  ACTIVITY = 'Activity'
 }
 
 export interface Profile {
