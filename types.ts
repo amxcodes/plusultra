@@ -33,5 +33,31 @@ export enum NavItem {
   ASIAN_DRAMA = 'Asian Drama',
   LATEST = 'Latest',
   MY_LIST = 'My List',
-  SETTINGS = 'Settings'
+  SETTINGS = 'Settings',
+  PROFILE = 'Profile',
+  ADMIN = 'Admin',
+  ANNOUNCEMENTS = 'Announcements'
+}
+
+export interface Profile {
+  id: string;
+  username: string;
+  avatar_url: string;
+  role: 'user' | 'admin' | 'moderator';
+}
+
+export interface Playlist {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  is_public: boolean;
+  is_featured?: boolean;
+  type: 'custom' | 'watch_later' | 'favorites' | 'curated';
+  created_at: string;
+  profiles?: {
+    username: string;
+    avatar_url: string;
+  };
+  items?: { poster_path: string }[]; // Sneak peek items
 }

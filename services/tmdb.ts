@@ -15,7 +15,7 @@ const mapTmdbToMovie = (item: any, forcedType?: 'movie' | 'tv'): Movie => {
         match: Math.round(item.vote_average * 10), // Convert 8.5 to 85%
         imageUrl: item.poster_path
             ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-            : 'https://via.placeholder.com/400x600?text=No+Image',
+            : 'https://placehold.co/400x600?text=No+Image',
         backdropUrl: item.backdrop_path
             ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
             : undefined,

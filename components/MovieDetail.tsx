@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Movie } from '../types';
-import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight } from 'lucide-react';
+import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus } from 'lucide-react';
 import { MovieCard } from './MovieCard';
+import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { UnifiedPlayer } from './UnifiedPlayer';
 import { TmdbService } from '../services/tmdb';
 
@@ -14,6 +15,7 @@ interface MovieDetailProps {
 export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
     // Detailed Movie State (Merges prop with fetched details)
     const [activeMovie, setActiveMovie] = useState<Movie & { numberOfSeasons?: number; seasons?: any[] }>(movie);
@@ -277,11 +279,24 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose }) => {
                                     <Play size={20} className="fill-black" />
                                     <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E1` : 'Play Movie'}</span>
                                 </button>
-                                <button className="w-12 h-12 rounded-full border-2 border-white/20 hover:border-white bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all hover:scale-105">
-                                    <Plus size={20} />
+                                <button
+                                    onClick={() => setShowPlaylistModal(true)}
+                                    className="w-12 h-12 rounded-full border-2 border-white/20 hover:border-white bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all hover:scale-105"
+                                    title="Add to Playlist"
+                                >
+                                    <ListPlus size={22} />
                                 </button>
                             </div>
                         </div>
+
+                        {showPlaylistModal && (
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center">
+                                <AddToPlaylistModal
+                                    movie={activeMovie}
+                                    onClose={() => setShowPlaylistModal(false)}
+                                />
+                            </div>
+                        )}
                     </>
                 )}
             </div>

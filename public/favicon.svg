@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Black Background with rounded corners -->
+  <rect x="0" y="0" width="512" height="512" rx="128" fill="#000000"/>
+  
+  <!-- Yellow Plus Sign -->
+  <g transform="translate(256, 256)">
+    <!-- Vertical Bar -->
+    <rect x="-40" y="-160" width="80" height="320" rx="40" fill="#FACC15"/>
+    <!-- Horizontal Bar -->
+    <rect x="-160" y="-40" width="320" height="80" rx="40" fill="#FACC15"/>
+  </g>
+</svg>

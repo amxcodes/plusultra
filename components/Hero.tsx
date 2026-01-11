@@ -4,9 +4,11 @@ import { Play, Plus } from 'lucide-react';
 
 interface HeroProps {
   movie: HeroMovie;
+  onPlay?: (movie: HeroMovie) => void;
+  onAddToPlaylist?: (movie: HeroMovie) => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ movie }) => {
+export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) => {
   return (
     <div className="relative w-full h-[85vh] overflow-hidden">
       {/* Background Image */}
@@ -37,12 +39,18 @@ export const Hero: React.FC<HeroProps> = ({ movie }) => {
 
         {/* Minimalist Glassy Buttons - Fixed gaps and styling */}
         <div className="flex items-center gap-4 mt-2">
-          <button className="flex items-center gap-3 bg-white/90 hover:bg-white backdrop-blur-sm text-black px-8 py-3.5 rounded-2xl font-semibold tracking-wide transition-all duration-300 hover:scale-105">
+          <button
+            onClick={() => onPlay?.(movie)}
+            className="flex items-center gap-3 bg-white/90 hover:bg-white backdrop-blur-sm text-black px-8 py-3.5 rounded-2xl font-semibold tracking-wide transition-all duration-300 hover:scale-105"
+          >
             <Play size={18} className="fill-black" />
             <span>Play</span>
           </button>
 
-          <button className="w-14 h-14 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 flex items-center justify-center transition-all duration-300 text-white hover:scale-105">
+          <button
+            onClick={() => onAddToPlaylist?.(movie)}
+            className="w-14 h-14 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 flex items-center justify-center transition-all duration-300 text-white hover:scale-105"
+          >
             <Plus size={24} />
           </button>
         </div>

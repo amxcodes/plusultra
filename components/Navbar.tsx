@@ -11,7 +11,10 @@ import {
   Bot, // AI/Bot placeholder if needed in future
   Menu,
   Ghost,
-  Drama
+  Drama,
+  User,
+  Shield, // For Admin
+  Bell // Announcements
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -29,32 +32,39 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.LATEST]: Zap,
   [NavItem.MY_LIST]: Bookmark,
   [NavItem.SETTINGS]: Settings,
+  [NavItem.PROFILE]: User,
+  [NavItem.ADMIN]: Shield,
+  [NavItem.ANNOUNCEMENTS]: Bell,
 };
 
+import { useAuth } from '../lib/AuthContext';
+
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick }) => {
+  const { profile } = useAuth();
+
   return (
-    <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-6 bg-[#0a0a0a]/60 backdrop-blur-2xl rounded-[24px] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+    <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-4 bg-[#0a0a0a]/60 backdrop-blur-2xl rounded-[24px] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
 
       {/* Top: Home/Logo */}
-      <div className="mb-8">
+      <div className="mb-4">
         <button
           onClick={() => setActiveTab(NavItem.DASHBOARD)}
-          className={`p-3 rounded-2xl transition-all duration-300 ${activeTab === NavItem.DASHBOARD ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.DASHBOARD ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
         >
-          <LayoutGrid size={20} strokeWidth={activeTab === NavItem.DASHBOARD ? 2.5 : 2} />
+          <LayoutGrid size={18} strokeWidth={activeTab === NavItem.DASHBOARD ? 2.5 : 2} />
         </button>
       </div>
 
       {/* Middle: Navigation */}
-      <div className="flex flex-col items-center gap-4 flex-1 w-full px-2">
+      <div className="flex flex-col items-center gap-3 flex-1 w-full px-2">
 
         {/* Search - Distinct */}
         <div className="relative group flex justify-center w-full">
           <button
             onClick={onSearchClick}
-            className="text-zinc-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all duration-300"
+            className="text-zinc-400 hover:text-white hover:bg-white/5 p-2.5 rounded-2xl transition-all duration-300"
           >
-            <Search size={20} strokeWidth={2} />
+            <Search size={18} strokeWidth={2} />
           </button>
 
           {/* Tooltip */}
@@ -64,9 +74,16 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         </div>
 
         {/* Divider */}
-        <div className="w-8 h-px bg-white/5 my-2"></div>
+        <div className="w-8 h-px bg-white/5 my-1"></div>
 
-        {Object.values(NavItem).filter(item => item !== NavItem.DASHBOARD && item !== NavItem.SETTINGS).map((item) => {
+        {Object.values(NavItem).filter(item =>
+          item !== NavItem.DASHBOARD &&
+          item !== NavItem.SETTINGS &&
+          item !== NavItem.PROFILE &&
+          item !== NavItem.MY_LIST &&
+          item !== NavItem.ANNOUNCEMENTS &&
+          (item !== NavItem.ADMIN || profile?.role === 'admin')
+        ).map((item) => {
           const Icon = NAV_ICONS[item];
           const isActive = activeTab === item;
 
@@ -74,13 +91,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             <div key={item} className="relative group flex justify-center w-full">
               <button
                 onClick={() => setActiveTab(item)}
-                className={`p-3 rounded-2xl transition-all duration-300 relative ${isActive
+                className={`p-2.5 rounded-2xl transition-all duration-300 relative ${isActive
                   ? 'bg-white text-black shadow-lg shadow-white/10 scale-105'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <Icon
-                  size={20}
+                  size={18}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
               </button>
@@ -94,13 +111,36 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         })}
       </div>
 
-      {/* Bottom: Settings */}
-      <div className="mt-auto flex flex-col items-center gap-6">
+      {/* Bottom: Settings & Profile */}
+      <div className="mt-auto flex flex-col items-center gap-3">
+
+        {/* Announcements (Bell) - Added here */}
+        <button
+          onClick={() => setActiveTab(NavItem.ANNOUNCEMENTS)}
+          className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ANNOUNCEMENTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+        >
+          <Bell size={18} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
+        </button>
+
         <button
           onClick={() => setActiveTab(NavItem.SETTINGS)}
-          className={`p-3 rounded-2xl transition-all duration-300 ${activeTab === NavItem.SETTINGS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.SETTINGS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
         >
-          <Settings size={20} strokeWidth={activeTab === NavItem.SETTINGS ? 2.5 : 2} />
+          <Settings size={18} strokeWidth={activeTab === NavItem.SETTINGS ? 2.5 : 2} />
+        </button>
+
+        {/* Profile */}
+        <button
+          onClick={() => setActiveTab(NavItem.PROFILE)}
+          className={`p-1 rounded-full border-2 transition-all duration-300 ${activeTab === NavItem.PROFILE ? 'border-white' : 'border-transparent hover:border-white/50'}`}
+        >
+          <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden">
+            <img
+              src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&background=10b981&color=fff&bold=true`}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          </div>
         </button>
       </div>
     </nav>
