@@ -38,8 +38,11 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
         }
     }, [isOpen]);
 
-    const handleJoin = async (codeOverride?: string) => {
-        const codeToUse = String(codeOverride || joinCode || '').trim().toUpperCase();
+    const handleJoin = async (codeOverride?: string | React.MouseEvent) => {
+        // Fix: React passes an event object if called via onClick
+        const actualCode = typeof codeOverride === 'string' ? codeOverride : joinCode;
+        const codeToUse = (actualCode || '').trim().toUpperCase();
+
         if (codeToUse.length !== 6) {
             setError('Code must be 6 characters');
             return;

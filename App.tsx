@@ -234,6 +234,7 @@ function StreamApp() {
         season={playerState.season}
         episode={playerState.episode}
         onBack={() => setPlayerState(null)}
+        autoJoinCode={playerState.autoJoinCode}
       />
     );
   }

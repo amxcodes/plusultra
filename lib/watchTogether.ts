@@ -63,6 +63,19 @@ export const WatchTogetherService = {
             config: { presence: { key: user.id } }
         });
 
+        // Debug: Log subscription status
+        channel.subscribe(async (status) => {
+            console.log(`[WatchParty] Host subscription status: ${status}`);
+            if (status === 'SUBSCRIBED') {
+                const trackStatus = await channel.track({
+                    user_id: user.id,
+                    username: user.user_metadata?.username || 'Host',
+                    avatar: user.user_metadata?.avatar_url || ''
+                });
+                console.log('[WatchParty] Host track result:', trackStatus);
+            }
+        });
+
         return { party: data, channel };
     },
 
@@ -87,10 +100,20 @@ export const WatchTogetherService = {
             config: { presence: { key: user.id } }
         });
 
-        await channel.subscribe();
-        const state = await channel.track({ user_id: user.id });
+        channel.subscribe(async (status) => {
+            console.log(`[WatchParty] Joiner subscription status: ${status}`);
+            if (status === 'SUBSCRIBED') {
+                const trackStatus = await channel.track({
+                    user_id: user.id,
+                    username: user.user_metadata?.username || 'User',
+                    avatar: user.user_metadata?.avatar_url || ''
+                });
+                console.log('[WatchParty] Joiner track result:', trackStatus);
+            }
+        });
 
         // Count current participants
+        // Note: Presence might not be immediately available, but we check what we can
         const presence = channel.presenceState();
         const participantCount = Object.keys(presence).length;
 

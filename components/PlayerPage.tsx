@@ -9,9 +9,10 @@ interface PlayerPageProps {
     season?: number;
     episode?: number;
     onBack: () => void;
+    autoJoinCode?: string;
 }
 
-export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episode = 1, onBack }) => {
+export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episode = 1, onBack, autoJoinCode }) => {
     return (
         <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-500">
             {/* Back Button */}
@@ -36,6 +37,7 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episo
                         posterUrl={movie.imageUrl}
                         voteAverage={movie.match / 10}
                         backdropUrl={movie.backdropUrl || movie.imageUrl}
+                        autoJoinCode={autoJoinCode}
                     // For TV, we might need to fetch specific episode image here or pass it in if avail. 
                     // For now we rely on the player fetching what it needs or just using backdrop.
                     />
