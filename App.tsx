@@ -133,19 +133,18 @@ function StreamApp() {
 
     if (joinCode) {
       const handleAutoJoin = async () => {
-        // We need to fetch party details to know WHAT to play
-        // We'll reuse joinParty to get details, but we won't subscribe yet (UnifiedPlayer does that)
-        // Actually, we can just query the table directly or use a specific service method
-        // Let's add getPartyDetails to service first? Or just try to join.
+        try {
+          console.log('[Auto-Join] Attempting to join party with code:', joinCode);
 
-        // Simplest: Just use joinParty to get metadata, then unmount (since we switch to player)
-        // But wait, joinParty subscribes.
-        // Let's just blindly trust the code? No we need TMDB ID.
+          const party = await WatchTogetherService.getPartyDetails(joinCode);
+          if (!party) {
+            console.error('[Auto-Join] Party not found for code:', joinCode);
+            alert('Watch party not found or has expired.');
+            return;
+          }
 
-        // Let's assume we can fetch it.
-        // I'll add `getPartyDetails` to WatchTogetherService in a moment.
-        const party = await WatchTogetherService.getPartyDetails(joinCode);
-        if (party) {
+          console.log('[Auto-Join] Party found, fetching movie details...');
+
           // Fetch movie details to construct full object
           const details = await TmdbService.getDetails(party.tmdb_id, party.media_type);
           const movieReq = {
@@ -156,6 +155,8 @@ function StreamApp() {
             ...details
           };
 
+          console.log('[Auto-Join] Starting player with movie:', details.title);
+
           setPlayerState({
             movie: movieReq as Movie,
             season: party.season,
@@ -165,6 +166,9 @@ function StreamApp() {
 
           // Clean URL
           window.history.replaceState({}, '', window.location.pathname);
+        } catch (error) {
+          console.error('[Auto-Join] Error:', error);
+          alert('Failed to join watch party. Please try again.');
         }
       };
       handleAutoJoin();

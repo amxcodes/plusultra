@@ -559,6 +559,75 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                     )}
                 </div>
             </div>
+
+            {/* Watch History - Admin Only */}
+            {isAdmin && !isOwnProfile && watchHistory.length > 0 && (
+                <div className="max-w-6xl mx-auto mt-16">
+                    <h2 className="text-lg font-light text-zinc-500 mb-8 tracking-widest uppercase flex items-center gap-2">
+                        Watch History
+                        <span className="text-xs bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 text-zinc-600 font-bold">Admin</span>
+                    </h2>
+
+                    <div className="bg-[#0f1014] border border-white/10 rounded-2xl overflow-hidden">
+                        <div className="divide-y divide-white/5">
+                            {watchHistory.map((item: any, idx: number) => {
+                                const progress = item.duration > 0 ? (item.time / item.duration) * 100 : 0;
+                                const timeAgo = item.lastUpdated
+                                    ? new Date(item.lastUpdated).toLocaleDateString()
+                                    : 'Unknown';
+
+                                return (
+                                    <div key={idx} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                                        <div className="flex items-center gap-4 flex-1">
+                                            {/* Thumbnail */}
+                                            {item.posterUrl && (
+                                                <div className="w-12 h-16 rounded overflow-hidden bg-zinc-900 flex-shrink-0">
+                                                    <img
+                                                        src={item.posterUrl.startsWith('/') ? `https://image.tmdb.org/t/p/w92${item.posterUrl}` : item.posterUrl}
+                                                        alt={item.title}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {/* Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-white font-medium text-sm truncate">
+                                                    {item.title || 'Unknown Title'}
+                                                </h4>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    {item.season && item.episode && (
+                                                        <span className="text-xs text-zinc-500 font-mono">
+                                                            S{item.season}:E{item.episode}
+                                                        </span>
+                                                    )}
+                                                    <span className="text-xs text-zinc-600">•</span>
+                                                    <span className="text-xs text-zinc-600">{timeAgo}</span>
+                                                </div>
+
+                                                {/* Progress Bar */}
+                                                <div className="w-full bg-zinc-900 rounded-full h-1 mt-2 overflow-hidden">
+                                                    <div
+                                                        className="bg-white h-full transition-all duration-300"
+                                                        style={{ width: `${Math.min(progress, 100)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Progress % */}
+                                            <div className="text-right flex-shrink-0">
+                                                <span className="text-sm font-bold text-zinc-400">
+                                                    {Math.round(progress)}%
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

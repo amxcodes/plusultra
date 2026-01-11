@@ -298,31 +298,39 @@ export const SocialService = {
 
     async getUserWatchHistory(userId: string) {
         const { data, error } = await supabase
-            .from('watch_history')
-            .select('*')
-            .eq('user_id', userId)
-            .order('last_watched', { ascending: false })
-            .limit(20);
+            .from('profiles')
+            .select('watch_history')
+            .eq('id', userId)
+            .single();
 
-        if (error) throw error;
-        return data.map((h: any) => ({
-            ...h.metadata, // Rehydrate movie data
-            last_watched: h.last_watched
-        }));
+        if (error) {
+            console.error('Error fetching watch history:', error);
+            return [];
+        }
+
+        // Convert JSONB object to array
+        const historyObj = data?.watch_history || {};
+        return Object.values(historyObj)
+            .sort((a: any, b: any) => (b.lastUpdated || 0) - (a.lastUpdated || 0))
+            .slice(0, 20); // Limit to 20 most recent
     },
 
     async getFullWatchHistory(userId: string) {
         const { data, error } = await supabase
-            .from('watch_history')
-            .select('*')
-            .eq('user_id', userId)
-            .order('last_watched', { ascending: false }); // No limit
+            .from('profiles')
+            .select('watch_history')
+            .eq('id', userId)
+            .single();
 
-        if (error) throw error;
-        return data.map((h: any) => ({
-            ...h.metadata,
-            last_watched: h.last_watched
-        }));
+        if (error) {
+            console.error('Error fetching full watch history:', error);
+            return [];
+        }
+
+        // Convert JSONB object to array (no limit)
+        const historyObj = data?.watch_history || {};
+        return Object.values(historyObj)
+            .sort((a: any, b: any) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
     },
 
     // Announcements
