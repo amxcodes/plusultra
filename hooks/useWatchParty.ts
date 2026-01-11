@@ -59,10 +59,18 @@ export const useWatchParty = (partyId: string | null, onSync: (e: SyncEvent) => 
                 console.log(`[useWatchParty] Subscription Status: ${status}`);
                 if (status === 'SUBSCRIBED') {
                     setIsConnected(true);
+
+                    // Fetch real profile data to ensure username/avatar are present
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('username, avatar_url')
+                        .eq('id', user.id)
+                        .single();
+
                     const trackResult = await channel.track({
                         user_id: user.id,
-                        username: user.user_metadata?.username || 'User', // Fallback
-                        avatar: user.user_metadata?.avatar_url || ''
+                        username: profile?.username || user.user_metadata?.username || 'User',
+                        avatar: profile?.avatar_url || user.user_metadata?.avatar_url || ''
                     });
                     console.log('[useWatchParty] Track Result:', trackResult);
                 } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -92,6 +100,13 @@ export const useWatchParty = (partyId: string | null, onSync: (e: SyncEvent) => 
     // Helper to send sync events
     const sendSync = useCallback(async (event: Omit<SyncEvent, 'userId' | 'username'>) => {
         if (!channelRef.current || !user) return;
+
+        // Fetch profile for sender info too (or cache it)
+        // For efficiency, we'll try metadata first, but typically presence handles the "Who is this" 
+        // via the userId lookups in the members list. But the event payload has username too.
+        // Let's just use what we have, or fetch if critical. 
+        // For now, rely on metadata/defaults for the *event* payload, 
+        // as the *presence* is the source of truth for the UI lists.
 
         await channelRef.current.send({
             type: 'broadcast',

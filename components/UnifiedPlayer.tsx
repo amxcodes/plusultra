@@ -62,6 +62,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [isHost, setIsHost] = useState(false);
     const [partyMembers, setPartyMembers] = useState<PartyMember[]>([]);
 
+    // Manual Sync State for unsupported providers
+    const [remoteTime, setRemoteTime] = useState<number | null>(null);
+    const [showSyncPrompt, setShowSyncPrompt] = useState(false);
+
     // Handle Auto-Join
     useEffect(() => {
         if (autoJoinCode && !partyId) {
@@ -110,10 +114,16 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 }
             }
         } else {
-            // Manual Sync log
+            // Manual Sync: Store the time and show prompt if diff is large
             if (event.timestamp) {
-                const timeStr = new Date(event.timestamp * 1000).toISOString().substr(14, 5);
-                console.log(`[Watch Party] Host is at ${timeStr} (${event.type})`);
+                const diff = Math.abs(event.timestamp - lastTime);
+                if (diff > 5) { // Only prompt if > 5s off
+                    setRemoteTime(event.timestamp);
+                    setShowSyncPrompt(true);
+
+                    // Auto-hide prompt after 10s
+                    setTimeout(() => setShowSyncPrompt(false), 10000);
+                }
             }
         }
     }, isHost); // Pass isHost to the hook for cleanup logic
@@ -395,6 +405,33 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 >
                     Skip Intro
                 </button>
+            )}
+
+            {/* Manual Sync Prompt (For unsupported servers) */}
+            {showSyncPrompt && remoteTime && !isHost && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-black/80 border border-white/20 backdrop-blur-md px-6 py-4 rounded-xl flex flex-col items-center gap-2 z-50 animate-in fade-in slide-in-from-top-4">
+                    <div className="text-white font-medium">Host is at {new Date(remoteTime * 1000).toISOString().substr(14, 5)}</div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                // We can't auto-seek the iframe, but we can help them manually or switch servers
+                                // For now, just a visual guide, OR switch to Vidora automatically?
+                                // Let's just suggest switching.
+                                setProvider('vidora');
+                                setShowSyncPrompt(false);
+                            }}
+                            className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-full transition-colors"
+                        >
+                            Switch to Server 2 (Auto-Sync)
+                        </button>
+                        <button
+                            onClick={() => setShowSyncPrompt(false)}
+                            className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1.5 rounded-full transition-colors"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
             )}
 
             {/* Provider Watermark (Fades out) */}
