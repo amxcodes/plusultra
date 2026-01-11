@@ -171,6 +171,16 @@ function StreamApp() {
     }
   }, []);
 
+  // Playlist Deep Linking
+  useEffect(() => {
+    const path = window.location.pathname;
+    const match = path.match(/\/playlist\/([a-zA-Z0-9-]+)/);
+    if (match && match[1]) {
+      setSelectedPlaylistId(match[1]);
+    }
+  }, []);
+
+
   const handleMovieSelect = (movie: Movie) => {
     setSelectedMovie(movie);
   };
