@@ -174,7 +174,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                 type="text"
                                 maxLength={6}
                                 value={joinCode}
-                                onChange={(e) => setJoinCode(String(e.target.value || '').trim().toUpperCase())}
+                                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                                 placeholder="ABC123"
                                 className="w-full bg-zinc-900 border border-white/10 rounded-lg px-4 py-3 text-center text-2xl font-mono font-bold text-white placeholder:text-zinc-700 tracking-widest uppercase focus:outline-none focus:border-white/20 transition-colors"
                             />
