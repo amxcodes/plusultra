@@ -177,10 +177,20 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     };
 
     // Event Listener for PostMessage (P-Stream / Vidora)
+    const [isProviderReady, setIsProviderReady] = useState(false);
+
+    // Reset ready state when provider changes
+    useEffect(() => {
+        setIsProviderReady(false);
+    }, [provider]);
+
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin.includes("vidora.su") && provider === 'vidora') {
                 if (event.data?.type === 'MEDIA_DATA') {
+                    // Provider is ready once we start getting data
+                    if (!isProviderReady) setIsProviderReady(true);
+
                     const { progress, duration, isPlaying } = event.data.data || {};
                     if (progress) {
                         setLastTime(progress);
@@ -201,7 +211,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                         });
 
                         // Broadcast sync for Vidora if in a party and is host
-                        // Broadcast sync for Vidora if in a party and is host
                         if (isConnected && isHost) {
                             sendSync({
                                 type: isPlaying ? 'play' : 'pause',
@@ -215,7 +224,21 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, isConnected, isHost, sendSync]);
+    }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, isConnected, isHost, sendSync, isProviderReady]);
+
+    // Handle buffered sync when provider becomes ready
+    // If we received a sync event while loading, apply it now
+    useEffect(() => {
+        if (isProviderReady && provider === 'vidora' && !isHost && remoteTime) {
+            console.log('[UnifiedPlayer] Provider ready, applying pending sync:', remoteTime);
+            const iframe = iframeRef.current;
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({ type: 'SEEK', time: remoteTime }, '*');
+                // Maybe play too if we knew it was playing? 
+                // For now, let the next sync event handle play/pause or just default to play
+            }
+        }
+    }, [isProviderReady, provider, isHost, remoteTime]);
 
     // Automatic progress tracking
     useEffect(() => {
@@ -379,6 +402,12 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                                     onClick={() => {
                                         setProvider(p.id);
                                         setShowServers(false);
+                                        if (isHost && isConnected) {
+                                            sendSync({
+                                                type: 'switch_server',
+                                                server: p.id
+                                            });
+                                        }
                                     }}
                                     className={`w-full text-left px-3 py-2 text-sm rounded-lg flex items-center justify-between group/item transition-colors
                                     ${provider === p.id
