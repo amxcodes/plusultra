@@ -11,7 +11,7 @@ export const AsianDramaPage: React.FC<AsianDramaPageProps> = ({ onMovieSelect })
     return (
         <div className="pb-20 space-y-2">
 
-            {/* Featured / Trending Row (Large) */}
+            {/* Top Picks / Trending */}
             <CategoryRow
                 title="Trending Asian Dramas"
                 fetcher={TmdbService.getAsianDramas}
@@ -19,23 +19,23 @@ export const AsianDramaPage: React.FC<AsianDramaPageProps> = ({ onMovieSelect })
                 isLarge
             />
 
-            {/* K-Drama */}
+            {/* K-Dramas */}
             <CategoryRow
-                title="Korean Dramas (K-Drama)"
+                title="K-Dramas (Korean)"
                 fetcher={TmdbService.getKDramas}
                 onMovieSelect={onMovieSelect}
             />
 
-            {/* C-Drama */}
+            {/* C-Dramas */}
             <CategoryRow
-                title="Chinese Dramas (C-Drama)"
+                title="C-Dramas (Chinese)"
                 fetcher={TmdbService.getCDramas}
                 onMovieSelect={onMovieSelect}
             />
 
-            {/* J-Drama */}
+            {/* J-Dramas */}
             <CategoryRow
-                title="Japanese Dramas (Live Action)"
+                title="J-Dramas (Japanese)"
                 fetcher={TmdbService.getJDramas}
                 onMovieSelect={onMovieSelect}
             />

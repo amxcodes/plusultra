@@ -13,21 +13,29 @@ interface RowProps {
     isLarge?: boolean;
     forcedMediaType?: 'movie' | 'tv';
     variant?: 'standard' | 'continue-watching'; // NEW
+    isLoading?: boolean;
+    onViewAll?: () => void;
 }
 
-export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect, isLarge = false, forcedMediaType, variant = 'standard' }) => {
+export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect, isLarge = false, forcedMediaType, variant = 'standard', isLoading, onViewAll }) => {
     const [data, setData] = useState<Movie[]>([]);
+    const [internalLoading, setInternalLoading] = useState(true);
     const rowRef = useRef<HTMLDivElement>(null);
     const [showLeft, setShowLeft] = useState(false);
     const [showRight, setShowRight] = useState(true);
 
+    const showSkeleton = isLoading !== undefined ? isLoading : internalLoading;
+
     useEffect(() => {
         if (movies) {
             setData(movies);
+            setInternalLoading(false);
         } else if (fetchUrl) {
             const fetchData = async () => {
+                setInternalLoading(true);
                 const results = await TmdbService.getCategory(fetchUrl, forcedMediaType);
                 setData(results);
+                setInternalLoading(false);
             };
             fetchData();
         }
@@ -52,13 +60,44 @@ export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect
         }
     };
 
+    if (showSkeleton) {
+        return (
+            <div className="pl-4 md:pl-12 my-8 relative z-10 animate-pulse">
+                {/* Title Skeleton */}
+                <div className="h-6 w-48 bg-white/5 rounded mb-4 ml-2" />
+
+                {/* Horizontal Scroll Skeleton */}
+                <div className="flex items-center space-x-4 overflow-hidden px-4 py-8">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <div
+                            key={i}
+                            className={`bg-zinc-900 rounded-lg ${variant === 'continue-watching' ? 'min-w-[280px] md:min-w-[320px] aspect-video' : 'min-w-[180px] md:min-w-[220px] aspect-[2/3]'}`}
+                        />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     if (data.length === 0) return null;
 
     return (
         <div className="pl-4 md:pl-12 my-8 relative group z-10">
-            <h2 className="text-xl md:text-2xl font-semibold mb-4 text-white/90 hover:text-white transition-colors cursor-pointer pl-2">
-                {title}
-            </h2>
+            {/* Header: Title + Show More */}
+            <div className="flex items-end justify-between pr-4 md:pr-12 mb-4">
+                <h2 className="text-xl md:text-2xl font-semibold text-white/90 hover:text-white transition-colors cursor-pointer pl-2 pb-1">
+                    {title}
+                </h2>
+
+                {onViewAll && (
+                    <button
+                        onClick={onViewAll}
+                        className="text-xs md:text-sm font-medium text-zinc-400 hover:text-white flex items-center gap-1 transition-colors opacity-0 group-hover:opacity-100 duration-300"
+                    >
+                        Show more <ChevronRight size={14} />
+                    </button>
+                )}
+            </div>
 
             <div className="relative group">
                 {/* Left Button */}

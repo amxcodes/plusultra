@@ -28,7 +28,48 @@ export const AnnouncementsPage: React.FC = () => {
         }
     };
 
-    if (loading) return <div className="h-screen flex items-center justify-center text-zinc-500 text-sm tracking-widest uppercase">Checking for updates...</div>;
+    if (loading) {
+        return (
+            <div className="w-full pl-24 pr-12 pt-20 min-h-screen">
+                <div className="max-w-3xl mx-auto">
+                    {/* Header Skeleton */}
+                    <div className="mb-16 animate-pulse">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-4 h-4 bg-white/5 rounded" />
+                            <div className="h-3 w-24 bg-white/5 rounded" />
+                        </div>
+                        <div className="h-12 w-64 bg-white/5 rounded mb-4" />
+                        <div className="h-5 w-96 bg-white/5 rounded" />
+                    </div>
+
+                    {/* Timeline Skeleton */}
+                    <div className="relative border-l border-white/5 ml-3 space-y-12">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="relative pl-12 animate-pulse">
+                                {/* Dot */}
+                                <div className="absolute -left-[5px] top-2.5 w-2.5 h-2.5 rounded-full bg-white/5 ring-4 ring-[#0f1014]" />
+
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex items-baseline gap-4">
+                                        <div className="h-6 w-20 bg-white/5 rounded" />
+                                        <div className="h-4 w-32 bg-white/5 rounded" />
+                                    </div>
+                                    <div>
+                                        <div className="h-7 w-3/4 bg-white/5 rounded mb-3" />
+                                        <div className="space-y-2">
+                                            <div className="h-4 w-full bg-white/5 rounded" />
+                                            <div className="h-4 w-5/6 bg-white/5 rounded" />
+                                            <div className="h-4 w-4/6 bg-white/5 rounded" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full pl-24 pr-12 pt-20 min-h-screen animate-in fade-in duration-700">

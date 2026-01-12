@@ -16,8 +16,7 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ movi
     // We need to type-cast or assume these exist because we injected them in App.tsx
     // Or better: pass them explicitly? 
     // Let's assume the passed `movie` object has these fields from the history mapper.
-    const progress = (movie as any).progress || 0; // 0 to 1
-    const timeLeft = (movie as any).timeLeft || 0;
+
     const season = (movie as any).season;
     const episode = (movie as any).episode;
 
@@ -30,46 +29,36 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ movi
     return (
         <div
             onClick={onClick}
-            className="group relative w-[280px] md:w-[320px] aspect-video rounded-lg overflow-hidden cursor-pointer bg-zinc-900 border border-white/5 hover:border-white/20 transition-all duration-300 shadow-lg"
+            className="group relative w-[280px] md:w-[320px] aspect-video rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 ring-1 ring-white/10 hover:ring-white/40 transition-all duration-300 shadow-lg"
         >
-            {/* Image */}
-            <div className="absolute inset-0">
+            {/* Image Container (Static, Brightness change) */}
+            <div className="absolute inset-0 overflow-hidden">
                 <img
                     src={image}
                     alt={movie.title}
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:brightness-110 transition-all duration-300"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-300" />
             </div>
 
-            {/* Play Button Overlay (Minimal, non-glassy) */}
+            {/* Center Play Button (Static Fade) */}
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="w-12 h-12 rounded-full bg-black/60 flex items-center justify-center shadow-lg">
-                    <Play className="w-5 h-5 fill-white text-white ml-0.5" />
+                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg">
+                    <Play className="w-5 h-5 fill-black text-black ml-1" />
                 </div>
             </div>
 
-            {/* Content / Metadata */}
-            <div className="absolute bottom-0 left-0 w-full p-4">
-                <h4 className="text-white font-bold text-sm truncate shadow-black drop-shadow-md mb-1">{movie.title}</h4>
-
-                {movie.mediaType === 'tv' && season && episode ? (
-                    <div className="text-xs text-zinc-300 font-medium mb-2 drop-shadow-md">
-                        S{season}:E{episode}
-                    </div>
-                ) : (
-                    <div className="text-xs text-zinc-300 font-medium mb-2 drop-shadow-md">
-                        {Math.round(progress * 100)}% Complete
+            {/* Bottom Content */}
+            <div className="absolute bottom-0 left-0 w-full p-5 flex flex-col justify-end translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                {movie.mediaType === 'tv' && season && episode && (
+                    <div className="self-start px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold bg-white/10 backdrop-blur-md rounded-md text-white/90 mb-2 border border-white/10 shadow-lg">
+                        S{season} E{episode}
                     </div>
                 )}
-
-                {/* Minimal Progress Bar */}
-                <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                        style={{ width: `${Math.max(5, progress * 100)}%` }}
-                    />
-                </div>
+                <h4 className="text-white font-bold text-lg leading-tight drop-shadow-xl line-clamp-1 group-hover:text-white transition-colors">
+                    {movie.title}
+                </h4>
             </div>
         </div>
     );

@@ -5,14 +5,18 @@ import { AddToPlaylistModal } from './AddToPlaylistModal';
 
 interface MovieCardProps {
   movie: Movie;
+  onClick?: () => void;
 }
 
-export const MovieCard: React.FC<MovieCardProps> = ({ movie }) => {
+export const MovieCard: React.FC<MovieCardProps> = ({ movie, onClick }) => {
   const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
   return (
     <>
-      <div className="relative group/card min-w-[160px] w-[160px] md:min-w-[200px] md:w-[200px] cursor-pointer transform-gpu transition-transform duration-300 hover:scale-105">
+      <div
+        onClick={onClick}
+        className="relative group/card min-w-[160px] w-[160px] md:min-w-[200px] md:w-[200px] cursor-pointer transform-gpu transition-transform duration-300 hover:scale-105"
+      >
         <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-gray-900 border border-white/10 group-hover/card:border-white/30">
           <img
             src={movie.imageUrl}

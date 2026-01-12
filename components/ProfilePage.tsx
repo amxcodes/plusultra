@@ -5,10 +5,14 @@ import { SocialService } from '../lib/social';
 import { Profile, Playlist } from '../types';
 import { UserPlus, UserMinus, Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
+import { ContinueWatchingCard } from './ContinueWatchingCard'; // Keep if used elsewhere or remove later
+import { MovieCard } from './MovieCard';
+import { Movie } from '../types';
 
 interface ProfilePageProps {
     userId?: string; // If null, views own profile
     onNavigate?: (page: string, params?: any) => void;
+    onMovieSelect?: (movie: Movie) => void;
 }
 
 // Types for Jikan API
@@ -276,7 +280,7 @@ const DeleteConfirmModal = ({ isOpen, playlistName, onClose, onConfirm }: { isOp
     );
 };
 
-export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) => {
+export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, onMovieSelect }) => {
     const { user: currentUser, isAdmin, refreshProfile } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -568,63 +572,34 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate }) 
                         <span className="text-xs bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 text-zinc-600 font-bold">Admin</span>
                     </h2>
 
-                    <div className="bg-[#0f1014] border border-white/10 rounded-2xl overflow-hidden">
-                        <div className="divide-y divide-white/5">
-                            {watchHistory.map((item: any, idx: number) => {
-                                const progress = item.duration > 0 ? (item.time / item.duration) * 100 : 0;
-                                const timeAgo = item.lastUpdated
-                                    ? new Date(item.lastUpdated).toLocaleDateString()
-                                    : 'Unknown';
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {watchHistory.map((item: any, idx: number) => {
+                            // Construct Movie object for the card
+                            const movie: Movie = {
+                                id: parseInt(item.tmdbId) || 0,
+                                tmdbId: item.tmdbId,
+                                title: item.title || 'Unknown Title',
+                                description: '',
+                                imageUrl: item.posterUrl?.startsWith('/')
+                                    ? `https://image.tmdb.org/t/p/w500${item.posterUrl}`
+                                    : item.posterUrl || '',
+                                backdropUrl: item.backdropUrl,
+                                year: new Date().getFullYear(), // Fallback
+                                match: item.voteAverage || 0,
+                                mediaType: item.type || 'movie',
+                                // Inject hidden props for the card
+                                ...item
+                            } as unknown as Movie;
 
-                                return (
-                                    <div key={idx} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
-                                        <div className="flex items-center gap-4 flex-1">
-                                            {/* Thumbnail */}
-                                            {item.posterUrl && (
-                                                <div className="w-12 h-16 rounded overflow-hidden bg-zinc-900 flex-shrink-0">
-                                                    <img
-                                                        src={item.posterUrl.startsWith('/') ? `https://image.tmdb.org/t/p/w92${item.posterUrl}` : item.posterUrl}
-                                                        alt={item.title}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {/* Info */}
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="text-white font-medium text-sm truncate">
-                                                    {item.title || 'Unknown Title'}
-                                                </h4>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    {item.season && item.episode && (
-                                                        <span className="text-xs text-zinc-500 font-mono">
-                                                            S{item.season}:E{item.episode}
-                                                        </span>
-                                                    )}
-                                                    <span className="text-xs text-zinc-600">•</span>
-                                                    <span className="text-xs text-zinc-600">{timeAgo}</span>
-                                                </div>
-
-                                                {/* Progress Bar */}
-                                                <div className="w-full bg-zinc-900 rounded-full h-1 mt-2 overflow-hidden">
-                                                    <div
-                                                        className="bg-white h-full transition-all duration-300"
-                                                        style={{ width: `${Math.min(progress, 100)}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Progress % */}
-                                            <div className="text-right flex-shrink-0">
-                                                <span className="text-sm font-bold text-zinc-400">
-                                                    {Math.round(progress)}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                            return (
+                                <div key={idx} className="flex justify-center">
+                                    <MovieCard
+                                        movie={movie}
+                                        onClick={() => onMovieSelect?.(movie)}
+                                    />
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}

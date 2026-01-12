@@ -25,6 +25,7 @@ import { SocialService } from './lib/social';
 import { PlaylistRow } from './components/PlaylistRow';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { AnnouncementsPage } from './components/AnnouncementsPage';
+import { ViewAllPage } from './components/ViewAllPage';
 import { PlayerPage } from './components/PlayerPage';
 import { ActivityPage } from './components/ActivityPage';
 import { WatchTogetherService } from './lib/watchTogether';
@@ -37,6 +38,7 @@ function StreamApp() {
   const [selectedProfileId, setSelectedProfileId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | undefined>(undefined);
   const [playlistModalMovie, setPlaylistModalMovie] = useState<Movie | null>(null);
+  const [viewAllCategory, setViewAllCategory] = useState<{ title: string; fetchUrl?: string; movies?: Movie[]; forcedMediaType?: 'movie' | 'tv' } | null>(null);
 
   // Data State
   const [heroMovie, setHeroMovie] = useState<HeroMovie | null>(null);
@@ -96,8 +98,17 @@ function StreamApp() {
     if (activeTab === NavItem.DASHBOARD) {
       const items = getContinueWatching();
       const mappedItems = items.map(item => {
-        // Calculate progress
-        const progress = item.duration > 0 ? (item.time / item.duration) : 0;
+        // Calculate progress with fallback for unknown durations
+        let progress = 0;
+        if (item.duration > 0) {
+          // Known duration: use exact calculation
+          progress = item.time / item.duration;
+        } else if (item.time > 0) {
+          // Unknown duration: estimate based on typical lengths
+          // Movies ~90min, TV episodes ~45min
+          const estimatedDuration = item.type === 'movie' ? 90 * 60 : 45 * 60;
+          progress = Math.min(item.time / estimatedDuration, 0.95); // Cap at 95%
+        }
 
         // Determine best image
         // prioritizing 16:9 images for continue watching cards
@@ -116,7 +127,7 @@ function StreamApp() {
           match: item.voteAverage || 0,
           mediaType: item.type,
           progress, // For ContinueWatchingCard
-          timeLeft: item.duration - item.time
+          timeLeft: item.duration > 0 ? item.duration - item.time : 0
         } as unknown as Movie;
       });
       setContinueWatching(mappedItems);
@@ -204,6 +215,7 @@ function StreamApp() {
   const handleTabChange = (tab: NavItem, params?: any) => {
     if (tab !== NavItem.PROFILE) setSelectedProfileId(undefined);
     if (tab !== activeTab) setSelectedPlaylistId(undefined);
+    setViewAllCategory(null);
     setSelectedMovie(null); // Close movie detail when navigating
     setPlayerState(null); // Close player on tab change
     setActiveTab(tab);
@@ -267,7 +279,7 @@ function StreamApp() {
           </div>
         ) : (
           <div>
-            {activeTab === NavItem.DASHBOARD && !selectedPlaylistId && (
+            {activeTab === NavItem.DASHBOARD && !selectedPlaylistId && !viewAllCategory && (
               <Hero
                 movie={heroMovie || {
                   id: 0,
@@ -284,10 +296,22 @@ function StreamApp() {
             )}
 
 
-            <div className={`${activeTab === NavItem.DASHBOARD ? '-mt-32' : 'pt-20'} relative z-20 pl-4 md:pl-10 space-y-2`}>
+            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory ? '-mt-32' : 'pt-20'} relative z-20 pl-4 md:pl-10 space-y-2`}>
+
+              {/* VIEW ALL PAGE */}
+              {viewAllCategory && (
+                <ViewAllPage
+                  title={viewAllCategory.title}
+                  fetchUrl={viewAllCategory.fetchUrl}
+                  initialMovies={viewAllCategory.movies}
+                  forcedMediaType={viewAllCategory.forcedMediaType}
+                  onBack={() => setViewAllCategory(null)}
+                  onMovieSelect={handleMovieSelect}
+                />
+              )}
 
               {/* DASHBOARD VIEW */}
-              {activeTab === NavItem.DASHBOARD && (
+              {activeTab === NavItem.DASHBOARD && !viewAllCategory && (
                 <>
                   {continueWatching.length > 0 && (
                     <Row
@@ -295,6 +319,7 @@ function StreamApp() {
                       movies={continueWatching}
                       onMovieSelect={handleMovieSelect}
                       variant="continue-watching"
+                      onViewAll={() => setViewAllCategory({ title: "Continue Watching", movies: continueWatching })}
                     />
                   )}
 
@@ -304,6 +329,7 @@ function StreamApp() {
                       title="Featured Movies"
                       movies={featuredMovies}
                       onMovieSelect={handleMovieSelect}
+                      onViewAll={() => setViewAllCategory({ title: "Featured Movies", movies: featuredMovies })}
                     />
                   )}
 
@@ -316,13 +342,13 @@ function StreamApp() {
                     />
                   )}
 
-                  <Row title="Trending Now" fetchUrl={requests.fetchTrending} onMovieSelect={handleMovieSelect} isLarge />
-                  <Row title="Top Rated" fetchUrl={requests.fetchTopRated} onMovieSelect={handleMovieSelect} />
-                  <Row title="Action Blockbusters" fetchUrl={requests.fetchActionMovies} onMovieSelect={handleMovieSelect} />
-                  <Row title="Comedy Hits" fetchUrl={requests.fetchComedyMovies} onMovieSelect={handleMovieSelect} />
-                  <Row title="Scary Movies" fetchUrl={requests.fetchHorrorMovies} onMovieSelect={handleMovieSelect} />
-                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} onMovieSelect={handleMovieSelect} />
-                  <Row title="Documentaries" fetchUrl={requests.fetchDocumentaries} onMovieSelect={handleMovieSelect} />
+                  <Row title="Trending Now" fetchUrl={requests.fetchTrending} onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending Now", fetchUrl: requests.fetchTrending })} />
+                  <Row title="Top Rated" fetchUrl={requests.fetchTopRated} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated", fetchUrl: requests.fetchTopRated })} />
+                  <Row title="Action Blockbusters" fetchUrl={requests.fetchActionMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action Blockbusters", fetchUrl: requests.fetchActionMovies })} />
+                  <Row title="Comedy Hits" fetchUrl={requests.fetchComedyMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Comedy Hits", fetchUrl: requests.fetchComedyMovies })} />
+                  <Row title="Scary Movies" fetchUrl={requests.fetchHorrorMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Scary Movies", fetchUrl: requests.fetchHorrorMovies })} />
+                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Romance", fetchUrl: requests.fetchRomanceMovies })} />
+                  <Row title="Documentaries" fetchUrl={requests.fetchDocumentaries} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Documentaries", fetchUrl: requests.fetchDocumentaries })} />
                 </>
               )}
 
@@ -409,6 +435,7 @@ function StreamApp() {
                 <ProfilePage
                   userId={selectedProfileId}
                   onNavigate={handleNavigate}
+                  onMovieSelect={handleMovieSelect}
                 />
               )}
 
@@ -431,6 +458,7 @@ function StreamApp() {
                   />
                 </div>
               )}
+
 
               {/* PLAYLIST VIEW (Overrides others if active) */}
               {selectedPlaylistId && (

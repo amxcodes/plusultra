@@ -9,6 +9,28 @@ interface HeroProps {
 }
 
 export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) => {
+  // Skeleton State
+  if (movie.id === 0) {
+    return (
+      <div className="relative w-full h-[85vh] overflow-hidden bg-zinc-900">
+        <div className="absolute inset-0 w-full h-full animate-pulse bg-zinc-800/50" />
+        <div className="absolute bottom-0 left-0 pl-24 md:pl-32 pr-8 w-full md:w-2/3 lg:w-1/2 flex flex-col gap-6 z-10 pb-36 md:pb-40">
+          <div className="h-16 w-3/4 bg-white/5 rounded-xl animate-pulse" />
+          <div className="flex items-center gap-4">
+            <div className="h-6 w-24 bg-white/5 rounded animate-pulse" />
+            <div className="h-6 w-16 bg-white/5 rounded animate-pulse" />
+          </div>
+          <div className="flex items-center gap-4 mt-2">
+            <div className="h-14 w-40 bg-white/5 rounded-2xl animate-pulse" />
+            <div className="h-14 w-14 bg-white/5 rounded-2xl animate-pulse" />
+          </div>
+        </div>
+        {/* Bottom Fade Overlay for smooth transition to rows */}
+        <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-[#0f1014] to-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-[85vh] overflow-hidden">
       {/* Background Image */}

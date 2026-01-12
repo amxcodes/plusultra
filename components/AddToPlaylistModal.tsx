@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, Lock, Globe, Check } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
@@ -70,7 +71,9 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({ movie, o
 
     if (!user) return null;
 
-    return (
+    if (!user) return null;
+
+    return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="w-full max-w-md bg-[#151518] border border-white/10 rounded-2xl shadow-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
 
@@ -181,6 +184,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({ movie, o
                 </div>
 
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

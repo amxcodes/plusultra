@@ -11,7 +11,7 @@ export const AnimePage: React.FC<AnimePageProps> = ({ onMovieSelect }) => {
     return (
         <div className="pb-20 space-y-2">
 
-            {/* Featured / Trending Row (Large) */}
+            {/* Featured Anime (Using general anime fetcher as featured for now) */}
             <CategoryRow
                 title="Trending Anime"
                 fetcher={TmdbService.getAnime}
@@ -21,21 +21,21 @@ export const AnimePage: React.FC<AnimePageProps> = ({ onMovieSelect }) => {
 
             {/* Anime Movies */}
             <CategoryRow
-                title="Top Rated Anime Movies"
+                title="Anime Movies"
                 fetcher={TmdbService.getAnimeMovies}
                 onMovieSelect={onMovieSelect}
             />
 
             {/* Action Anime */}
             <CategoryRow
-                title="Action & Adventure Lists"
+                title="Action Anime"
                 fetcher={TmdbService.getActionAnime}
                 onMovieSelect={onMovieSelect}
             />
 
             {/* Romance Anime */}
             <CategoryRow
-                title="Romance Series"
+                title="Romance Anime"
                 fetcher={TmdbService.getRomanceAnime}
                 onMovieSelect={onMovieSelect}
             />

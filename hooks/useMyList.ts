@@ -41,20 +41,7 @@ export const useMyList = () => {
                 // So we can reconstruct `Movie` objects from `metadata`.
 
                 const items = await SocialService.getPlaylistItems(watchLater.id);
-                const movies = items.map(item => {
-                    // Extract from metadata if available
-                    const meta = item.metadata || {};
-                    return {
-                        id: parseInt(item.tmdb_id), // Ensure number
-                        tmdbId: parseInt(item.tmdb_id),
-                        mediaType: item.media_type as 'movie' | 'tv',
-                        title: meta.title || 'Unknown',
-                        imageUrl: meta.imageUrl || meta.poster_path || '',
-                        year: meta.year || 0,
-                        match: 0 // No match info stored usually
-                    } as Movie;
-                });
-                setList(movies);
+                setList(items);
             }
         } catch (error) {
             console.error("Error fetching My List:", error);

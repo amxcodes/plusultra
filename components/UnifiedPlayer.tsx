@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
 import { useSkipData } from './useSkipData';
 import { Settings, Check, Users } from 'lucide-react';
+import { TmdbService } from '../services/tmdb';
 
 type MediaType = 'movie' | 'tv';
 
@@ -48,6 +49,33 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const { updateProgress } = useWatchHistory();
     const { skipData } = useSkipData(title, season, episode);
     const iframeRef = useRef<HTMLIFrameElement>(null);
+
+    // Fetch specific episode image (screenshot) if TV
+    const [currentEpisodeImage, setCurrentEpisodeImage] = useState<string>(episodeImage || '');
+    // Fetch specific backdrop if Movie (sometimes we only get posterUrl passed in)
+    const [currentMovieBackdrop, setCurrentMovieBackdrop] = useState<string>(backdropUrl || '');
+
+    useEffect(() => {
+        if (mediaType === 'tv' && season && episode) {
+            TmdbService.getEpisodeDetails(tmdbId, season, episode).then(details => {
+                if (details?.still_path) {
+                    setCurrentEpisodeImage(details.still_path);
+                }
+            });
+        }
+        if (mediaType === 'movie') {
+            TmdbService.getDetails(tmdbId, 'movie').then(details => {
+                // If we get a good backdrop, use it (sometimes passed backdropUrl is actually a poster fallback)
+                // TmdbService.getDetails.backdropUrl is a full URL.
+                if (details?.backdropUrl) {
+                    setCurrentMovieBackdrop(details.backdropUrl);
+                } else if (details?.screenshots && details.screenshots.length > 0) {
+                    // Fallback to screenshots array if available
+                    setCurrentMovieBackdrop(`https://image.tmdb.org/t/p/original${details.screenshots[0]}`);
+                }
+            });
+        }
+    }, [tmdbId, mediaType, season, episode]);
 
 
 
@@ -137,8 +165,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                             title,
                             posterUrl,
                             voteAverage,
-                            backdropUrl,
-                            episodeImage
+
+                            backdropUrl: currentMovieBackdrop || backdropUrl,
+                            episodeImage: currentEpisodeImage || episodeImage
                         });
 
 
@@ -149,63 +178,78 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage]);
+    }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
 
 
 
-    // Automatic progress tracking
+    // Robust progress tracking - Polls actual video position
     useEffect(() => {
         let progressInterval: NodeJS.Timeout;
-        let elapsedTime = 0;
+        let fallbackTime = 0; // Only used if we can't access video element
 
         const saveProgress = () => {
-            elapsedTime += 30;
-            if (elapsedTime >= 10) {
+            let currentPosition = 0;
+            let videoDuration = 0;
+
+            // Try to access the actual video element in iframe
+            try {
+                const iframe = iframeRef.current;
+                if (iframe && iframe.contentDocument) {
+                    const videoElement = iframe.contentDocument.querySelector('video');
+                    if (videoElement) {
+                        // SUCCESS: Got real video position!
+                        currentPosition = videoElement.currentTime || 0;
+                        videoDuration = videoElement.duration || 0;
+                        console.log(`[Progress] Real position: ${Math.round(currentPosition)}s / ${Math.round(videoDuration)}s`);
+                    } else {
+                        // No video element found, use fallback
+                        fallbackTime += 30;
+                        currentPosition = fallbackTime;
+                        console.log(`[Progress] Fallback timer: ${fallbackTime}s`);
+                    }
+                } else {
+                    // Can't access iframe (cross-origin), use fallback
+                    fallbackTime += 30;
+                    currentPosition = fallbackTime;
+                }
+            } catch (error) {
+                // Cross-origin error, use fallback
+                fallbackTime += 30;
+                currentPosition = fallbackTime;
+            }
+
+            // Only save if we have meaningful progress (>10s)
+            if (currentPosition >= 10) {
                 updateProgress({
                     tmdbId,
                     type: mediaType,
                     season,
                     episode,
-                    time: elapsedTime,
-                    duration: 0,
+                    time: currentPosition,
+                    duration: videoDuration, // Will be 0 for servers without access
                     lastUpdated: Date.now(),
                     provider,
                     title,
                     posterUrl,
                     voteAverage,
                     year: new Date().getFullYear(),
-                    backdropUrl,
-                    episodeImage
+
+                    backdropUrl: currentMovieBackdrop || backdropUrl,
+                    episodeImage: currentEpisodeImage || episodeImage
                 });
             }
         };
 
-        progressInterval = setInterval(saveProgress, 30000);
+        progressInterval = setInterval(saveProgress, 30000); // Poll every 30 seconds
 
         return () => {
             if (progressInterval) {
                 clearInterval(progressInterval);
-                if (elapsedTime >= 10) {
-                    updateProgress({
-                        tmdbId,
-                        type: mediaType,
-                        season,
-                        episode,
-                        time: elapsedTime,
-                        duration: 0,
-                        lastUpdated: Date.now(),
-                        provider,
-                        title,
-                        posterUrl,
-                        voteAverage,
-                        year: new Date().getFullYear(),
-                        backdropUrl,
-                        episodeImage
-                    });
-                }
+                // Final save on unmount
+                saveProgress();
             }
         };
-    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage]);
+    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
 
 
     const showSkipIntro = skipData?.intro?.start && skipData?.intro?.end &&

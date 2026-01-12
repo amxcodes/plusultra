@@ -255,7 +255,8 @@ export const SocialService = {
 
         // Map DB items back to local Movie interface
         return data.map((item: any) => ({
-            id: item.tmdb_id,
+            id: parseInt(item.tmdb_id),
+            tmdbId: parseInt(item.tmdb_id),
             title: item.metadata.title,
             imageUrl: item.metadata.poster_path,
             backdropUrl: item.metadata.backdrop_path,

@@ -177,6 +177,22 @@ export const TmdbService = {
         }
     },
 
+    getEpisodeDetails: async (tvId: string, season: number, episode: number): Promise<{ name: string; still_path: string | null; overview: string } | null> => {
+        if (!API_KEY) return null;
+        try {
+            const res = await fetch(`${BASE_URL}/tv/${tvId}/season/${season}/episode/${episode}?api_key=${API_KEY}`);
+            const data = await res.json();
+            return {
+                name: data.name,
+                still_path: data.still_path,
+                overview: data.overview
+            };
+        } catch (e) {
+            console.error("Episode Details Error", e);
+            return null;
+        }
+    },
+
     getSimilar: async (id: string, type: 'movie' | 'tv'): Promise<Movie[]> => {
         if (!API_KEY) return [];
         try {
