@@ -141,32 +141,34 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
       {/* Bottom: Settings & Profile */}
       <div className="mt-auto flex flex-col items-center gap-3">
 
-        {/* Announcements (Bell) - Added here */}
+        {/* Announcements (Bell) */}
         <div className="relative">
           <button
-            onClick={() => setActiveTab(NavItem.ANNOUNCEMENTS)}
+            onClick={() => {
+              setActiveTab(NavItem.ANNOUNCEMENTS);
+              setUnreadCounts(prev => ({ ...prev, announcementsCount: 0 }));
+            }}
             className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ANNOUNCEMENTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
           >
             <Bell size={18} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
           </button>
           {unreadCounts.announcementsCount > 0 && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-black">
-              {unreadCounts.announcementsCount > 9 ? '9+' : unreadCounts.announcementsCount}
-            </div>
+            <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" />
           )}
         </div>
 
         <div className="relative">
           <button
-            onClick={() => setActiveTab(NavItem.ACTIVITY)}
+            onClick={() => {
+              setActiveTab(NavItem.ACTIVITY);
+              setUnreadCounts(prev => ({ ...prev, activityCount: 0 }));
+            }}
             className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ACTIVITY ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
           >
             <Activity size={18} strokeWidth={activeTab === NavItem.ACTIVITY ? 2.5 : 2} />
           </button>
           {unreadCounts.activityCount > 0 && (
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-black">
-              {unreadCounts.activityCount > 9 ? '9+' : unreadCounts.activityCount}
-            </div>
+            <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />
           )}
         </div>
 
