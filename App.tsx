@@ -37,8 +37,30 @@ import { ActivityPage } from './components/ActivityPage';
 import { WatchTogetherService } from './lib/watchTogether';
 import { PlaylistsPage } from './components/PlaylistsPage';
 
+import { supabase } from './lib/supabase';
+
 function StreamApp() {
   const { user, loading } = useAuth();
+
+  // Session Persistence Check
+  useEffect(() => {
+    const checkSession = async () => {
+      const rememberMe = localStorage.getItem('AMX_REMEMBER_ME');
+      const sessionActive = sessionStorage.getItem('AMX_SESSION_ACTIVE');
+
+      // If 'Keep me logged in' was unchecked AND this is a fresh browser session
+      if (rememberMe === 'false' && !sessionActive && user) {
+        console.log('Session was not set to persist. Signing out.');
+        await supabase.auth.signOut();
+        return;
+      }
+
+      // Mark session as active for this tab/window
+      sessionStorage.setItem('AMX_SESSION_ACTIVE', 'true');
+    };
+    checkSession();
+  }, [user]);
+
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.DASHBOARD);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);

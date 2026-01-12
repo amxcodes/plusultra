@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, Check } from 'lucide-react';
 import { TmdbService } from '../services/tmdb';
+
 
 // Fallback images in case API fails or key is missing
 const FALLBACK_POSTERS = [
@@ -22,6 +22,7 @@ const FALLBACK_POSTERS = [
 
 export const AuthPage: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true);
+    const [rememberMe, setRememberMe] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -59,6 +60,10 @@ export const AuthPage: React.FC = () => {
                     password,
                 });
                 if (error) throw error;
+
+                // Handle persistence preference
+                localStorage.setItem('AMX_REMEMBER_ME', rememberMe ? 'true' : 'false');
+                sessionStorage.setItem('AMX_SESSION_ACTIVE', 'true');
             } else {
                 const { error } = await supabase.auth.signUp({
                     email,
@@ -138,6 +143,27 @@ export const AuthPage: React.FC = () => {
                             minLength={6}
                         />
                     </div>
+
+                    {isLogin && (
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setRememberMe(!rememberMe)}
+                                className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${rememberMe
+                                    ? 'bg-white border-white text-black'
+                                    : 'bg-transparent border-zinc-600 hover:border-zinc-500'
+                                    }`}
+                            >
+                                {rememberMe && <Check size={12} strokeWidth={4} />}
+                            </button>
+                            <span
+                                onClick={() => setRememberMe(!rememberMe)}
+                                className="text-xs text-zinc-400 cursor-pointer select-none hover:text-zinc-300"
+                            >
+                                Keep me logged in
+                            </span>
+                        </div>
+                    )}
 
                     <button
                         type="submit"
