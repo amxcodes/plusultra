@@ -31,13 +31,14 @@ export enum NavItem {
   SERIES = 'Series',
   ANIME = 'Anime',
   ASIAN_DRAMA = 'Asian Drama',
-  LATEST = 'Latest',
+  FOR_YOU = 'For You',
   MY_LIST = 'My List',
   SETTINGS = 'Settings',
   PROFILE = 'Profile',
   ADMIN = 'Admin',
   ANNOUNCEMENTS = 'Announcements',
-  ACTIVITY = 'Activity'
+  ACTIVITY = 'Activity',
+  PLAYLISTS = 'Playlists'
 }
 
 export interface Profile {
@@ -60,5 +61,11 @@ export interface Playlist {
     username: string;
     avatar_url: string;
   };
-  items?: { poster_path: string }[]; // Sneak peek items
+  items?: { metadata?: { poster_path?: string } }[]; // Sneak peek items
+  likes_count?: number;
+  analytics?: {
+    total_views: number;
+    weekly_views: number;
+    monthly_views: number;
+  };
 }

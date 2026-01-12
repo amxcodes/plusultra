@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
+import { PlaylistEngagement } from '../lib/playlistEngagement';
 import { Playlist, Movie } from '../types';
-import { Trash2, Share2, ChevronLeft, X, CheckCircle } from 'lucide-react';
+import { Trash2, Share2, ChevronLeft, X, CheckCircle, Heart, Eye } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 
 interface PlaylistPageProps {
@@ -83,11 +84,17 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     const [showDeletePlaylistModal, setShowDeletePlaylistModal] = useState(false);
     const [siteUrl, setSiteUrl] = useState('');
     const [copied, setCopied] = useState(false);
+    const [isLiked, setIsLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0);
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
+                window.scrollTo(0, 0);
+                // Track View first (non-blocking)
+                PlaylistEngagement.trackView(playlistId);
+
                 // Fetch items and details in parallel
                 const [playlistItems, playlistDetails, settings] = await Promise.all([
                     SocialService.getPlaylistItems(playlistId),
@@ -97,7 +104,13 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
 
                 setItems(playlistItems);
                 setPlaylist(playlistDetails);
+                if (playlistDetails) setLikeCount(playlistDetails.likes_count || 0);
+
                 if (settings.site_url) setSiteUrl(settings.site_url);
+
+                // Check like status
+                const liked = await PlaylistEngagement.checkIfLiked(playlistId);
+                setIsLiked(liked);
             } catch (e) {
                 console.error("Failed to load playlist data:", e);
             } finally {
@@ -106,6 +119,21 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
         };
         loadData();
     }, [playlistId]);
+
+    const handleLikeToggle = async () => {
+        if (!playlist) return;
+
+        // Optimistic update
+        const newStatus = !isLiked;
+        setIsLiked(newStatus);
+        setLikeCount(prev => newStatus ? prev + 1 : Math.max(0, prev - 1));
+
+        if (newStatus) {
+            await PlaylistEngagement.likePlaylist(playlist.id);
+        } else {
+            await PlaylistEngagement.unlikePlaylist(playlist.id);
+        }
+    };
 
     const handleConfirmRemove = async () => {
         if (!removeTargetId) return;
@@ -137,7 +165,40 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
         setTimeout(() => setCopied(false), 2000);
     };
 
-    if (loading) return <div className="h-screen flex items-center justify-center text-zinc-500 font-light tracking-wide">loading...</div>;
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0f1014] pt-24 px-4 md:px-12 pb-20 fade-in-up relative">
+                {/* Header Skeleton */}
+                <div className="max-w-7xl mx-auto mb-16 animate-pulse">
+                    <div className="w-10 h-10 rounded-full bg-zinc-900 mb-8 border border-zinc-800" />
+
+                    <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-8 border-b border-zinc-800/50">
+                        <div className="space-y-4 w-full md:w-auto">
+                            <div className="h-10 md:h-14 w-2/3 md:w-96 bg-zinc-900 rounded-xl" />
+                            <div className="h-6 w-48 bg-zinc-900 rounded-lg" />
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="w-24 h-12 bg-zinc-900 rounded-xl" />
+                            <div className="w-40 h-12 bg-zinc-900 rounded-xl" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Grid Skeleton */}
+                <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 gap-y-12 animate-pulse">
+                    {[...Array(12)].map((_, i) => (
+                        <div key={i} className="flex flex-col gap-3">
+                            <div className="aspect-[2/3] bg-zinc-900 rounded-xl border border-white/5" />
+                            <div className="space-y-2">
+                                <div className="h-4 w-3/4 bg-zinc-900 rounded" />
+                                <div className="h-3 w-1/2 bg-zinc-900 rounded" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     const isOwner = user && playlist && user.id === playlist.user_id;
     const isSystem = playlist?.type === 'watch_later' || playlist?.type === 'favorites';
@@ -170,12 +231,22 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
                         <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-4">
                             {playlist?.name || (items.length === 0 ? 'Empty Playlist' : 'Playlist Content')}
                         </h1>
-                        <p className="text-lg text-zinc-500 font-light flex items-center gap-3">
+                        <p className="text-lg text-zinc-500 font-light flex items-center gap-4">
+                            <span className="flex items-center gap-2"><Eye size={16} /> {(playlist?.analytics?.total_views || 0).toLocaleString()} views</span>
+                            <span className="text-zinc-700">•</span>
                             <span className="text-white font-bold">{items.length}</span> items stored
                         </p>
                     </div>
                     {/* Action Buttons */}
                     <div className="flex gap-4">
+                        <button
+                            onClick={handleLikeToggle}
+                            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all ${isLiked ? 'bg-pink-500/10 text-pink-500 border-pink-500/50' : 'bg-black/20 text-zinc-400 border-zinc-700 hover:border-zinc-500 hover:text-white'}`}
+                        >
+                            <Heart size={20} className={isLiked ? "fill-pink-500" : ""} />
+                            <span>{likeCount}</span>
+                        </button>
+
                         {isOwner && !isSystem && (
                             <button
                                 onClick={() => setShowDeletePlaylistModal(true)}

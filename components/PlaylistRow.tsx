@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Globe, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Globe, Lock, Heart } from 'lucide-react';
 import { Playlist } from '../types';
 
 interface PlaylistRowProps {
@@ -48,15 +48,15 @@ export const PlaylistRow: React.FC<PlaylistRowProps> = ({ title, playlists, onPl
                 {/* Row Container */}
                 <div ref={rowRef} onScroll={handleScroll} className="flex items-center space-x-4 overflow-x-scroll scrollbar-hide md:space-x-6 px-4 py-8" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                     {playlists.map((playlist) => {
-                        const previewImages = playlist.items?.map(i => i.poster_path ? `https://image.tmdb.org/t/p/w200${i.poster_path}` : null).filter(Boolean) as string[] || [];
+                        const previewImages = playlist.items?.map(i => i.metadata?.poster_path ? `https://image.tmdb.org/t/p/w200${i.metadata.poster_path}` : null).filter(Boolean) as string[] || [];
 
                         return (
                             <div key={playlist.id} onClick={() => onPlaylistSelect(playlist)} className="min-w-[160px] w-[160px] md:min-w-[200px] md:w-[200px] cursor-pointer group/card flex flex-col gap-3 relative transform-gpu transition-transform duration-300 hover:scale-105">
                                 <div className="aspect-[2/3] bg-zinc-900 rounded-xl overflow-hidden relative shadow-lg border border-white/5 group-hover/card:border-white/30">
                                     {previewImages.length > 0 ? (
                                         <div className={`grid w-full h-full ${previewImages.length >= 9 ? 'grid-cols-3 grid-rows-3' :
-                                                previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' :
-                                                    'grid-cols-1'
+                                            previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' :
+                                                'grid-cols-1'
                                             }`}>
                                             {previewImages.slice(0, 9).map((src, idx) => (
                                                 <img key={idx} src={src} className={`w-full h-full object-cover ${previewImages.length < 4 ? 'col-span-full row-span-full' : ''
@@ -73,6 +73,12 @@ export const PlaylistRow: React.FC<PlaylistRowProps> = ({ title, playlists, onPl
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/20 transition-colors duration-300" />
+                                    {playlist.likes_count !== undefined && playlist.likes_count > 0 && (
+                                        <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded-full flex items-center gap-1.5 text-[10px] font-bold text-white border border-white/10 shadow-xl z-20">
+                                            <Heart size={12} className="fill-white text-white" />
+                                            {playlist.likes_count}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <h3 className="text-sm font-bold text-gray-200 group-hover/card:text-white truncate transition-colors">
@@ -80,6 +86,7 @@ export const PlaylistRow: React.FC<PlaylistRowProps> = ({ title, playlists, onPl
                                     </h3>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-xs text-zinc-500">by <span className="text-zinc-400">{playlist.profiles?.username || 'Unknown'}</span></span>
+
                                     </div>
                                 </div>
                             </div>

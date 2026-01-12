@@ -12,7 +12,13 @@ import { useWatchHistory } from './components/useWatchHistory';
 
 import { CategoryRow } from './components/CategoryRow';
 import { AsianDramaPage } from './components/AsianDramaPage';
-import { LatestPage } from './components/LatestPage';
+import { ForYouPage } from './components/ForYouPage';
+
+// ... lines 16-391 (implicit context, will use multiple replace chunks if tool allows, or separate calls. Since this tool call is single replace, I will do import first or usage. Wait, user wants me to fix App.tsx errors.)
+
+// Actually, I'll use multi_replace for App.tsx to handle import and usage at once.
+// For this tool call, I will stick to fixing types.ts and Navbar.tsx as defined in arguments?
+// No, the prompt allows parallel tool calls. I will use multi_replace for App.tsx in a separate tool call below.
 import { Footer } from './components/Footer';
 import { SettingsPage } from './components/SettingsPage';
 import { LibraryBig } from 'lucide-react';
@@ -29,6 +35,7 @@ import { ViewAllPage } from './components/ViewAllPage';
 import { PlayerPage } from './components/PlayerPage';
 import { ActivityPage } from './components/ActivityPage';
 import { WatchTogetherService } from './lib/watchTogether';
+import { PlaylistsPage } from './components/PlaylistsPage';
 
 function StreamApp() {
   const { user, loading } = useAuth();
@@ -81,6 +88,8 @@ function StreamApp() {
           id: parseInt(m.tmdb_id),
           mediaType: m.media_type
         })));
+        setFeaturedPlaylists(fPlaylists);
+
         setFeaturedPlaylists(fPlaylists);
       } catch (e) {
         console.error("Failed to load featured content", e);
@@ -296,7 +305,7 @@ function StreamApp() {
             )}
 
 
-            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory ? '-mt-32' : 'pt-20'} relative z-20 pl-4 md:pl-10 space-y-2`}>
+            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : 'pt-20'} relative z-20 pl-4 md:pl-10 space-y-2`}>
 
               {/* VIEW ALL PAGE */}
               {viewAllCategory && (
@@ -342,6 +351,12 @@ function StreamApp() {
                     />
                   )}
 
+
+
+
+
+
+
                   <Row title="Trending Now" fetchUrl={requests.fetchTrending} onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending Now", fetchUrl: requests.fetchTrending })} />
                   <Row title="Top Rated" fetchUrl={requests.fetchTopRated} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated", fetchUrl: requests.fetchTopRated })} />
                   <Row title="Action Blockbusters" fetchUrl={requests.fetchActionMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action Blockbusters", fetchUrl: requests.fetchActionMovies })} />
@@ -353,25 +368,27 @@ function StreamApp() {
               )}
 
               {/* MOVIES ONLY VIEW */}
-              {activeTab === NavItem.MOVIES && (
+              {/* MOVIES ONLY VIEW */}
+              {activeTab === NavItem.MOVIES && !viewAllCategory && (
                 <>
-                  <Row title="Trending Movies" fetchUrl={requests.fetchTrending} forcedMediaType='movie' onMovieSelect={handleMovieSelect} isLarge />
-                  <Row title="Top Rated Movies" fetchUrl={requests.fetchTopRated} forcedMediaType='movie' onMovieSelect={handleMovieSelect} />
-                  <Row title="Action" fetchUrl={requests.fetchActionMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} />
-                  <Row title="Comedy" fetchUrl={requests.fetchComedyMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} />
-                  <Row title="Horror" fetchUrl={requests.fetchHorrorMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} />
-                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} />
+                  <Row title="Trending Movies" fetchUrl={requests.fetchTrending} forcedMediaType='movie' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending Movies", fetchUrl: requests.fetchTrending, forcedMediaType: 'movie' })} />
+                  <Row title="Top Rated Movies" fetchUrl={requests.fetchTopRated} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated Movies", fetchUrl: requests.fetchTopRated, forcedMediaType: 'movie' })} />
+                  <Row title="Action" fetchUrl={requests.fetchActionMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action", fetchUrl: requests.fetchActionMovies, forcedMediaType: 'movie' })} />
+                  <Row title="Comedy" fetchUrl={requests.fetchComedyMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Comedy", fetchUrl: requests.fetchComedyMovies, forcedMediaType: 'movie' })} />
+                  <Row title="Horror" fetchUrl={requests.fetchHorrorMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Horror", fetchUrl: requests.fetchHorrorMovies, forcedMediaType: 'movie' })} />
+                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Romance", fetchUrl: requests.fetchRomanceMovies, forcedMediaType: 'movie' })} />
                 </>
               )}
 
               {/* TV SERIES ONLY VIEW */}
-              {activeTab === NavItem.SERIES && (
+              {/* TV SERIES ONLY VIEW */}
+              {activeTab === NavItem.SERIES && !viewAllCategory && (
                 <>
-                  <Row title="Trending TV" fetchUrl={requests.fetchNetflixOriginals} forcedMediaType='tv' onMovieSelect={handleMovieSelect} isLarge />
-                  <Row title="Top Rated TV" fetchUrl={requests.fetchTopRated} forcedMediaType='tv' onMovieSelect={handleMovieSelect} />
-                  <Row title="Action & Adventure" fetchUrl={requests.fetchActionMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} />
-                  <Row title="Comedy Series" fetchUrl={requests.fetchComedyMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} />
-                  <Row title="Documentary Series" fetchUrl={requests.fetchDocumentaries} forcedMediaType='tv' onMovieSelect={handleMovieSelect} />
+                  <Row title="Trending TV" fetchUrl={requests.fetchNetflixOriginals} forcedMediaType='tv' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending TV", fetchUrl: requests.fetchNetflixOriginals, forcedMediaType: 'tv' })} />
+                  <Row title="Top Rated TV" fetchUrl={requests.fetchTopRated} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated TV", fetchUrl: requests.fetchTopRated, forcedMediaType: 'tv' })} />
+                  <Row title="Action & Adventure" fetchUrl={requests.fetchActionMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action & Adventure", fetchUrl: requests.fetchActionMovies, forcedMediaType: 'tv' })} />
+                  <Row title="Comedy Series" fetchUrl={requests.fetchComedyMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Comedy Series", fetchUrl: requests.fetchComedyMovies, forcedMediaType: 'tv' })} />
+                  <Row title="Documentary Series" fetchUrl={requests.fetchDocumentaries} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Documentary Series", fetchUrl: requests.fetchDocumentaries, forcedMediaType: 'tv' })} />
                 </>
               )}
 
@@ -384,13 +401,16 @@ function StreamApp() {
               )}
 
               {/* ASIAN DRAMA VIEW */}
-              {activeTab === NavItem.ASIAN_DRAMA && (
-                <AsianDramaPage onMovieSelect={handleMovieSelect} />
+              {activeTab === NavItem.ASIAN_DRAMA && !viewAllCategory && (
+                <AsianDramaPage
+                  onMovieSelect={handleMovieSelect}
+                  onViewAll={setViewAllCategory}
+                />
               )}
 
-              {/* LATEST VIEW */}
-              {activeTab === NavItem.LATEST && (
-                <LatestPage onMovieSelect={handleMovieSelect} />
+              {/* FOR YOU VIEW */}
+              {activeTab === NavItem.FOR_YOU && (
+                <ForYouPage onMovieSelect={handleMovieSelect} />
               )}
 
 
@@ -450,6 +470,14 @@ function StreamApp() {
               {/* ACTIVITY VIEW */}
               {activeTab === NavItem.ACTIVITY && (
                 <ActivityPage onNavigate={handleNavigate} />
+              )}
+
+              {/* PLAYLISTS VIEW */}
+              {activeTab === NavItem.PLAYLISTS && !selectedPlaylistId && (
+                <PlaylistsPage
+                  onBack={() => setActiveTab(NavItem.DASHBOARD)}
+                  onPlaylistSelect={handlePlaylistSelect}
+                />
               )}
 
               {/* Add To Playlist Modal (Global generic overlay) */}

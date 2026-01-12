@@ -44,6 +44,10 @@ export const requests = {
     fetchAnimeMovies: `/discover/movie?api_key=${API_KEY}&with_genres=16&with_origin_country=JP&sort_by=vote_average.desc&vote_count.gte=200`,
     fetchAnimeAction: `/discover/tv?api_key=${API_KEY}&with_genres=16,28&with_origin_country=JP&sort_by=popularity.desc`,
     fetchAnimeRomance: `/discover/tv?api_key=${API_KEY}&with_genres=16,10749&sort_by=popularity.desc`,
+    fetchAsianDramas: `/discover/tv?api_key=${API_KEY}&with_original_language=ko|zh|ja&with_genres=18&sort_by=popularity.desc`,
+    fetchKDramas: `/discover/tv?api_key=${API_KEY}&with_original_language=ko&with_genres=18&sort_by=popularity.desc`,
+    fetchCDramas: `/discover/tv?api_key=${API_KEY}&with_original_language=zh&with_genres=18&sort_by=popularity.desc`,
+    fetchJDramas: `/discover/tv?api_key=${API_KEY}&with_original_language=ja&with_genres=18&without_genres=16&sort_by=popularity.desc`,
 };
 
 export const TmdbService = {
@@ -205,6 +209,18 @@ export const TmdbService = {
             return data.results.map((i: any) => mapTmdbToMovie(i, type));
         } catch (e) {
             console.error("Similar Fetch Error", e);
+            return [];
+        }
+    },
+
+    getRecommendations: async (id: string, type: 'movie' | 'tv'): Promise<Movie[]> => {
+        if (!API_KEY) return [];
+        try {
+            const res = await fetch(`${BASE_URL}/${type}/${id}/recommendations?api_key=${API_KEY}`);
+            const data = await res.json();
+            return data.results.map((i: any) => mapTmdbToMovie(i, type));
+        } catch (e) {
+            console.error("Recommendations Fetch Error", e);
             return [];
         }
     },

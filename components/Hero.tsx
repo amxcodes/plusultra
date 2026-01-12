@@ -53,7 +53,7 @@ export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) =>
         </h1>
 
         <div className="flex items-center gap-4 text-sm font-medium text-gray-200 mb-6">
-          <span className="text-green-400 font-bold">{movie.match}% Match</span>
+          <span className="text-green-400 font-bold">{movie.match}% Rating</span>
           <span>{movie.year}</span>
           <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] font-semibold border border-white/10 backdrop-blur-md">4K</span>
           <span className="bg-white/10 px-2 py-0.5 rounded text-[10px] font-semibold border border-white/10 backdrop-blur-md">5.1</span>

@@ -73,8 +73,8 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                 setActiveMovie(prev => ({ ...prev, ...details }));
 
-                // Fetch Similar
-                const similar = await TmdbService.getSimilar(movie.id.toString(), movie.mediaType || 'movie');
+                // Fetch Recommendations
+                const similar = await TmdbService.getRecommendations(movie.id.toString(), movie.mediaType || 'movie');
                 if (isMounted) setRecommendations(similar);
 
                 // Update Season List with Real Data (includes Specials/Season 0 and Names)
@@ -222,7 +222,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                             <div className="flex flex-wrap items-center gap-4 md:gap-6 text-sm font-medium text-gray-300">
                                 <span className="text-green-400 font-bold flex items-center gap-1">
-                                    <ThumbsUp size={14} className="fill-green-400" /> {activeMovie.match}% Match
+                                    <ThumbsUp size={14} className="fill-green-400" /> {activeMovie.match}% Rating
                                 </span>
                                 <span className="flex items-center gap-1">
                                     <Calendar size={14} /> {activeMovie.year}

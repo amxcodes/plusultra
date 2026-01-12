@@ -268,3 +268,96 @@ insert into public.app_settings (key, value) values
   ('site_url', 'http://localhost:5173'),
   ('donation_url', 'https://ko-fi.com')
 on conflict do nothing;
+
+-- 11. PLAYLIST ENGAGEMENT (Likes & Analytics)
+
+-- Add analytics columns to playlists
+alter table public.playlists add column if not exists likes_count int default 0;
+alter table public.playlists add column if not exists analytics jsonb default '{"total_views": 0, "weekly_views": 0, "monthly_views": 0, "week_start": null, "month_start": null, "last_viewers": []}'::jsonb;
+
+-- Playlist Likes Junction Table
+create table if not exists public.playlist_likes (
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  playlist_id uuid references public.playlists(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  primary key (user_id, playlist_id)
+);
+
+alter table public.playlist_likes enable row level security;
+create policy "Anyone can view likes" on public.playlist_likes for select using (true);
+create policy "Users can like playlists" on public.playlist_likes for insert with check (auth.uid() = user_id);
+create policy "Users can unlike playlists" on public.playlist_likes for delete using (auth.uid() = user_id);
+
+-- RPC: Like Playlist
+create or replace function like_playlist(p_playlist_id uuid)
+returns void as $$
+begin
+  -- Insert like
+  insert into public.playlist_likes (user_id, playlist_id)
+  values (auth.uid(), p_playlist_id)
+  on conflict do nothing;
+  
+  -- Increment counter
+  update public.playlists
+  set likes_count = likes_count + 1
+  where id = p_playlist_id;
+end;
+$$ language plpgsql security definer;
+
+-- RPC: Unlike Playlist
+create or replace function unlike_playlist(p_playlist_id uuid)
+returns void as $$
+begin
+  -- Delete like
+  delete from public.playlist_likes
+  where user_id = auth.uid() and playlist_id = p_playlist_id;
+  
+  -- Decrement counter
+  update public.playlists
+  set likes_count = greatest(likes_count - 1, 0)
+  where id = p_playlist_id;
+end;
+$$ language plpgsql security definer;
+
+-- RPC: Track Playlist View
+create or replace function track_playlist_view(p_playlist_id uuid)
+returns void as $$
+declare
+  current_analytics jsonb;
+  current_week text;
+  current_month text;
+  stored_week text;
+  stored_month text;
+  new_analytics jsonb;
+begin
+  current_analytics := (select analytics from public.playlists where id = p_playlist_id);
+  current_week := to_char(now(), 'IYYY-IW'); -- ISO week format
+  current_month := to_char(now(), 'YYYY-MM');
+  
+  stored_week := current_analytics->>'week_start';
+  stored_month := current_analytics->>'month_start';
+  
+  -- Build new analytics object
+  new_analytics := jsonb_build_object(
+    'total_views', coalesce((current_analytics->>'total_views')::int, 0) + 1,
+    'weekly_views', case when stored_week = current_week then coalesce((current_analytics->>'weekly_views')::int, 0) + 1 else 1 end,
+    'monthly_views', case when stored_month = current_month then coalesce((current_analytics->>'monthly_views')::int, 0) + 1 else 1 end,
+    'week_start', current_week,
+    'month_start', current_month,
+    'last_viewers', (
+      select jsonb_agg(viewer order by (viewer->>'timestamp')::bigint desc)
+      from (
+        select jsonb_array_elements(coalesce(current_analytics->'last_viewers', '[]'::jsonb)) as viewer
+        union all
+        select jsonb_build_object('user_id', auth.uid()::text, 'timestamp', extract(epoch from now())::bigint)
+        limit 10
+      ) viewers
+    )
+  );
+  
+  update public.playlists
+  set analytics = new_analytics
+  where id = p_playlist_id;
+end;
+$$ language plpgsql security definer;
+
