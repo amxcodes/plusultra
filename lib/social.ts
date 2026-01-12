@@ -127,7 +127,7 @@ export const SocialService = {
             .from('playlists')
             .select(`
             *,
-            profiles:user_id (username, avatar_url),
+            profiles!playlists_user_id_fkey (username, avatar_url),
             items:playlist_items(metadata)
         `)
             .eq('is_public', true)
@@ -155,7 +155,7 @@ export const SocialService = {
             .from('playlists')
             .select(`
             *,
-            profiles:user_id (username, avatar_url)
+            profiles!playlists_user_id_fkey (username, avatar_url)
         `)
             .eq('is_public', true)
             .ilike('name', `%${query}%`)
@@ -376,7 +376,7 @@ export const SocialService = {
             .from('playlists')
             .select(`
                 *,
-                profiles(username),
+                profiles!playlists_user_id_fkey(username),
                 playlist_items(metadata)
             `)
             .order('created_at', { ascending: false })
@@ -435,7 +435,7 @@ export const SocialService = {
             .from('playlists')
             .select(`
                 *,
-                profiles:user_id (username, avatar_url),
+                profiles!playlists_user_id_fkey (username, avatar_url),
                 items:playlist_items(metadata)
             `)
             .eq('is_featured', true)

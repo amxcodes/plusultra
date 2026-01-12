@@ -65,7 +65,7 @@ export const PlaylistEngagement = {
             created_at,
             likes_count,
             user_id,
-            profiles:user_id (
+            profiles!playlists_user_id_fkey (
               username,
               avatar_url
             ),
@@ -117,7 +117,7 @@ export const PlaylistEngagement = {
                 .from('playlists')
                 .select(`
           *,
-          profiles:user_id (
+          profiles!playlists_user_id_fkey (
             username,
             avatar_url
           ),
@@ -145,7 +145,7 @@ export const PlaylistEngagement = {
                 .from('playlists')
                 .select(`
           *,
-          profiles:user_id (
+          profiles!playlists_user_id_fkey (
             username,
             avatar_url
           ),
@@ -173,7 +173,7 @@ export const PlaylistEngagement = {
                 .from('playlists')
                 .select(`
           *,
-          profiles:user_id (
+          profiles!playlists_user_id_fkey (
             username,
             avatar_url
           ),
