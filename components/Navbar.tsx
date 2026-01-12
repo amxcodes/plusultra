@@ -18,6 +18,7 @@ import {
   Activity, // Activity Log
   Heart
 } from 'lucide-react';
+import { SocialService } from '../lib/social';
 
 interface NavbarProps {
   activeTab: NavItem;
@@ -46,7 +47,25 @@ import { ListVideo } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick }) => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
+  const [unreadCounts, setUnreadCounts] = React.useState({ announcementsCount: 0, activityCount: 0 });
+
+  // Fetch unread counts
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const fetchUnreadCounts = async () => {
+      try {
+        const counts = await SocialService.getUnreadCounts(user.id);
+        setUnreadCounts(counts);
+      } catch (error) {
+        console.error('Failed to fetch unread counts:', error);
+      }
+    };
+    fetchUnreadCounts();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchUnreadCounts, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   return (
     <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-4 bg-[#0a0a0a]/60 backdrop-blur-2xl rounded-[24px] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
@@ -123,19 +142,33 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
       <div className="mt-auto flex flex-col items-center gap-3">
 
         {/* Announcements (Bell) - Added here */}
-        <button
-          onClick={() => setActiveTab(NavItem.ANNOUNCEMENTS)}
-          className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ANNOUNCEMENTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          <Bell size={18} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setActiveTab(NavItem.ANNOUNCEMENTS)}
+            className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ANNOUNCEMENTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          >
+            <Bell size={18} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
+          </button>
+          {unreadCounts.announcementsCount > 0 && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-black">
+              {unreadCounts.announcementsCount > 9 ? '9+' : unreadCounts.announcementsCount}
+            </div>
+          )}
+        </div>
 
-        <button
-          onClick={() => setActiveTab(NavItem.ACTIVITY)}
-          className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ACTIVITY ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          <Activity size={18} strokeWidth={activeTab === NavItem.ACTIVITY ? 2.5 : 2} />
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setActiveTab(NavItem.ACTIVITY)}
+            className={`p-2.5 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ACTIVITY ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          >
+            <Activity size={18} strokeWidth={activeTab === NavItem.ACTIVITY ? 2.5 : 2} />
+          </button>
+          {unreadCounts.activityCount > 0 && (
+            <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white border border-black">
+              {unreadCounts.activityCount > 9 ? '9+' : unreadCounts.activityCount}
+            </div>
+          )}
+        </div>
 
         <button
           onClick={() => setActiveTab(NavItem.PLAYLISTS)}

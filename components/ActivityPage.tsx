@@ -43,6 +43,9 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
 
                 setFollowingIds(statusMap);
 
+                // Mark activity as seen
+                await SocialService.markActivitySeen(user.id);
+
             } catch (error) {
                 console.error("Failed to load activity", error);
             } finally {
@@ -107,7 +110,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
     }
 
     return (
-        <div className="pt-24 px-8 md:px-16 max-w-4xl mx-auto min-h-screen animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="pt-24 pb-40 px-8 md:px-16 max-w-4xl mx-auto min-h-screen animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 bg-white/10 rounded-full">
                     <Activity size={32} className="text-white" />

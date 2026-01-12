@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
     Download,
-    Trash2,
+
     Database,
     History,
     LogOut,
@@ -41,20 +41,7 @@ export const SettingsPage: React.FC = () => {
         }
     };
 
-    const handleClearHistory = async () => {
-        if (!user) return;
-        if (confirm('Are you sure you want to clear your entire watch history? This cannot be undone.')) {
-            try {
-                await SocialService.clearWatchHistory(user.id);
-                setStatusMessage('Watch history cleared successfully.');
-                loadStats(); // Refresh
-                setTimeout(() => setStatusMessage(null), 3000);
-            } catch (e) {
-                console.error("Failed to clear history", e);
-                setStatusMessage('Failed to clear history.');
-            }
-        }
-    };
+
 
     const handleExport = async () => {
         if (!user) return;
@@ -108,14 +95,6 @@ export const SettingsPage: React.FC = () => {
                     >
                         <LogOut size={14} />
                         Sign Out
-                    </button>
-                    <div className="w-px h-8 bg-white/10 mx-2"></div>
-                    <button
-                        onClick={handleClearHistory}
-                        className="flex items-center gap-2 px-4 py-2 hover:bg-red-500/10 rounded-xl text-xs font-medium text-red-500 transition-colors"
-                    >
-                        <Trash2 size={14} />
-                        Clear History
                     </button>
                 </div>
             </div>

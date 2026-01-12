@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { Bell, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
 
 export const AnnouncementsPage: React.FC = () => {
+    const { user } = useAuth();
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -11,6 +13,10 @@ export const AnnouncementsPage: React.FC = () => {
             try {
                 const data = await SocialService.getAnnouncements();
                 setAnnouncements(data);
+                // Mark announcements as seen
+                if (user?.id) {
+                    await SocialService.markAnnouncementsSeen(user.id);
+                }
             } catch (e) {
                 console.error("Failed to load announcements", e);
             } finally {
@@ -18,7 +24,7 @@ export const AnnouncementsPage: React.FC = () => {
             }
         };
         load();
-    }, []);
+    }, [user?.id]);
 
     const getTypeConfig = (type: string) => {
         switch (type) {
@@ -72,7 +78,7 @@ export const AnnouncementsPage: React.FC = () => {
     }
 
     return (
-        <div className="w-full pl-24 pr-12 pt-20 min-h-screen animate-in fade-in duration-700">
+        <div className="w-full pl-24 pr-12 pt-20 pb-40 min-h-screen animate-in fade-in duration-700">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="mb-16">

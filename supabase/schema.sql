@@ -8,6 +8,8 @@ create table public.profiles (
   avatar_url text,
   role text default 'user' check (role in ('user', 'admin', 'moderator')),
   watch_history jsonb default '{}'::jsonb, -- Netflix-style bundled history
+  last_seen_announcements timestamptz default now(), -- For notification badge
+  last_seen_activity timestamptz default now(), -- For activity badge
   created_at timestamptz default now()
 );
 
