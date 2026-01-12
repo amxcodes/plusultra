@@ -185,6 +185,14 @@ export const SocialService = {
         return data;
     },
 
+    async updatePlaylist(playlistId: string, updates: { name?: string; description?: string }) {
+        const { error } = await supabase
+            .from('playlists')
+            .update(updates)
+            .eq('id', playlistId);
+        if (error) throw error;
+    },
+
     async deletePlaylist(playlistId: string) {
         const { error } = await supabase
             .from('playlists')
@@ -453,34 +461,44 @@ export const SocialService = {
     },
 
     async getUserStats(userId: string) {
-        // Watch History Count
-        const { count: historyCount } = await supabase
-            .from('watch_history')
+        // Watch History Count (from JSONB in profiles table)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('watch_history')
+            .eq('id', userId)
+            .single();
+
+        const historyCount = profile?.watch_history
+            ? Object.keys(profile.watch_history).length
+            : 0;
+
+        // Total Playlists Created by User
+        const { count: playlistsCount } = await supabase
+            .from('playlists')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId);
 
-        // Saved Items (My List / Watch Later)
-        const { data: watchLater } = await supabase
+        // Liked Playlists Count
+        const { count: likedCount } = await supabase
+            .from('playlist_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', userId);
+
+        // Total Views on User's Playlists
+        const { data: userPlaylists } = await supabase
             .from('playlists')
-            .select('id')
-            .match({ user_id: userId, type: 'watch_later' })
-            .single();
+            .select('analytics')
+            .eq('user_id', userId);
 
-        let listCount = 0;
-        if (watchLater) {
-            const { count } = await supabase
-                .from('playlist_items')
-                .select('*', { count: 'exact', head: true })
-                .eq('playlist_id', watchLater.id);
-            listCount = count || 0;
-        }
+        const totalViews = userPlaylists?.reduce((sum, p) => {
+            return sum + (p.analytics?.total_views || 0);
+        }, 0) || 0;
 
-        // Get breakdown of history types (this is rough, doing it via get because we need metadata)
-        // Ideally we'd do a Count Group By, but Supabase JS client doesn't support that easily without RPC.
-        // We'll just estimate or strictly just show total history for now to avoid heavy fetches.
         return {
             historyCount: historyCount || 0,
-            listCount: listCount || 0
+            playlistsCount: playlistsCount || 0,
+            likedPlaylistsCount: likedCount || 0,
+            totalPlaylistViews: totalViews
         };
     },
 

@@ -4,7 +4,7 @@ import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { PlaylistEngagement } from '../lib/playlistEngagement';
 import { Playlist, Movie } from '../types';
-import { Trash2, Share2, ChevronLeft, X, CheckCircle, Heart, Eye } from 'lucide-react';
+import { Trash2, Share2, ChevronLeft, X, CheckCircle, Heart, Eye, Edit2, Check } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 
 interface PlaylistPageProps {
@@ -86,6 +86,8 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     const [copied, setCopied] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState('');
 
     useEffect(() => {
         const loadData = async () => {
@@ -165,6 +167,18 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const handleSaveName = async () => {
+        if (!playlist || !editedName.trim()) return;
+
+        try {
+            await SocialService.updatePlaylist(playlist.id, { name: editedName.trim() });
+            setPlaylist({ ...playlist, name: editedName.trim() });
+            setIsEditingName(false);
+        } catch (error) {
+            console.error('Error updating playlist name:', error);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#0f1014] pt-24 px-4 md:px-12 pb-20 fade-in-up relative">
@@ -228,9 +242,50 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
 
                 <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-8 border-b border-zinc-800/50">
                     <div>
-                        <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-4">
-                            {playlist?.name || (items.length === 0 ? 'Empty Playlist' : 'Playlist Content')}
-                        </h1>
+                        {isEditingName ? (
+                            <div className="flex items-center gap-3 mb-4">
+                                <input
+                                    type="text"
+                                    value={editedName}
+                                    onChange={(e) => setEditedName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveName();
+                                        if (e.key === 'Escape') setIsEditingName(false);
+                                    }}
+                                    className="text-5xl md:text-6xl font-black text-white tracking-tighter bg-transparent border-b-2 border-white/20 focus:border-white outline-none flex-1"
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={handleSaveName}
+                                    className="p-3 bg-white text-black rounded-xl hover:bg-white/90 transition-all"
+                                >
+                                    <Check size={24} />
+                                </button>
+                                <button
+                                    onClick={() => setIsEditingName(false)}
+                                    className="p-3 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3 mb-4 group/title">
+                                <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter">
+                                    {playlist?.name || (items.length === 0 ? 'Empty Playlist' : 'Playlist Content')}
+                                </h1>
+                                {isOwner && !isSystem && (
+                                    <button
+                                        onClick={() => {
+                                            setEditedName(playlist?.name || '');
+                                            setIsEditingName(true);
+                                        }}
+                                        className="p-2 text-zinc-600 hover:text-white hover:bg-zinc-900 rounded-lg transition-all opacity-0 group-hover/title:opacity-100"
+                                    >
+                                        <Edit2 size={20} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         <p className="text-lg text-zinc-500 font-light flex items-center gap-4">
                             <span className="flex items-center gap-2"><Eye size={16} /> {(playlist?.analytics?.total_views || 0).toLocaleString()} views</span>
                             <span className="text-zinc-700">•</span>

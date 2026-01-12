@@ -493,7 +493,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                     {playlists.map(playlist => {
                         // Collage Logic
-                        const previewImages = playlist.items?.map(i => i.poster_path).slice(0, 4) || [];
+                        const previewImages = playlist.items?.map(i => i.metadata?.poster_path ? `https://image.tmdb.org/t/p/w300${i.metadata.poster_path}` : null).filter(Boolean).slice(0, 4) as string[] || [];
                         const isSystem = playlist.type === 'watch_later' || playlist.type === 'favorites';
 
                         return (

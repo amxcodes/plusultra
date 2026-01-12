@@ -16,7 +16,9 @@ import { SocialService } from '../lib/social';
 
 interface UserStats {
     historyCount: number;
-    listCount: number;
+    playlistsCount: number;
+    likedPlaylistsCount: number;
+    totalPlaylistViews: number;
 }
 
 export const SettingsPage: React.FC = () => {
@@ -124,7 +126,7 @@ export const SettingsPage: React.FC = () => {
                 {/* Main Content Area */}
                 <div className="col-span-12 space-y-8">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Cloud Storage Stat */}
                         <section className="bg-gradient-to-b from-zinc-900/80 to-black border border-white/10 rounded-[32px] p-8 relative overflow-hidden group">
                             <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
@@ -167,7 +169,7 @@ export const SettingsPage: React.FC = () => {
                                         <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">History</div>
                                     </div>
                                     <div className="text-4xl font-black text-white">{stats?.historyCount || 0}</div>
-                                    <p className="text-xs text-zinc-600">Titles watched</p>
+                                    <p className="text-xs text-zinc-600">Titles in history</p>
                                 </div>
 
                                 <div className="space-y-4">
@@ -175,11 +177,47 @@ export const SettingsPage: React.FC = () => {
                                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
                                             <Bookmark size={18} />
                                         </div>
-                                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Saved</div>
+                                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Playlists</div>
                                     </div>
-                                    <div className="text-4xl font-black text-white">{stats?.listCount || 0}</div>
-                                    <p className="text-xs text-zinc-600">Titles in My List</p>
+                                    <div className="text-4xl font-black text-white">{stats?.playlistsCount || 0}</div>
+                                    <p className="text-xs text-zinc-600">Playlists created</p>
                                 </div>
+                            </div>
+                        </section>
+
+                        {/* Liked Playlists Card */}
+                        <section className="bg-gradient-to-b from-zinc-900/40 to-black border border-white/5 p-8 rounded-[32px] flex flex-col justify-between">
+                            <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <Film size={14} /> Engagement
+                            </h3>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
+                                        <Film size={18} />
+                                    </div>
+                                    <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Liked</div>
+                                </div>
+                                <div className="text-4xl font-black text-white">{stats?.likedPlaylistsCount || 0}</div>
+                                <p className="text-xs text-zinc-600">Playlists liked</p>
+                            </div>
+                        </section>
+
+                        {/* Total Views Card */}
+                        <section className="bg-gradient-to-b from-zinc-900/40 to-black border border-white/5 p-8 rounded-[32px] flex flex-col justify-between">
+                            <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <Tv size={14} /> Reach
+                            </h3>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
+                                        <Tv size={18} />
+                                    </div>
+                                    <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Views</div>
+                                </div>
+                                <div className="text-4xl font-black text-white">{stats?.totalPlaylistViews || 0}</div>
+                                <p className="text-xs text-zinc-600">Total playlist views</p>
                             </div>
                         </section>
                     </div>
@@ -212,7 +250,7 @@ export const SettingsPage: React.FC = () => {
                         </button>
                     </div>
                 </div>
-            </div>
+            </div >
 
             {statusMessage && (
                 <div className="fixed bottom-12 right-12 bg-white text-black px-6 py-3 rounded-full font-bold text-sm shadow-2xl animate-in slide-in-from-bottom-8 duration-500 flex items-center gap-3">
@@ -220,6 +258,6 @@ export const SettingsPage: React.FC = () => {
                     {statusMessage}
                 </div>
             )}
-        </div>
+        </div >
     );
 };
