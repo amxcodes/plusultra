@@ -376,8 +376,11 @@ function StreamApp() {
               )}
 
               {/* ANIME VIEW */}
-              {activeTab === NavItem.ANIME && (
-                <AnimePage onMovieSelect={handleMovieSelect} />
+              {activeTab === NavItem.ANIME && !viewAllCategory && (
+                <AnimePage
+                  onMovieSelect={handleMovieSelect}
+                  onViewAll={setViewAllCategory}
+                />
               )}
 
               {/* ASIAN DRAMA VIEW */}

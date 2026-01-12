@@ -23,7 +23,7 @@ export const MovieCard: React.FC<MovieCardProps> = ({ movie, onClick }) => {
             alt={movie.title}
             className="w-full h-full object-cover"
             loading="lazy"
-            decoding="async"
+            decoding="auto"
           />
 
           {/* Hover Overlay */}

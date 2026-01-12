@@ -40,6 +40,10 @@ export const requests = {
     fetchTvPopular: `/tv/popular?api_key=${API_KEY}&language=en-US`, // New
     fetchNowPlaying: `/movie/now_playing?api_key=${API_KEY}&language=en-US`,
     fetchUpcoming: `/movie/upcoming?api_key=${API_KEY}&language=en-US`,
+    fetchAnimeTrending: `/discover/tv?api_key=${API_KEY}&with_genres=16&with_origin_country=JP&sort_by=popularity.desc`,
+    fetchAnimeMovies: `/discover/movie?api_key=${API_KEY}&with_genres=16&with_origin_country=JP&sort_by=vote_average.desc&vote_count.gte=200`,
+    fetchAnimeAction: `/discover/tv?api_key=${API_KEY}&with_genres=16,28&with_origin_country=JP&sort_by=popularity.desc`,
+    fetchAnimeRomance: `/discover/tv?api_key=${API_KEY}&with_genres=16,10749&sort_by=popularity.desc`,
 };
 
 export const TmdbService = {

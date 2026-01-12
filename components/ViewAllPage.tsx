@@ -45,11 +45,14 @@ export const ViewAllPage: React.FC<ViewAllPageProps> = ({
     const loadMore = async (pageNum: number) => {
         if (!fetchUrl || loading) return;
         setLoading(true);
+        console.log(`[ViewAll] Loading page ${pageNum} for ${title}. URL: ${fetchUrl}`);
         try {
             const separator = fetchUrl.includes('?') ? '&' : '?';
             const urlWithPage = `${fetchUrl}${separator}page=${pageNum}`;
+            console.log(`[ViewAll] Full URL: ${urlWithPage}`);
 
             const newMovies = await TmdbService.getCategory(urlWithPage, forcedMediaType);
+            console.log(`[ViewAll] Received ${newMovies.length} movies.`);
 
             if (newMovies.length === 0) setHasMore(false);
 
@@ -75,6 +78,17 @@ export const ViewAllPage: React.FC<ViewAllPageProps> = ({
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, [hasMore, loading, page, initialMovies]);
+
+    // Check if content is short and load more automatically
+    useEffect(() => {
+        if (hasMore && !loading && !initialMovies && movies.length > 0 && movies.length < 20) {
+            // If we have very few movies, try loading next page to fill screen
+            loadMore(page + 1);
+        } else if (hasMore && !loading && !initialMovies && document.documentElement.scrollHeight <= window.innerHeight + 100) {
+            // If content height is less than viewport, load more
+            loadMore(page + 1);
+        }
+    }, [movies, hasMore, loading, initialMovies]);
 
     // Local Search Filtering
     const filteredMovies = movies.filter(m =>
@@ -143,6 +157,18 @@ export const ViewAllPage: React.FC<ViewAllPageProps> = ({
             {filteredMovies.length === 0 && !loading && (
                 <div className="text-center py-20 text-zinc-500">
                     <p className="text-xl">No results found</p>
+                </div>
+            )}
+
+            {/* Manual Load More fallback */}
+            {hasMore && !loading && filteredMovies.length > 0 && (
+                <div className="flex justify-center mt-8 pb-10">
+                    <button
+                        onClick={() => loadMore(page + 1)}
+                        className="px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-white text-sm transition-colors"
+                    >
+                        Load More
+                    </button>
                 </div>
             )}
         </div>
