@@ -10,9 +10,10 @@ interface MovieDetailProps {
     onClose: () => void;
     onPlay: (movie: Movie, season?: number, episode?: number) => void;
     similarMovies?: Movie[];
+    onMovieSelect?: (movie: Movie) => void;
 }
 
-export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay }) => {
+export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay, onMovieSelect }) => {
     const [isVisible, setIsVisible] = useState(false);
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
@@ -448,7 +449,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                         <div className="grid grid-cols-2 gap-4">
                             {recommendations.slice(0, activeMovie.mediaType === 'tv' ? 12 : 4).map(simMovie => (
                                 <div key={simMovie.id} className="transform scale-90 origin-top-left hover:scale-95 transition-transform duration-300">
-                                    <MovieCard movie={simMovie} />
+                                    <MovieCard movie={simMovie} onClick={() => onMovieSelect?.(simMovie)} />
                                 </div>
                             ))}
                             {recommendations.length === 0 && (

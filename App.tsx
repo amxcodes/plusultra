@@ -296,6 +296,7 @@ function StreamApp() {
           onClose={handleCloseDetail}
           onPlay={handlePlay}
           similarMovies={[]}
+          onMovieSelect={handleMovieSelect}
         />
       )}
 
