@@ -80,23 +80,38 @@ function StreamApp() {
   // Load Hero and Initial Data
   useEffect(() => {
     const loadData = async () => {
-      // 1. Hero Data
+      // 1. Hero Data - Load basic info immediately, details in background
       const trending = await TmdbService.getTrending();
       if (trending.length > 0) {
         const random = trending[Math.floor(Math.random() * trending.length)];
-        const details = await TmdbService.getDetails(random.id.toString(), random.mediaType || 'movie');
+
+        // Set basic hero immediately (unblocks render)
         setHeroMovie({
           ...random,
-          ...details,
-          tagline: details.tagline || "",
-          genre: details.genre || random.genre || [],
-          duration: details.duration || "",
-          director: details.director || "",
-          cast: details.cast || []
+          tagline: "",
+          genre: random.genre || [],
+          duration: "",
+          director: "",
+          cast: []
         } as HeroMovie);
+
+        // Fetch detailed info in background (non-blocking)
+        TmdbService.getDetails(random.id.toString(), random.mediaType || 'movie')
+          .then(details => {
+            setHeroMovie(prev => prev ? {
+              ...prev,
+              ...details,
+              tagline: details.tagline || "",
+              genre: details.genre || prev.genre || [],
+              duration: details.duration || "",
+              director: details.director || "",
+              cast: details.cast || []
+            } as HeroMovie : null);
+          })
+          .catch(err => console.error("Failed to load hero details:", err));
       }
 
-      // 2. Featured Content
+      // 2. Featured Content (runs in parallel with hero basic data)
       try {
         const [fMovies, fPlaylists] = await Promise.all([
           SocialService.getFeaturedMovies(),

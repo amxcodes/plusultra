@@ -9,7 +9,7 @@ interface ForYouPageProps {
 }
 
 export const ForYouPage: React.FC<ForYouPageProps> = ({ onMovieSelect }) => {
-    const { history } = useWatchHistory();
+    const { history, isLoading } = useWatchHistory();
 
     const recommendations = useMemo(() => {
         // Get all history items
@@ -24,8 +24,26 @@ export const ForYouPage: React.FC<ForYouPageProps> = ({ onMovieSelect }) => {
     return (
         <div className="pb-20 space-y-2">
 
+            {/* Loading Skeletons - Prevent glitch/pop-in */}
+            {isLoading && (
+                <>
+                    <div className="pl-4 md:pl-12 my-8 relative z-10 animate-pulse">
+                        <div className="h-6 w-48 bg-white/5 rounded mb-4 ml-2" />
+                        <div className="flex items-center space-x-4 overflow-hidden px-4 py-8">
+                            {[1, 2, 3, 4, 5].map(i => <div key={i} className="bg-zinc-900 rounded-lg min-w-[180px] md:min-w-[220px] aspect-[2/3]" />)}
+                        </div>
+                    </div>
+                    <div className="pl-4 md:pl-12 my-8 relative z-10 animate-pulse">
+                        <div className="h-6 w-48 bg-white/5 rounded mb-4 ml-2" />
+                        <div className="flex items-center space-x-4 overflow-hidden px-4 py-8">
+                            {[1, 2, 3, 4, 5].map(i => <div key={i} className="bg-zinc-900 rounded-lg min-w-[180px] md:min-w-[220px] aspect-[2/3]" />)}
+                        </div>
+                    </div>
+                </>
+            )}
+
             {/* Personalized Recommendations */}
-            {recommendations.map(item => (
+            {!isLoading && recommendations.map(item => (
                 <CategoryRow
                     key={item.tmdbId}
                     title={`Because you watched ${item.title}`}
@@ -39,7 +57,7 @@ export const ForYouPage: React.FC<ForYouPageProps> = ({ onMovieSelect }) => {
                 title="Now Playing In Theaters"
                 fetcher={TmdbService.getNowPlaying}
                 onMovieSelect={onMovieSelect}
-                isLarge={recommendations.length === 0} // Only show large header if no recommendations exist
+                isLarge={!isLoading && recommendations.length === 0} // Only show large header if loaded + no reqs
             />
 
             {/* Upcoming */}

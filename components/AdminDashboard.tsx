@@ -188,7 +188,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </div>
 
             {loading ? (
-                <div className="text-zinc-500 text-sm">Loading data...</div>
+                <div className="space-y-8">
+                    {/* Skeleton for Overview/Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+                                <div className="h-4 w-24 bg-white/5 rounded mb-4" />
+                                <div className="h-10 w-16 bg-white/10 rounded" />
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Skeleton for Tables/Lists */}
+                    <div className="border border-zinc-800 rounded-lg overflow-hidden animate-pulse">
+                        <div className="p-4 border-b border-zinc-800 bg-zinc-900/30">
+                            <div className="h-5 w-32 bg-white/5 rounded" />
+                        </div>
+                        <div className="p-6 space-y-4">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-full bg-white/5" />
+                                    <div className="flex-1 space-y-2">
+                                        <div className="h-4 w-32 bg-white/5 rounded" />
+                                        <div className="h-3 w-48 bg-white/5 rounded" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             ) : (
                 <div className="space-y-8">
                     {/* SETTINGS TAB */}
@@ -284,13 +312,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 }
                                             }}
                                             className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${appSettings.registration_enabled === 'true'
-                                                    ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                                                    : 'bg-transparent border-zinc-700 hover:border-zinc-600'
+                                                ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                                                : 'bg-transparent border-zinc-700 hover:border-zinc-600'
                                                 }`}
                                         >
                                             <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${appSettings.registration_enabled === 'true'
-                                                    ? 'translate-x-[22px] bg-black'
-                                                    : 'translate-x-[2px] bg-zinc-600'
+                                                ? 'translate-x-[22px] bg-black'
+                                                : 'translate-x-[2px] bg-zinc-600'
                                                 }`} />
                                         </button>
                                     </div>

@@ -24,27 +24,38 @@ export interface WatchProgress {
 export const useWatchHistory = () => {
   const { user } = useAuth();
   const [history, setHistory] = useState<Record<string, WatchProgress>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load history from Supabase (Profile JSONB - Netflix-style)
   useEffect(() => {
-    if (!user) return;
+    // If no user, not loading
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
     const loadHistory = async () => {
-      // Single row fetch - extremely fast!
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('watch_history')
-        .eq('id', user.id)
-        .single();
+      try {
+        // Single row fetch - extremely fast!
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('watch_history')
+          .eq('id', user.id)
+          .single();
 
-      if (error) {
-        console.error('Failed to load watch history:', error);
-        return;
-      }
+        if (error) {
+          console.error('Failed to load watch history:', error);
+          return;
+        }
 
-      // The watch_history column IS already a proper object
-      if (data?.watch_history) {
-        setHistory(data.watch_history as Record<string, WatchProgress>);
+        // The watch_history column IS already a proper object
+        if (data?.watch_history) {
+          setHistory(data.watch_history as Record<string, WatchProgress>);
+        }
+      } catch (e) {
+        console.error('Error loading history:', e);
+      } finally {
+        setIsLoading(false);
       }
 
       // Sync any pending localStorage backup
@@ -178,5 +189,5 @@ export const useWatchHistory = () => {
       .sort((a, b) => b.lastUpdated - a.lastUpdated);
   }, [history]);
 
-  return { history, updateProgress, getProgress, getContinueWatching };
+  return { history, updateProgress, getProgress, getContinueWatching, isLoading };
 };

@@ -102,7 +102,36 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({ onBack, onPlaylist
         );
     };
 
-    if (loading) return <div className="h-screen flex items-center justify-center text-zinc-500">loading...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-[#0f1014] pt-4 px-4 md:px-12 pb-20 fade-in-up">
+            <div className="max-w-7xl mx-auto">
+                {/* Header Skeleton */}
+                <div className="relative h-12 flex items-center justify-center mb-8 animate-pulse">
+                    <div className="h-10 w-64 bg-zinc-900 rounded-full" />
+                </div>
+
+                {/* Sections Skeleton */}
+                <div className="space-y-12 animate-pulse">
+                    {[1, 2, 3].map(section => (
+                        <div key={section}>
+                            <div className="h-8 w-48 bg-white/5 rounded mb-6" />
+                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                                {[1, 2, 3, 4, 5, 6].map(card => (
+                                    <div key={card} className="flex flex-col gap-3">
+                                        <div className="aspect-[2/3] bg-zinc-900 rounded-xl border border-white/5" />
+                                        <div className="space-y-2">
+                                            <div className="h-4 w-3/4 bg-zinc-900 rounded" />
+                                            <div className="h-3 w-1/2 bg-zinc-900 rounded" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-[#0f1014] pt-4 px-4 md:px-12 pb-20 fade-in-up">

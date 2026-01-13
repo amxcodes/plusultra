@@ -364,3 +364,83 @@ begin
 end;
 $$ language plpgsql security definer;
 
+-- ========================================
+-- PERFORMANCE INDEXES
+-- ========================================
+
+-- Critical: Index for playlist_items queries (main bottleneck)
+create index if not exists idx_playlist_items_playlist_id 
+on public.playlist_items(playlist_id);
+
+-- Index for ordering playlist items by added_at
+create index if not exists idx_playlist_items_added_at 
+on public.playlist_items(playlist_id, added_at desc);
+
+-- Indexes for playlist analytics sorting (trending/popular pages)
+create index if not exists idx_playlists_weekly_views 
+on public.playlists using btree ((analytics->'weekly_views'));
+
+create index if not exists idx_playlists_monthly_views 
+on public.playlists using btree ((analytics->'monthly_views'));
+
+create index if not exists idx_playlists_likes_count 
+on public.playlists(likes_count desc);
+
+-- Index for featured playlists
+create index if not exists idx_playlists_featured 
+on public.playlists(is_featured, is_public) 
+where is_featured = true;
+
+-- Index for user's playlists
+create index if not exists idx_playlists_user_id 
+on public.playlists(user_id, created_at desc);
+
+-- Composite index for playlist_likes lookups
+create index if not exists idx_playlist_likes_user_playlist 
+on public.playlist_likes(user_id, playlist_id);
+
+-- ========================================
+-- WATCH HISTORY AUTO-CLEANUP
+-- ========================================
+
+-- Function: Clean up watch history for inactive users (2+ weeks)
+create or replace function cleanup_inactive_watch_history()
+returns void as $$
+declare
+  two_weeks_ago bigint;
+  user_record record;
+  max_timestamp bigint;
+begin
+  -- Calculate timestamp for 2 weeks ago (Unix milliseconds)
+  two_weeks_ago := extract(epoch from (now() - interval '14 days'))::bigint * 1000;
+  
+  -- Loop through all users with watch history
+  for user_record in 
+    select id, watch_history 
+    from public.profiles 
+    where watch_history is not null 
+      and watch_history::text != '{}'
+  loop
+    -- Find the most recent lastUpdated timestamp in this user's history
+    select max((value->>'lastUpdated')::bigint) into max_timestamp
+    from jsonb_each(user_record.watch_history);
+    
+    -- If most recent activity is older than 2 weeks, clear history
+    if max_timestamp < two_weeks_ago then
+      update public.profiles
+      set watch_history = '{}'::jsonb
+      where id = user_record.id;
+      
+      raise notice 'Cleared watch history for user %', user_record.id;
+    end if;
+  end loop;
+end;
+$$ language plpgsql;
+
+-- Schedule: Run on 1st of every month at 2 AM UTC
+select cron.schedule(
+  'cleanup-inactive-watch-history',
+  '0 2 1 * *',  -- 2 AM on the 1st of each month
+  'select cleanup_inactive_watch_history();'
+);
+

@@ -21,7 +21,7 @@ export const CategoryRow: React.FC<CategoryRowProps> = ({ title, fetcher, onMovi
             setLoading(false);
         };
         load();
-    }, [fetcher]);
+    }, []); // Fetch once on mount, not on every parent re-render
 
     if (!loading && (!movies || movies.length === 0)) return null;
 
