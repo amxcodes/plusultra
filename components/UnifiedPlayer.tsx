@@ -46,7 +46,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [provider, setProvider] = useState<Provider>('cinemaos');
     const [lastTime, setLastTime] = useState(0);
     const [showServers, setShowServers] = useState(false);
-    const { updateProgress } = useWatchHistory();
+    const { updateProgress, flushProgress } = useWatchHistory();
     const { skipData } = useSkipData(title, season, episode);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -240,7 +240,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             }
         };
 
-        progressInterval = setInterval(saveProgress, 30000); // Poll every 30 seconds
+        progressInterval = setInterval(saveProgress, 15000); // Poll every 15 seconds (reduced from 30s)
 
         return () => {
             if (progressInterval) {
@@ -248,8 +248,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 // Final save on unmount
                 saveProgress();
             }
+            // Immediate flush to bypass debounce
+            flushProgress();
         };
-    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
+    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, flushProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
 
 
     const showSkipIntro = skipData?.intro?.start && skipData?.intro?.end &&

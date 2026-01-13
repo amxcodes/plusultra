@@ -506,11 +506,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                                 <div className="aspect-square bg-zinc-900 rounded-lg overflow-hidden relative shadow-lg transition-transform duration-500 group-hover:-translate-y-1">
                                     {previewImages.length > 0 ? (
                                         <div className={`grid w-full h-full ${previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1'}`}>
-                                            {previewImages.map((src, idx) => (
+                                            {previewImages.slice(0, previewImages.length >= 4 ? 4 : 1).map((src, idx) => (
                                                 <img
                                                     key={idx}
                                                     src={src}
-                                                    className={`w-full h-full object-cover ${previewImages.length < 4 && idx === 0 ? 'row-span-2 col-span-2' : ''}`}
+                                                    className="w-full h-full object-cover"
                                                 />
                                             ))}
                                         </div>

@@ -68,8 +68,8 @@ export const PlaylistsPage: React.FC<PlaylistsPageProps> = ({ onBack, onPlaylist
                             <div className="aspect-[2/3] bg-zinc-900 rounded-xl overflow-hidden relative shadow-lg border border-white/5 group-hover:border-white/30">
                                 {previewImages.length > 0 ? (
                                     <div className={`grid w-full h-full ${previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1'}`}>
-                                        {previewImages.slice(0, 4).map((src, idx) => (
-                                            <img key={idx} src={src} className={`w-full h-full object-cover ${previewImages.length < 4 ? 'col-span-full row-span-full' : ''}`} alt="" />
+                                        {previewImages.slice(0, previewImages.length >= 4 ? 4 : 1).map((src, idx) => (
+                                            <img key={idx} src={src} className="w-full h-full object-cover" alt="" />
                                         ))}
                                     </div>
                                 ) : (

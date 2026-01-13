@@ -46,6 +46,22 @@ export const useWatchHistory = () => {
       if (data?.watch_history) {
         setHistory(data.watch_history as Record<string, WatchProgress>);
       }
+
+      // Sync any pending localStorage backup
+      const pending = localStorage.getItem('amx_pending_watch_history');
+      if (pending) {
+        try {
+          const pendingData: WatchProgress = JSON.parse(pending);
+          console.log('[Sync] Found pending backup, syncing...');
+          const success = await syncToSupabase(pendingData);
+          if (success) {
+            console.log('[Sync] Successfully synced pending backup');
+          }
+        } catch (err) {
+          console.error('[Sync] Failed to parse pending backup:', err);
+          localStorage.removeItem('amx_pending_watch_history');
+        }
+      }
     };
 
     loadHistory();
@@ -56,6 +72,42 @@ export const useWatchHistory = () => {
 
   // Keep track of latest data for the timeout callback
   const latestDataRef = useRef<WatchProgress | null>(null);
+
+  // Sync to Supabase with retry logic
+  const syncToSupabase = async (data: WatchProgress, retries = 3): Promise<boolean> => {
+    if (!user) return false;
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const { error } = await supabase.rpc('update_watch_history', {
+          p_user_id: user.id,
+          p_tmdb_id: data.tmdbId.toString(),
+          p_data: data
+        });
+
+        if (!error) {
+          console.log(`[Sync] ✓ Saved ${data.title} at ${Math.round(data.time)}s`);
+          // Clear any pending localStorage backup on success
+          localStorage.removeItem('amx_pending_watch_history');
+          return true;
+        }
+
+        console.error(`[Sync] Attempt ${attempt + 1} failed:`, error);
+      } catch (err) {
+        console.error(`[Sync] Network error on attempt ${attempt + 1}:`, err);
+      }
+
+      // Exponential backoff before retry
+      if (attempt < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+      }
+    }
+
+    // All retries failed - save to localStorage as backup
+    console.warn('[Sync] All retries failed. Saving to localStorage backup.');
+    localStorage.setItem('amx_pending_watch_history', JSON.stringify(data));
+    return false;
+  };
 
   const updateProgress = async (data: WatchProgress) => {
     // 1. Immediate Local Update (Fast/Optimistic)
@@ -75,33 +127,44 @@ export const useWatchHistory = () => {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Set new timeout (e.g. 5-10 seconds debounce)
-    // This effectively "collects" timestamps and only sends the latest one periodically
+    // Set new timeout (5 seconds debounce - reduced from 10s)
     saveTimeoutRef.current = setTimeout(async () => {
       const currentData = latestDataRef.current;
       if (!currentData) return;
-
-      const { error } = await supabase.rpc('update_watch_history', {
-        p_user_id: user.id,
-        p_tmdb_id: currentData.tmdbId.toString(),
-        p_data: currentData
-      });
-
-      if (error) console.error('Error syncing history:', error);
-      else console.log(`[Sync] Saved ${currentData.title} at ${Math.round(currentData.time)}s`);
-
-    }, 10000); // 10 second debounce window
+      await syncToSupabase(currentData);
+    }, 5000); // 5 second debounce window
   };
 
-  // Cleanup on unmount
+  // Immediate flush - bypasses debounce
+  const flushProgress = async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    const currentData = latestDataRef.current;
+    if (!currentData) return;
+
+    console.log('[Sync] Flushing progress immediately...');
+    await syncToSupabase(currentData);
+  };
+
+  // Cleanup on unmount - flush any pending saves
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
-        // Optional: Force save on unmount if needed, but risky with async in unmount
+      }
+      // Force immediate save on unmount
+      const currentData = latestDataRef.current;
+      if (currentData && user) {
+        // Fire and forget - best effort save
+        syncToSupabase(currentData).catch(err => {
+          console.error('[Sync] Failed to save on unmount:', err);
+        });
       }
     };
-  }, []);
+  }, [user]);
 
   const getProgress = (tmdbId: string) => {
     return history[tmdbId];
@@ -119,5 +182,5 @@ export const useWatchHistory = () => {
       .sort((a, b) => b.lastUpdated - a.lastUpdated);
   }, [history]);
 
-  return { history, updateProgress, getProgress, getContinueWatching };
+  return { history, updateProgress, getProgress, getContinueWatching, flushProgress };
 };

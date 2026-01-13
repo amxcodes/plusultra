@@ -54,15 +54,9 @@ export const PlaylistRow: React.FC<PlaylistRowProps> = ({ title, playlists, onPl
                             <div key={playlist.id} onClick={() => onPlaylistSelect(playlist)} className="min-w-[160px] w-[160px] md:min-w-[200px] md:w-[200px] cursor-pointer group/card flex flex-col gap-3 relative transform-gpu transition-transform duration-300 hover:scale-105">
                                 <div className="aspect-[2/3] bg-zinc-900 rounded-xl overflow-hidden relative shadow-lg border border-white/5 group-hover/card:border-white/30">
                                     {previewImages.length > 0 ? (
-                                        <div className={`grid w-full h-full ${previewImages.length >= 9 ? 'grid-cols-3 grid-rows-3' :
-                                            previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' :
-                                                'grid-cols-1'
-                                            }`}>
-                                            {previewImages.slice(0, 9).map((src, idx) => (
-                                                <img key={idx} src={src} className={`w-full h-full object-cover ${previewImages.length < 4 ? 'col-span-full row-span-full' : ''
-                                                    } ${
-                                                    /* Fill logic for edge cases if needed, but simple slice is usually enough */ ''
-                                                    }`} alt="" />
+                                        <div className={`grid w-full h-full ${previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1'}`}>
+                                            {previewImages.slice(0, previewImages.length >= 4 ? 4 : 1).map((src, idx) => (
+                                                <img key={idx} src={src} className="w-full h-full object-cover" alt="" />
                                             ))}
                                         </div>
                                     ) : (

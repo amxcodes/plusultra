@@ -118,6 +118,7 @@ export const SocialService = {
         // Transform for easier UI consumption: limit to 4 items and map metadata
         return data.map((p: any) => ({
             ...p,
+            items_count: p.items.length, // Calculate TRUE count before slicing
             items: p.items.slice(0, 4)
         }));
     },
@@ -146,6 +147,7 @@ export const SocialService = {
         }
         return data.map((p: any) => ({
             ...p,
+            items_count: p.items.length,
             items: p.items.slice(0, 4)
         }));
     },

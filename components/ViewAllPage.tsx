@@ -3,6 +3,7 @@ import { ArrowLeft, Search } from 'lucide-react';
 import { Movie } from '../types';
 import { TmdbService } from '../services/tmdb';
 import { MovieCard } from './MovieCard';
+import { ContinueWatchingCard } from './ContinueWatchingCard';
 
 interface ViewAllPageProps {
     title: string;
@@ -124,23 +125,34 @@ export const ViewAllPage: React.FC<ViewAllPageProps> = ({
             </div>
 
             {/* Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-4 gap-y-8">
+            <div className={`grid ${title === 'Continue Watching'
+                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
+                : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-4 gap-y-8'}`}>
                 {filteredMovies.map((movie, index) => (
-                    <div
-                        key={`${movie.id}-${index}`}
-                        onClick={() => onMovieSelect(movie)}
-                        className="cursor-pointer transform transition-transform hover:scale-105"
-                    >
-                        <MovieCard movie={movie} />
-                        {movie.time > 0 && movie.duration > 0 && (
-                            <div className="h-1 bg-zinc-800 mt-2 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-red-600"
-                                    style={{ width: `${(movie.time / movie.duration) * 100}%` }}
-                                />
-                            </div>
-                        )}
-                    </div>
+                    title === 'Continue Watching' ? (
+                        <div key={`${movie.id}-${index}`} className="flex justify-center">
+                            <ContinueWatchingCard
+                                movie={movie}
+                                onClick={() => onMovieSelect(movie)}
+                            />
+                        </div>
+                    ) : (
+                        <div
+                            key={`${movie.id}-${index}`}
+                            onClick={() => onMovieSelect(movie)}
+                            className="cursor-pointer transform transition-transform hover:scale-105"
+                        >
+                            <MovieCard movie={movie} />
+                            {movie.time > 0 && movie.duration > 0 && (
+                                <div className="h-1 bg-zinc-800 mt-2 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-red-600"
+                                        style={{ width: `${(movie.time / movie.duration) * 100}%` }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )
                 ))}
             </div>
 

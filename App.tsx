@@ -168,6 +168,19 @@ function StreamApp() {
   // Player State
   const [playerState, setPlayerState] = useState<{ movie: Movie; season?: number; episode?: number; autoJoinCode?: string } | null>(null);
 
+  // Reset to Dashboard on logout so next login starts at Home
+  useEffect(() => {
+    if (!user) {
+      setActiveTab(NavItem.DASHBOARD);
+      setSelectedMovie(null);
+      setPlayerState(null);
+      setIsSearchOpen(false);
+      setSelectedPlaylistId(undefined);
+      setPlaylistModalMovie(null);
+      setViewAllCategory(null);
+    }
+  }, [user]);
+
   // Auto-Join Logic
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -287,7 +300,10 @@ function StreamApp() {
       <Navbar
         activeTab={activeTab}
         setActiveTab={handleTabChange}
-        onSearchClick={() => setIsSearchOpen(true)}
+        onSearchClick={() => {
+          setIsSearchOpen(true);
+          setSelectedMovie(null);
+        }}
       />
 
       {selectedMovie && (

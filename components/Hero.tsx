@@ -48,7 +48,8 @@ export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) =>
       {/* Content - Increased bottom padding to prevent collision with the negative margin list below */}
       <div className="absolute bottom-0 left-0 pl-24 md:pl-32 pr-8 w-full md:w-2/3 lg:w-1/2 flex flex-col gap-6 z-10 pb-36 md:pb-40">
         {/* Tagline Badge */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-none tracking-tight drop-shadow-2xl max-w-7xl mb-6">
+        {/* Tagline Badge */}
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-[0.9] tracking-tight drop-shadow-2xl max-w-4xl mb-6 line-clamp-3 md:line-clamp-none">
           {movie.title}
         </h1>
 
