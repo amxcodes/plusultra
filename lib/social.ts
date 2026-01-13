@@ -570,11 +570,8 @@ export const SocialService = {
         if (error) throw error;
     },
 
-    async clearWatchHistory(userId: string) {
-        const { error } = await supabase
-            .from('watch_history')
-            .delete()
-            .eq('user_id', userId);
+    async clearWatchHistory() {
+        const { error } = await supabase.rpc('clear_my_watch_history');
         if (error) throw error;
     },
 

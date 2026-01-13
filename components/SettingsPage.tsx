@@ -9,7 +9,8 @@ import {
     Film,
     Tv,
     ShieldCheck,
-    Cpu
+    Cpu,
+    Trash2
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
@@ -25,6 +26,7 @@ export const SettingsPage: React.FC = () => {
     const { user, signOut } = useAuth();
     const [stats, setStats] = useState<UserStats | null>(null);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    const [showClearModal, setShowClearModal] = useState(false);
 
     useEffect(() => {
         if (!user) return;
@@ -74,8 +76,58 @@ export const SettingsPage: React.FC = () => {
         }
     };
 
+    // Clear History Modal
+    const ClearHistoryModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean; onClose: () => void; onConfirm: () => void }) => {
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm fade-in-up">
+                <div className="w-[360px] bg-[#0f1014] border border-white/10 rounded-2xl p-6 shadow-2xl text-center">
+                    <div className="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Trash2 size={24} />
+                    </div>
+                    <h3 className="text-lg font-bold text-white mb-2">Clear Watch History?</h3>
+                    <p className="text-zinc-500 text-sm mb-6">
+                        This action cannot be undone. All your progress will be lost.
+                    </p>
+
+                    <div className="flex gap-3">
+                        <button onClick={onClose} className="flex-1 py-2.5 text-zinc-400 font-medium hover:bg-zinc-900 rounded-xl transition-colors">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onConfirm}
+                            className="flex-1 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 font-bold rounded-xl hover:bg-red-500 hover:text-white transition-all"
+                        >
+                            Yes, Clear It
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const handleClearHistory = async () => {
+        setShowClearModal(false);
+        try {
+            await SocialService.clearWatchHistory();
+            setStatusMessage('Watch history cleared successfully.');
+            setTimeout(() => setStatusMessage(null), 3000);
+            loadStats();
+        } catch (e: any) {
+            console.error(e);
+            setStatusMessage(e.message || 'Failed to clear history.');
+            setTimeout(() => setStatusMessage(null), 3000);
+        }
+    };
+
     return (
         <div className="w-full pl-24 pr-12 pt-6 min-h-screen animate-in fade-in duration-700">
+            <ClearHistoryModal
+                isOpen={showClearModal}
+                onClose={() => setShowClearModal(false)}
+                onConfirm={handleClearHistory}
+            />
             {/* Premium Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
                 <div>
@@ -225,6 +277,20 @@ export const SettingsPage: React.FC = () => {
                             <div>
                                 <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Backup</div>
                                 <div className="text-lg font-bold text-white tracking-tight">Export Data</div>
+                            </div>
+                        </button>
+
+                        {/* Clear History Card - Only if enabled */}
+                        <button
+                            onClick={() => setShowClearModal(true)}
+                            className="group bg-zinc-900/60 hover:bg-red-500/10 hover:border-red-500/20 border border-white/5 p-6 rounded-[24px] transition-all flex items-center gap-5 text-left"
+                        >
+                            <div className="p-4 bg-white/5 rounded-2xl text-zinc-400 group-hover:text-red-500 group-hover:bg-red-500/10 transition-all">
+                                <Trash2 size={24} />
+                            </div>
+                            <div>
+                                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest group-hover:text-red-500/50">Danger Zone</div>
+                                <div className="text-lg font-bold text-white tracking-tight group-hover:text-red-500">Clear History</div>
                             </div>
                         </button>
                     </div>

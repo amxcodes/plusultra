@@ -1,5 +1,25 @@
--- Enable UUID extension
 create extension if not exists "uuid-ossp";
+
+-- APP SETTINGS (Global Configuration)
+create table if not exists public.app_settings (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz default now()
+);
+
+alter table public.app_settings enable row level security;
+create policy "Settings are viewable by everyone" on public.app_settings for select using (true);
+create policy "Only admins can update settings" on public.app_settings for all using (
+  exists ( select 1 from public.profiles where id = auth.uid() and role = 'admin' )
+);
+
+-- Insert default settings
+insert into public.app_settings (key, value) values
+  ('site_url', ''),
+  ('donation_url', ''),
+  ('registration_enabled', 'true'),
+  ('clear_history_enabled', 'false')
+on conflict (key) do nothing;
 
 -- 1. PROFILES
 create table public.profiles (
@@ -443,4 +463,32 @@ select cron.schedule(
   '0 2 1 * *',  -- 2 AM on the 1st of each month
   'select cleanup_inactive_watch_history();'
 );
+
+-- ========================================
+-- USER CLEAR HISTORY FEATURE
+-- ========================================
+
+-- Function: Clear OWN watch history (User initiated)
+create or replace function clear_my_watch_history()
+returns void as $$
+declare
+  is_enabled text;
+begin
+  -- 1. Check if feature is enabled in App Settings
+  -- Assuming app_settings is a simple key-value table or single row
+  select value into is_enabled 
+  from public.app_settings 
+  where key = 'clear_history_enabled';
+  
+  if is_enabled != 'true' then
+    raise exception 'This feature is currently disabled by the administrator.';
+  end if;
+
+  -- 2. Clear history for calling user
+  update public.profiles
+  set watch_history = '{}'::jsonb
+  where id = auth.uid();
+  
+end;
+$$ language plpgsql security definer;
 

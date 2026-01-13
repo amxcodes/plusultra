@@ -322,6 +322,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 }`} />
                                         </button>
                                     </div>
+
+                                    {/* Clear History Toggle - User Privacy Control */}
+                                    <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
+                                        <div>
+                                            <h4 className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                                                <Trash2 size={14} /> Clear History
+                                            </h4>
+                                            <p className="text-zinc-600 text-xs">
+                                                {appSettings.clear_history_enabled === 'true'
+                                                    ? 'Users can clear their own watch history.'
+                                                    : 'Clear history feature is disabled for users.'}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={async () => {
+                                                const newValue = appSettings.clear_history_enabled === 'true' ? 'false' : 'true';
+                                                // Optimistic update
+                                                setAppSettings((prev: any) => ({ ...prev, clear_history_enabled: newValue }));
+                                                try {
+                                                    await SocialService.updateAppSetting('clear_history_enabled', newValue);
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    setAppSettings((prev: any) => ({ ...prev, clear_history_enabled: appSettings.clear_history_enabled }));
+                                                }
+                                            }}
+                                            className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${appSettings.clear_history_enabled === 'true'
+                                                ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                                                : 'bg-transparent border-zinc-700 hover:border-zinc-600'
+                                                }`}
+                                        >
+                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${appSettings.clear_history_enabled === 'true'
+                                                ? 'translate-x-[22px] bg-black'
+                                                : 'translate-x-[2px] bg-zinc-600'
+                                                }`} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
