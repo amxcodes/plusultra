@@ -73,9 +73,11 @@ export const useWatchHistory = () => {
   // Keep track of latest data for the timeout callback
   const latestDataRef = useRef<WatchProgress | null>(null);
 
-  // Sync to Supabase with retry logic
-  const syncToSupabase = async (data: WatchProgress, retries = 3): Promise<boolean> => {
+  // Sync to Supabase with retry logic (quieter logging)
+  const syncToSupabase = async (data: WatchProgress, retries = 2): Promise<boolean> => {
     if (!user) return false;
+
+    let lastError: any = null;
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
@@ -86,26 +88,33 @@ export const useWatchHistory = () => {
         });
 
         if (!error) {
-          console.log(`[Sync] ✓ Saved ${data.title} at ${Math.round(data.time)}s`);
-          // Clear any pending localStorage backup on success
+          // Only log on first successful save after failures
+          if (attempt > 0) {
+            console.log(`[Sync] ✓ Recovered - saved ${data.title}`);
+          }
           localStorage.removeItem('amx_pending_watch_history');
           return true;
         }
 
-        console.error(`[Sync] Attempt ${attempt + 1} failed:`, error);
+        lastError = error;
       } catch (err) {
-        console.error(`[Sync] Network error on attempt ${attempt + 1}:`, err);
+        lastError = err;
       }
 
       // Exponential backoff before retry
       if (attempt < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+        await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt)));
       }
     }
 
-    // All retries failed - save to localStorage as backup
-    console.warn('[Sync] All retries failed. Saving to localStorage backup.');
-    localStorage.setItem('amx_pending_watch_history', JSON.stringify(data));
+    // Only log once after all retries failed
+    if (lastError?.message?.includes('AbortError')) {
+      // Silent fail for abort errors (common during navigation)
+      localStorage.setItem('amx_pending_watch_history', JSON.stringify(data));
+    } else {
+      console.warn('[Sync] Failed to save progress, using local backup.');
+      localStorage.setItem('amx_pending_watch_history', JSON.stringify(data));
+    }
     return false;
   };
 
@@ -135,33 +144,20 @@ export const useWatchHistory = () => {
     }, 5000); // 5 second debounce window
   };
 
-  // Immediate flush - bypasses debounce
-  const flushProgress = async () => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = null;
-    }
-
-    const currentData = latestDataRef.current;
-    if (!currentData) return;
-
-    console.log('[Sync] Flushing progress immediately...');
-    await syncToSupabase(currentData);
-  };
-
-  // Cleanup on unmount - flush any pending saves
+  // Cleanup on unmount - save to localStorage only (prevents infinite loop)
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
-      // Force immediate save on unmount
+      // Save to localStorage during unmount - no async, no state updates!
       const currentData = latestDataRef.current;
-      if (currentData && user) {
-        // Fire and forget - best effort save
-        syncToSupabase(currentData).catch(err => {
-          console.error('[Sync] Failed to save on unmount:', err);
-        });
+      if (currentData) {
+        try {
+          localStorage.setItem('amx_pending_watch_history', JSON.stringify(currentData));
+        } catch (err) {
+          // Ignore errors during unmount
+        }
       }
     };
   }, [user]);
@@ -182,5 +178,5 @@ export const useWatchHistory = () => {
       .sort((a, b) => b.lastUpdated - a.lastUpdated);
   }, [history]);
 
-  return { history, updateProgress, getProgress, getContinueWatching, flushProgress };
+  return { history, updateProgress, getProgress, getContinueWatching };
 };

@@ -257,6 +257,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             </button>
                                         </div>
                                     </div>
+
+                                    {/* Registration Toggle - Minimalist Refinement */}
+                                    <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
+                                        <div>
+                                            <h4 className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                                                <Users size={14} /> Registration
+                                            </h4>
+                                            <p className="text-zinc-600 text-xs">
+                                                {appSettings.registration_enabled === 'true'
+                                                    ? 'New users are allowed to sign up.'
+                                                    : 'New user registration is currently disabled.'}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={async () => {
+                                                const newValue = appSettings.registration_enabled === 'true' ? 'false' : 'true';
+                                                // Optimistic update
+                                                setAppSettings((prev: any) => ({ ...prev, registration_enabled: newValue }));
+                                                try {
+                                                    await SocialService.updateAppSetting('registration_enabled', newValue);
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    setAppSettings((prev: any) => ({ ...prev, registration_enabled: appSettings.registration_enabled }));
+                                                }
+                                            }}
+                                            className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${appSettings.registration_enabled === 'true'
+                                                    ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                                                    : 'bg-transparent border-zinc-700 hover:border-zinc-600'
+                                                }`}
+                                        >
+                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${appSettings.registration_enabled === 'true'
+                                                    ? 'translate-x-[22px] bg-black'
+                                                    : 'translate-x-[2px] bg-zinc-600'
+                                                }`} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

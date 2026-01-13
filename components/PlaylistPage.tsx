@@ -97,21 +97,18 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
                 // Track View first (non-blocking)
                 PlaylistEngagement.trackView(playlistId);
 
-                // Fetch items and details in parallel
-                const [playlistItems, playlistDetails, settings] = await Promise.all([
+                // Fetch items, details, and like status in parallel
+                const [playlistItems, playlistDetails, liked] = await Promise.all([
                     SocialService.getPlaylistItems(playlistId),
                     SocialService.getPlaylistDetails(playlistId),
-                    SocialService.getAppSettings()
+                    PlaylistEngagement.checkIfLiked(playlistId)
                 ]);
 
                 setItems(playlistItems);
                 setPlaylist(playlistDetails);
                 if (playlistDetails) setLikeCount(playlistDetails.likes_count || 0);
 
-                if (settings.site_url) setSiteUrl(settings.site_url);
-
-                // Check like status
-                const liked = await PlaylistEngagement.checkIfLiked(playlistId);
+                setSiteUrl(window.location.origin);
                 setIsLiked(liked);
             } catch (e) {
                 console.error("Failed to load playlist data:", e);

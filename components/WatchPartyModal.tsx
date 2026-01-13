@@ -1,205 +1,136 @@
+
 import React, { useState, useEffect } from 'react';
-import { X, Users, Copy, Check } from 'lucide-react';
-import { SocialService } from '../lib/social';
+import { X, Puzzle, ArrowRight, ExternalLink } from 'lucide-react';
 
 interface WatchPartyModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreateParty: () => Promise<string | null>; // Returns invite code
-    onJoinParty: (code: string) => Promise<boolean>;
-    autoJoinCode?: string;
 }
 
-export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
-    isOpen,
-    onClose,
-    onCreateParty,
-    onJoinParty,
-    autoJoinCode
-}) => {
-    const [activeTab, setActiveTab] = useState<'create' | 'join'>('create');
-    const [inviteCode, setInviteCode] = useState('');
-    const [joinCode, setJoinCode] = useState(autoJoinCode || '');
-    const [copied, setCopied] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [siteUrl, setSiteUrl] = useState('');
+const CHROME_STORE_URL = 'https://chromewebstore.google.com/detail/synclify-watch-in-sync-wi/okdfcljlaacbdacenfeaiekllplonlfm';
+const FIREFOX_STORE_URL = 'https://addons.mozilla.org/en-US/firefox/addon/synclify/';
+
+export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ isOpen, onClose }) => {
+    const [browserType, setBrowserType] = useState<'chrome' | 'firefox' | 'other'>('chrome');
 
     useEffect(() => {
-        if (isOpen) {
-            if (autoJoinCode) {
-                setActiveTab('join');
-                setJoinCode(autoJoinCode);
-                // We don't auto-join here anymore, we let the user click "Join" or we could auto-click
-                // But typically auto-join is handled by the parent passing `autoJoinCode` to modal?
-                // Actually the parent UnifiedPlayer handles the CONNECTION. The modal is just UI.
-                // If autoJoinCode is present, we might want to auto-trigger handleJoin?
-                // For now let's just prefill.
-            }
-            SocialService.getAppSettings().then(settings => {
-                if (settings.site_url) setSiteUrl(settings.site_url);
-            });
-        }
-    }, [isOpen]);
-
-    const handleJoin = async (codeOverride?: string | React.MouseEvent) => {
-        // Fix: React passes an event object if called via onClick
-        const actualCode = typeof codeOverride === 'string' ? codeOverride : joinCode;
-        const codeToUse = (actualCode || '').trim().toUpperCase();
-
-        if (codeToUse.length !== 6) {
-            setError('Code must be 6 characters');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        const success = await onJoinParty(codeToUse);
-        if (success) {
-            onClose();
+        // Simple client-side browser detection
+        const ua = navigator.userAgent.toLowerCase();
+        if (ua.includes('firefox')) {
+            setBrowserType('firefox');
+        } else if (ua.includes('chrome') || ua.includes('edge') || ua.includes('brave')) {
+            setBrowserType('chrome');
         } else {
-            setError('Party not found or full');
+            setBrowserType('other');
         }
-        setLoading(false);
+    }, []);
+
+    const handleInstall = () => {
+        const url = browserType === 'firefox' ? FIREFOX_STORE_URL : CHROME_STORE_URL;
+        window.open(url, '_blank');
+        onClose();
     };
 
     if (!isOpen) return null;
 
-    const handleCreate = async () => {
-        setLoading(true);
-        setError('');
-        const code = await onCreateParty();
-        if (code) {
-            setInviteCode(code);
-        } else {
-            setError('Failed to create party');
-        }
-        setLoading(false);
-    };
-
-
-
-    const copyCode = () => {
-        const textToCopy = siteUrl
-            ? `${siteUrl}?join=${inviteCode}`
-            : inviteCode;
-
-        navigator.clipboard.writeText(textToCopy);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-sm">
-            <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in duration-500"
+                onClick={onClose}
+            />
 
-            <div className="relative w-[420px] bg-[#0f1014] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
-                {/* Header */}
-                <div className="p-6 border-b border-white/5">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <Users size={20} />
-                            Watch Together
-                        </h3>
-                        <button
-                            onClick={onClose}
-                            className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                        >
-                            <X size={18} className="text-zinc-400" />
-                        </button>
-                    </div>
+            {/* Modal */}
+            <div className="relative w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-white/5">
 
-                    {/* Tabs */}
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setActiveTab('create')}
-                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'create'
-                                ? 'bg-white text-black'
-                                : 'bg-transparent text-zinc-500 hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            Create Party
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('join')}
-                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'join'
-                                ? 'bg-white text-black'
-                                : 'bg-transparent text-zinc-500 hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            Join Party
-                        </button>
-                    </div>
-                </div>
+                {/* Subtle Gradient Glow */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
 
-                {/* Content */}
-                <div className="p-6">
-                    {activeTab === 'create' ? (
-                        <div className="space-y-4">
-                            {!inviteCode ? (
-                                <>
-                                    <p className="text-sm text-zinc-400">
-                                        Create a watch party and invite up to 3 friends to watch together.
-                                    </p>
-                                    <button
-                                        onClick={handleCreate}
-                                        disabled={loading}
-                                        className="w-full py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                                    >
-                                        {loading ? 'Creating...' : 'Create Party'}
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <p className="text-sm text-zinc-400 mb-4">
-                                        Share this code with your friends:
-                                    </p>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex-1 bg-zinc-900 border border-white/10 rounded-lg px-4 py-3 text-center">
-                                            <span className="text-2xl font-mono font-bold text-white tracking-widest">
-                                                {inviteCode}
-                                            </span>
-                                        </div>
-                                        <button
-                                            onClick={copyCode}
-                                            className="p-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                                        >
-                                            {copied ? <Check size={20} className="text-white" /> : <Copy size={20} className="text-white" />}
-                                        </button>
+                {/* Close Button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white transition-colors z-20 hover:bg-white/10 rounded-full"
+                >
+                    <X size={18} />
+                </button>
+
+                <div className="p-8 text-center relative z-10">
+                    {/* Realistic Illustration - Premium Ver. */}
+                    <div className="relative w-full max-w-[280px] mx-auto mb-10 select-none group">
+                        {/* Browser Window wireframe */}
+                        <div className="bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-2xl flex flex-col aspect-[16/10] relative transition-transform duration-700 ease-out group-hover:scale-[1.02] group-hover:rotate-x-2">
+
+                            {/* Gloss Reflection */}
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-50 pointer-events-none" />
+
+                            {/* Address bar & Toolbar */}
+                            <div className="h-10 border-b border-white/5 bg-[#1a1a1a] flex items-center px-3 gap-3">
+                                {/* Mac-style Dots - Muted for elegance */}
+                                <div className="flex gap-1.5 shrink-0 opacity-80">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57] shadow-inner" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e] shadow-inner" />
+                                    <div className="w-2.5 h-2.5 rounded-full bg-[#28c840] shadow-inner" />
+                                </div>
+
+                                {/* Address Input - Glassy */}
+                                <div className="flex-1 h-6 bg-black/30 rounded-lg flex items-center px-2 border border-white/5 shadow-inner">
+                                    <div className="w-2 h-2 rounded-full bg-zinc-600" />
+                                    <div className="mx-2 h-1.5 w-20 bg-zinc-700/50 rounded-full" />
+                                </div>
+
+                                {/* Extensions Toolbar - The Focus */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <div className="p-1 rounded-md bg-white/10 text-white shadow ring-1 ring-white/20 transition-all duration-500 group-hover:shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+                                        <Puzzle size={14} />
                                     </div>
-                                    <p className="text-xs text-zinc-600 mt-2">
-                                        Party expires in 4 hours
-                                    </p>
-                                </>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <p className="text-sm text-zinc-400">
-                                Enter the 6-character invite code:
-                            </p>
-                            <input
-                                type="text"
-                                maxLength={6}
-                                value={joinCode}
-                                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                                placeholder="ABC123"
-                                className="w-full bg-zinc-900 border border-white/10 rounded-lg px-4 py-3 text-center text-2xl font-mono font-bold text-white placeholder:text-zinc-700 tracking-widest uppercase focus:outline-none focus:border-white/20 transition-colors"
-                            />
-                            <button
-                                onClick={handleJoin}
-                                disabled={loading || joinCode.length !== 6}
-                                className="w-full py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                            >
-                                {loading ? 'Joining...' : 'Join Party'}
-                            </button>
-                        </div>
-                    )}
+                                    <div className="w-5 h-5 rounded-full bg-zinc-800 border border-white/5" />
+                                </div>
+                            </div>
 
-                    {error && (
-                        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                            <p className="text-sm text-red-400">{error}</p>
+                            {/* Content Body */}
+                            <div className="flex-1 bg-[#0f0f0f] flex flex-col p-4 gap-3 relative overflow-hidden">
+                                <div className="space-y-3 opacity-20">
+                                    <div className="h-2 bg-gradient-to-r from-zinc-500 to-zinc-700 rounded-full w-3/4" />
+                                    <div className="h-2 bg-zinc-700 rounded-full w-1/2" />
+                                    <div className="h-32 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-lg w-full mt-4 border border-white/5" />
+                                </div>
+                            </div>
                         </div>
-                    )}
+
+                        {/* Static Pointer - Refined Shadow & Crispness */}
+                        <div className="absolute -top-1 -right-3 z-20 flex flex-col items-center">
+                            {/* Cursor */}
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl rotate-[-12deg] translate-y-1 translate-x-1" style={{ filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.5))' }}>
+                                <path d="M3 3L10.07 19.97L12.58 12.58L19.97 10.07L3 3Z" fill="white" stroke="black" strokeWidth="1.5" strokeLinejoin="round" />
+                            </svg>
+                            {/* Tooltip - Premium Gradient */}
+                            <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-md shadow-xl border border-blue-400/30 whitespace-nowrap -translate-x-6 mt-1">
+                                Add Synclify
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">Watch Party</h3>
+                    <p className="text-zinc-400 text-sm mb-8 leading-relaxed max-w-xs mx-auto">
+                        Install the <span className="text-white font-semibold">Synclify</span> extension to synchronize playback with friends perfectly.
+                    </p>
+
+                    {/* Action Button - Glow Effect */}
+                    <button
+                        onClick={handleInstall}
+                        className="w-full py-4 bg-white text-black font-bold rounded-2xl transition-all duration-300
+                        hover:bg-zinc-100 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]
+                        active:scale-[0.98] flex items-center justify-center gap-2 group/btn"
+                    >
+                        {browserType === 'firefox' ? 'Get for Firefox' : 'Add to Browser'}
+                        <ExternalLink size={16} className="group-hover/btn:translate-x-0.5 transition-transform" />
+                    </button>
+
+                    <p className="mt-5 text-[10px] text-zinc-600 uppercase tracking-widest font-bold">
+                        {browserType === 'firefox' ? 'Mozilla Add-on' : 'Chrome Web Store'}
+                    </p>
                 </div>
             </div>
         </div>

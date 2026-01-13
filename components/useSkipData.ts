@@ -20,15 +20,29 @@ export const useSkipData = (title: string, season: number, episode: number, runt
     useEffect(() => {
         if (!title || !season || !episode) return;
 
+        // Skip API call on localhost to avoid CORS spam
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            setSkipData(null);
+            setLoading(false);
+            return;
+        }
+
         const fetchSkips = async () => {
             setLoading(true);
             try {
-                let url = `https://quickwatch.co/api/skips?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}`;
-                if (runtime) {
-                    url += `&runtime=${runtime}`;
+                const baseUrl = `https://quickwatch.co/api/skips?title=${encodeURIComponent(title)}&season=${season}&episode=${episode}`;
+                const url = runtime ? `${baseUrl}&runtime=${runtime}` : baseUrl;
+
+                // Try direct fetch first, fallback to CORS proxy if needed
+                let res;
+                try {
+                    res = await fetch(url);
+                } catch (corsError) {
+                    // Silent fallback - CORS proxy for localhost development
+                    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                    res = await fetch(proxyUrl);
                 }
 
-                const res = await fetch(url);
                 const data: QuickWatchResponse = await res.json();
 
                 if (data.found && data.skip_times) {
@@ -37,7 +51,7 @@ export const useSkipData = (title: string, season: number, episode: number, runt
                     setSkipData(null);
                 }
             } catch (e) {
-                // Silently fail for CORS/Network issues on localhost
+                // Silently fail - skip data is optional
                 setSkipData(null);
             } finally {
                 setLoading(false);

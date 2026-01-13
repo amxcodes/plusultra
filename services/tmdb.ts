@@ -225,14 +225,51 @@ export const TmdbService = {
         }
     },
 
-    search: async (query: string): Promise<Movie[]> => {
+    search: async (query: string, filters?: { type?: 'movie' | 'tv' | 'multi'; year?: string }): Promise<Movie[]> => {
         if (!API_KEY || !query) return [];
         try {
-            const res = await fetch(`${BASE_URL}/search/multi?api_key=${API_KEY}&query=${encodeURIComponent(query)}&include_adult=false`);
+            // Default to multi search
+            const type = filters?.type || 'multi';
+            let url = `${BASE_URL}/search/${type}?api_key=${API_KEY}&query=${encodeURIComponent(query)}&include_adult=false`;
+
+            // Append Year Filter if present
+            if (filters?.year) {
+                if (type === 'movie') {
+                    url += `&primary_release_year=${filters.year}`;
+                } else if (type === 'tv') {
+                    url += `&first_air_date_year=${filters.year}`;
+                }
+                // Note: 'multi' search does not support strict year filtering in TMDB API V3
+            }
+
+            // Handle "All" (multi) with Year filter manually if needed, or split-fetch
+            // For now, if 'multi' and year is set, we'll try to fetch both movie/tv specific endpoints to honor the year
+            if (type === 'multi' && filters?.year) {
+                const [movies, tv] = await Promise.all([
+                    TmdbService.search(query, { type: 'movie', year: filters.year }),
+                    TmdbService.search(query, { type: 'tv', year: filters.year })
+                ]);
+                // Interleave results for basic mixing
+                const mixed: Movie[] = [];
+                const maxLength = Math.max(movies.length, tv.length);
+                for (let i = 0; i < maxLength; i++) {
+                    if (movies[i]) mixed.push(movies[i]);
+                    if (tv[i]) mixed.push(tv[i]);
+                }
+                return mixed;
+            }
+
+            const res = await fetch(url);
             const data = await res.json();
-            // Filter to only movie and tv results
-            const results = data.results.filter((i: any) => i.media_type === 'movie' || i.media_type === 'tv');
-            return results.map((i: any) => mapTmdbToMovie(i));
+
+            let results = data.results;
+
+            // If using 'multi', filter to only movie/tv
+            if (type === 'multi') {
+                results = results.filter((i: any) => i.media_type === 'movie' || i.media_type === 'tv');
+            }
+
+            return results.map((i: any) => mapTmdbToMovie(i, type === 'multi' ? undefined : (type as 'movie' | 'tv')));
         } catch (e) {
             console.error("Search Fetch Error", e);
             return [];

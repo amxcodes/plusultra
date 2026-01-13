@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Loader2, ArrowRight, Check } from 'lucide-react';
 import { TmdbService } from '../services/tmdb';
+import { SocialService } from '../lib/social';
 
 
 // Fallback images in case API fails or key is missing
@@ -28,9 +29,11 @@ export const AuthPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [posters, setPosters] = useState<string[]>([]);
+    const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(true);
 
     useEffect(() => {
-        const fetchPosters = async () => {
+        const fetchData = async () => {
+            // Fetch posters
             try {
                 const trending = await TmdbService.getTrending();
                 if (trending && trending.length > 0) {
@@ -44,8 +47,17 @@ export const AuthPage: React.FC = () => {
             } catch (e) {
                 setPosters(FALLBACK_POSTERS);
             }
+
+            // Fetch registration status
+            try {
+                const settings = await SocialService.getAppSettings();
+                setRegistrationEnabled(settings.registration_enabled === 'true');
+            } catch (e) {
+                // Default to enabled if fetch fails
+                setRegistrationEnabled(true);
+            }
         };
-        fetchPosters();
+        fetchData();
     }, []);
 
     const handleAuth = async (e: React.FormEvent) => {
@@ -65,6 +77,11 @@ export const AuthPage: React.FC = () => {
                 localStorage.setItem('AMX_REMEMBER_ME', rememberMe ? 'true' : 'false');
                 sessionStorage.setItem('AMX_SESSION_ACTIVE', 'true');
             } else {
+                // Check if registration is enabled
+                if (!registrationEnabled) {
+                    throw new Error('New user registration is currently disabled. Please contact the administrator.');
+                }
+
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
@@ -111,6 +128,12 @@ export const AuthPage: React.FC = () => {
                         {isLogin ? 'Enter your details to access.' : 'Join for free unlimited streaming.'}
                     </p>
                 </div>
+
+                {!isLogin && !registrationEnabled && (
+                    <div className="mb-6 p-3 bg-zinc-800/50 border border-zinc-700 text-zinc-300 text-xs rounded-md text-center">
+                        ⚠️ New registrations are temporarily disabled
+                    </div>
+                )}
 
                 {error && (
                     <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-200 text-xs rounded-md text-center">

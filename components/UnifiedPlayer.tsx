@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
 import { useSkipData } from './useSkipData';
 import { Settings, Check, Users } from 'lucide-react';
 import { TmdbService } from '../services/tmdb';
+import { WatchPartyModal } from './WatchPartyModal';
 
 type MediaType = 'movie' | 'tv';
 
@@ -46,7 +46,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [provider, setProvider] = useState<Provider>('cinemaos');
     const [lastTime, setLastTime] = useState(0);
     const [showServers, setShowServers] = useState(false);
-    const { updateProgress, flushProgress } = useWatchHistory();
+    const [showWatchPartyModal, setShowWatchPartyModal] = useState(false);
+
+    const { updateProgress } = useWatchHistory();
     const { skipData } = useSkipData(title, season, episode);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -245,13 +247,11 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         return () => {
             if (progressInterval) {
                 clearInterval(progressInterval);
-                // Final save on unmount
-                saveProgress();
             }
-            // Immediate flush to bypass debounce
-            flushProgress();
+            // Don't call saveProgress() here - it triggers setState during unmount!
+            // Progress will be auto-saved to localStorage by useWatchHistory cleanup
         };
-    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, flushProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
+    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
 
 
     const showSkipIntro = skipData?.intro?.start && skipData?.intro?.end &&
@@ -280,15 +280,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             {/* Controls Overlay (Top Right) */}
             <div className="absolute top-6 right-6 z-50 flex gap-4">
                 {/* Watch Together Button - Synclify Redirect */}
-                <a
-                    href="https://synclify.party"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <button
+                    onClick={() => setShowWatchPartyModal(true)}
                     className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md transition-all bg-black/50 text-white hover:bg-white/20"
                 >
                     <Users size={16} />
                     <span className="text-sm font-medium">Watch Together</span>
-                </a>
+                </button>
 
                 <div className="relative" id="server-menu">
                     <button
@@ -323,6 +321,11 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     )}
                 </div>
             </div>
+
+            {/* Watch Party Modal */}
+            {showWatchPartyModal && (
+                <WatchPartyModal isOpen={true} onClose={() => setShowWatchPartyModal(false)} />
+            )}
 
             {/* Skip Intro Button */}
             {showSkipIntro && (

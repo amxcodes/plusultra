@@ -21,6 +21,8 @@ interface SearchPageProps {
 export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigate }) => {
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState<SearchTab>(SearchTab.MOVIES);
+  const [filterType, setFilterType] = useState<'multi' | 'movie' | 'tv'>('multi');
+  const [filterYear, setFilterYear] = useState('');
 
   // Debounce query to prevent rapid API calls
   const debouncedQuery = useDebounce(query, 500);
@@ -45,7 +47,10 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
       setIsSearching(true);
       try {
         if (activeTab === SearchTab.MOVIES) {
-          const searchResults = await TmdbService.search(debouncedQuery);
+          const searchResults = await TmdbService.search(debouncedQuery, {
+            type: filterType,
+            year: filterYear.length === 4 ? filterYear : undefined
+          });
           setResults(searchResults);
         } else if (activeTab === SearchTab.USERS) {
           const users = await SocialService.searchUsers(debouncedQuery);
@@ -62,7 +67,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
     };
 
     performSearch();
-  }, [debouncedQuery, activeTab]);
+  }, [debouncedQuery, activeTab, filterType, filterYear]);
 
   const hasQuery = query.length > 0;
 
@@ -157,6 +162,43 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
                   {tab}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Detailed Filters (Only for Movies & TV tab) */}
+          {hasQuery && activeTab === SearchTab.MOVIES && (
+            <div className="flex gap-4 mt-4 animate-in fade-in slide-in-from-left-6 duration-700 items-center">
+
+              {/* Type Filter */}
+              <div className="flex bg-[#1a1a1e] rounded-xl p-1 border border-white/5">
+                {(['multi', 'movie', 'tv'] as const).map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterType(type)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all capitalize ${filterType === type
+                        ? 'bg-white text-black shadow-lg'
+                        : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
+                  >
+                    {type === 'multi' ? 'All' : type === 'tv' ? 'TV Shows' : 'Movies'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Year Filter */}
+              <div className="relative group">
+                <input
+                  type="text"
+                  placeholder="Year"
+                  value={filterYear}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setFilterYear(val);
+                  }}
+                  className="w-20 bg-[#1a1a1e] border border-white/5 text-white text-xs font-bold px-3 py-2 rounded-xl outline-none focus:border-white/20 transition-all placeholder:text-zinc-600 text-center"
+                />
+              </div>
+
             </div>
           )}
         </div>

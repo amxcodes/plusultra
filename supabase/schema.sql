@@ -268,7 +268,8 @@ create policy "Admins can manage settings"
 -- Insert default values
 insert into public.app_settings (key, value) values 
   ('site_url', 'http://localhost:5173'),
-  ('donation_url', 'https://ko-fi.com')
+  ('donation_url', 'https://ko-fi.com'),
+  ('registration_enabled', 'true')
 on conflict do nothing;
 
 -- 11. PLAYLIST ENGAGEMENT (Likes & Analytics)
