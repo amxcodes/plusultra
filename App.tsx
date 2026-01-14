@@ -36,6 +36,7 @@ import { PlayerPage } from './components/PlayerPage';
 import { ActivityPage } from './components/ActivityPage';
 import { WatchTogetherService } from './lib/watchTogether';
 import { PlaylistsPage } from './components/PlaylistsPage';
+import { StatsDashboard } from './components/StatsDashboard';
 
 import { supabase } from './lib/supabase';
 
@@ -532,6 +533,11 @@ function StreamApp() {
                   onBack={() => setActiveTab(NavItem.DASHBOARD)}
                   onPlaylistSelect={handlePlaylistSelect}
                 />
+              )}
+
+              {/* STATS VIEW */}
+              {activeTab === NavItem.STATS && (
+                <StatsDashboard />
               )}
 
               {/* Add To Playlist Modal (Global generic overlay) */}

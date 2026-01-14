@@ -19,6 +19,7 @@ export interface WatchProgress {
   year?: number;
   backdropUrl?: string; // New: For movie cards
   episodeImage?: string; // New: For TV cards
+  genres?: string[]; // Genre names for stats tracking
 }
 
 export const useWatchHistory = () => {
@@ -58,8 +59,9 @@ export const useWatchHistory = () => {
         setIsLoading(false);
       }
 
-      // Sync any pending localStorage backup
-      const pending = localStorage.getItem('amx_pending_watch_history');
+      // Sync any pending localStorage backup FOR THIS USER
+      const pendingKey = `amx_pending_watch_history_${user.id}`;
+      const pending = localStorage.getItem(pendingKey);
       if (pending) {
         try {
           const pendingData: WatchProgress = JSON.parse(pending);
@@ -67,12 +69,23 @@ export const useWatchHistory = () => {
           const success = await syncToSupabase(pendingData);
           if (success) {
             console.log('[Sync] Successfully synced pending backup');
+            localStorage.removeItem(pendingKey);
           }
         } catch (err) {
           console.error('[Sync] Failed to parse pending backup:', err);
-          localStorage.removeItem('amx_pending_watch_history');
+          localStorage.removeItem(pendingKey);
         }
       }
+
+      // Cleanup: Remove old non-user-specific key (migration cleanup)
+      localStorage.removeItem('amx_pending_watch_history');
+
+      // Cleanup: Remove other users' pending data
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('amx_pending_watch_history_') && key !== pendingKey) {
+          localStorage.removeItem(key);
+        }
+      });
     };
 
     loadHistory();
@@ -121,10 +134,12 @@ export const useWatchHistory = () => {
     // Only log once after all retries failed
     if (lastError?.message?.includes('AbortError')) {
       // Silent fail for abort errors (common during navigation)
-      localStorage.setItem('amx_pending_watch_history', JSON.stringify(data));
+      const pendingKey = `amx_pending_watch_history_${user.id}`;
+      localStorage.setItem(pendingKey, JSON.stringify(data));
     } else {
       console.warn('[Sync] Failed to save progress, using local backup.');
-      localStorage.setItem('amx_pending_watch_history', JSON.stringify(data));
+      const pendingKey = `amx_pending_watch_history_${user.id}`;
+      localStorage.setItem(pendingKey, JSON.stringify(data));
     }
     return false;
   };
@@ -163,9 +178,10 @@ export const useWatchHistory = () => {
       }
       // Save to localStorage during unmount - no async, no state updates!
       const currentData = latestDataRef.current;
-      if (currentData) {
+      if (currentData && user?.id) {
         try {
-          localStorage.setItem('amx_pending_watch_history', JSON.stringify(currentData));
+          const pendingKey = `amx_pending_watch_history_${user.id}`;
+          localStorage.setItem(pendingKey, JSON.stringify(currentData));
         } catch (err) {
           // Ignore errors during unmount
         }

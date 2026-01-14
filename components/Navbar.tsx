@@ -16,7 +16,8 @@ import {
   Shield, // For Admin
   Bell, // Announcements
   Activity, // Activity Log
-  Heart
+  Heart,
+  BarChart2
 } from 'lucide-react';
 import { SocialService } from '../lib/social';
 
@@ -40,6 +41,7 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.ANNOUNCEMENTS]: Bell,
   [NavItem.ACTIVITY]: Activity,
   [NavItem.PLAYLISTS]: ListVideo,
+  [NavItem.STATS]: BarChart2
 };
 import { ListVideo } from 'lucide-react';
 
@@ -109,6 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           item !== NavItem.ANNOUNCEMENTS &&
           item !== NavItem.ACTIVITY &&
           item !== NavItem.PLAYLISTS &&
+          item !== NavItem.STATS &&
           (item !== NavItem.ADMIN || profile?.role === 'admin')
         ).map((item) => {
           const Icon = NAV_ICONS[item];
@@ -177,6 +180,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.PLAYLISTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
         >
           <ListVideo size={16} strokeWidth={activeTab === NavItem.PLAYLISTS ? 2.5 : 2} />
+        </button>
+
+        <button
+          onClick={() => setActiveTab(NavItem.STATS)}
+          className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.STATS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+        >
+          <BarChart2 size={16} strokeWidth={activeTab === NavItem.STATS ? 2.5 : 2} />
         </button>
 
         <button

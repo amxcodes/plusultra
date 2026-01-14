@@ -4,6 +4,8 @@ import { useSkipData } from './useSkipData';
 import { Settings, Check, Users } from 'lucide-react';
 import { TmdbService } from '../services/tmdb';
 import { WatchPartyModal } from './WatchPartyModal';
+import { StatsService } from '../services/stats';
+import { ServerVotingModal } from './ServerVotingModal';
 
 type MediaType = 'movie' | 'tv';
 
@@ -20,14 +22,21 @@ interface UnifiedPlayerProps {
     autoJoinCode?: string;
 }
 
-type Provider = 'cinemaos' | 'vidora' | 'rive' | 'aeon' | 'cinezo';
+export type Provider = 'zxcplayer' | 'zxcembed' | 'cinemaos' | 'cinezo' | 'rive' | 'vidora' | 'aeon';
 
-const PROVIDERS: { id: Provider; name: string; hasEvents: boolean }[] = [
-    { id: 'cinemaos', name: 'Server 1 (Best)', hasEvents: false },
-    { id: 'vidora', name: 'Server 2 (Backup)', hasEvents: true },
-    { id: 'rive', name: 'Server 3', hasEvents: false },
-    { id: 'aeon', name: 'Server 4', hasEvents: false },
-    { id: 'cinezo', name: 'Server 5', hasEvents: false },
+export const PROVIDERS: { id: Provider; name: string; hasEvents: boolean; tags?: string[]; bestFor?: string }[] = [
+    // ZXCStream variants (Best - No redirects)
+    { id: 'zxcplayer', name: 'Server 1', hasEvents: false, tags: ['Fast', 'No Ads'], bestFor: 'Best Quality' },
+    { id: 'zxcembed', name: 'Server 2', hasEvents: false, tags: ['Fast', 'No Ads'], bestFor: 'Alternative Player' },
+
+    // Premium servers (Clean)
+    { id: 'cinemaos', name: 'Server 3', hasEvents: false, tags: ['Reliable'], bestFor: 'Backup' },
+    { id: 'aeon', name: 'Server 4', hasEvents: false, tags: ['Reliable'], bestFor: 'Backup' },
+    { id: 'cinezo', name: 'Server 5', hasEvents: false, tags: ['Reliable'], bestFor: 'Backup' },
+
+    // Premium servers with redirect issues (Moved down)
+    { id: 'rive', name: 'Server 6', hasEvents: false, tags: ['Redirects'], bestFor: 'All Content' },
+    { id: 'vidora', name: 'Server 7', hasEvents: true, tags: ['Redirects'], bestFor: 'All Content' },
 ];
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
@@ -43,10 +52,49 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     autoJoinCode
 }) => {
     // ... existing state ...
-    const [provider, setProvider] = useState<Provider>('cinemaos');
+    const [provider, setProvider] = useState<Provider>('zxcplayer');
     const [lastTime, setLastTime] = useState(0);
     const [showServers, setShowServers] = useState(false);
     const [showWatchPartyModal, setShowWatchPartyModal] = useState(false);
+    const [showVotingModal, setShowVotingModal] = useState(false);
+    const [genres, setGenres] = useState<string[]>([]);
+
+    // Fetch genres from TMDB for stats tracking
+    useEffect(() => {
+        const fetchGenres = async () => {
+            try {
+                const details = await TmdbService.getDetails(tmdbId, mediaType);
+                if (details.genre && Array.isArray(details.genre)) {
+                    setGenres(details.genre);
+                }
+            } catch (err) {
+                console.error('[Genres] Failed to fetch:', err);
+            }
+        };
+        fetchGenres();
+    }, [tmdbId, mediaType]);
+
+    // Auto-Connect to Best Server & Voting Timer
+    useEffect(() => {
+        // 1. Try to connect to best-voted server
+        StatsService.getBestServer(tmdbId, mediaType, season, episode).then(vote => {
+            if (vote && vote.vote_count > 5) { // Threshold to prevent fluctuation from low votes
+                const availableProvider = PROVIDERS.find(p => p.id === vote.provider_id);
+                if (availableProvider) {
+                    setProvider(availableProvider.id);
+                }
+            }
+        });
+
+        // 2. Voting Prompt Timer (15 minutes)
+        const checkVote = localStorage.getItem(`voted_${tmdbId}_${mediaType}_${season}_${episode}`);
+        if (!checkVote) {
+            const timer = setTimeout(() => {
+                setShowVotingModal(true);
+            }, 1000 * 60 * 15); // 15 Minutes
+            return () => clearTimeout(timer);
+        }
+    }, [tmdbId, mediaType, season, episode]);
 
     const { updateProgress } = useWatchHistory();
     const { skipData } = useSkipData(title, season, episode);
@@ -100,6 +148,19 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     // Construct URL based on provider
     const getUrl = () => {
         switch (provider) {
+            // ZXCStream variants (Best quality, no redirects)
+            case 'zxcplayer':
+                if (mediaType === 'movie') {
+                    return `https://zxcstream.xyz/player/movie/${tmdbId}/en?autoplay=false&back=true&server=0`;
+                }
+                return `https://zxcstream.xyz/player/tv/${tmdbId}/${season}/${episode}/en?autoplay=false&back=true&server=0`;
+
+            case 'zxcembed':
+                if (mediaType === 'movie') {
+                    return `https://zxcstream.xyz/embed/movie/${tmdbId}`;
+                }
+                return `https://zxcstream.xyz/embed/tv/${tmdbId}/${season}/${episode}`;
+
             case 'cinemaos':
                 const baseUrl = 'https://zxcstream.xyz/player';
                 const commonQuery = 'autoplay=false&back=true&server=0';
@@ -169,7 +230,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                             voteAverage,
 
                             backdropUrl: currentMovieBackdrop || backdropUrl,
-                            episodeImage: currentEpisodeImage || episodeImage
+                            episodeImage: currentEpisodeImage || episodeImage,
+                            genres: genres.length > 0 ? genres : undefined
                         });
 
 
@@ -237,7 +299,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     year: new Date().getFullYear(),
 
                     backdropUrl: currentMovieBackdrop || backdropUrl,
-                    episodeImage: currentEpisodeImage || episodeImage
+                    episodeImage: currentEpisodeImage || episodeImage,
+                    genres: genres.length > 0 ? genres : undefined
                 });
             }
         };
@@ -299,24 +362,46 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     </button>
 
                     {showServers && (
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-[#0f1014] border border-white/10 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
-                            {PROVIDERS.map((p) => (
-                                <button
-                                    key={p.id}
-                                    onClick={() => {
-                                        setProvider(p.id);
-                                        setShowServers(false);
+                        <div className="absolute right-0 top-full mt-2 w-72 bg-[#0f1014]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                            {PROVIDERS.map((p) => {
+                                const isActive = provider === p.id;
+                                return (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => {
+                                            setProvider(p.id);
+                                            setShowServers(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border border-transparent
+                                        ${isActive
+                                                ? 'bg-white text-black shadow-lg shadow-white/10'
+                                                : 'text-zinc-400 hover:bg-white/5 hover:border-white/5 hover:text-white'}`}
+                                    >
+                                        <div className="flex flex-col gap-0.5 items-start">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-sm font-bold ${isActive ? 'text-black' : 'text-zinc-200'}`}>
+                                                    {p.name}
+                                                </span>
+                                                {p.tags && p.tags[0] && (
+                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold ${isActive
+                                                        ? 'bg-black/10 text-black/70'
+                                                        : p.tags[0].includes('Redirect') || p.tags[0].includes('Ads')
+                                                            ? 'bg-red-500/20 text-red-400'
+                                                            : 'bg-white/10 text-zinc-500'
+                                                        }`}>
+                                                        {p.tags[0].replace('Redirect Issues', 'Redirects')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className={`text-[10px] ${isActive ? 'text-black/60' : 'text-zinc-600'}`}>
+                                                {p.bestFor}
+                                            </span>
+                                        </div>
 
-                                    }}
-                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg flex items-center justify-between group/item transition-colors
-                                    ${provider === p.id
-                                            ? 'bg-white text-black'
-                                            : 'text-zinc-400 hover:bg-white/10 hover:text-white'}`}
-                                >
-                                    {p.name}
-                                    {provider === p.id && <Check size={14} />}
-                                </button>
-                            ))}
+                                        {isActive && <div className="bg-black text-white rounded-full p-0.5"><Check size={10} /></div>}
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -346,6 +431,16 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             <div className="absolute bottom-6 right-6 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] text-white/30 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                 {PROVIDERS.find(p => p.id === provider)?.name}
             </div>
+
+            <ServerVotingModal
+                isOpen={showVotingModal}
+                onClose={() => setShowVotingModal(false)}
+                tmdbId={tmdbId}
+                mediaType={mediaType}
+                season={season}
+                episode={episode}
+                currentProvider={provider}
+            />
 
         </div>
     );
