@@ -15,6 +15,8 @@ export interface Movie {
   tmdbId?: number;
   seasons?: { id: number; name: string; season_number: number; episode_count: number; poster_path?: string }[]; // Updated
   screenshots?: string[]; // New
+  genreIds?: number[]; // For filtering
+  popularity?: number; // For sorting
 }
 
 export interface HeroMovie extends Movie {
@@ -46,6 +48,7 @@ export interface Profile {
   username: string;
   avatar_url: string;
   role: 'user' | 'admin' | 'moderator';
+  recent_searches?: string[];
 }
 
 export interface Playlist {

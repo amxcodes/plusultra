@@ -598,5 +598,45 @@ export const SocialService = {
             .from('app_settings')
             .upsert({ key, value });
         if (error) throw error;
+    },
+
+    // --- Recent Searches (Hybrid Storage) ---
+
+    async saveRecentSearch(userId: string, query: string) {
+        // Get current searches
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('recent_searches')
+            .eq('id', userId)
+            .single();
+
+        let searches: string[] = profile?.recent_searches || [];
+
+        // Remove if already exists (dedupe)
+        searches = searches.filter(s => s.toLowerCase() !== query.toLowerCase());
+
+        // Prepend new search
+        searches.unshift(query);
+
+        // Keep only top 3
+        searches = searches.slice(0, 3);
+
+        // Update profile
+        const { error } = await supabase
+            .from('profiles')
+            .update({ recent_searches: searches })
+            .eq('id', userId);
+
+        if (error) throw error;
+    },
+
+    async getRecentSearches(userId: string): Promise<string[]> {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('recent_searches')
+            .eq('id', userId)
+            .single();
+
+        return profile?.recent_searches || [];
     }
 };

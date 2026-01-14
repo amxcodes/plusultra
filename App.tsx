@@ -334,7 +334,7 @@ function StreamApp() {
       {/* Rest of the app... */}
       <div className={`transition-opacity duration-300 ${selectedMovie ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {isSearchOpen ? (
-          <div className="animate-in fade-in duration-500 pl-24 pt-8">
+          <div className="fixed inset-0 z-50 bg-[#0f1014] animate-in fade-in duration-500 overflow-y-auto custom-scrollbar">
             <SearchPage
               onMovieSelect={handleMovieSelect}
               onNavigate={handleNavigate}

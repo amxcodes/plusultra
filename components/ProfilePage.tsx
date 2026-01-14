@@ -603,6 +603,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                     </div>
                 </div>
             )}
+
+            {/* Recent Searches - Admin Only */}
+            {isAdmin && !isOwnProfile && profile.recent_searches && profile.recent_searches.length > 0 && (
+                <div className="max-w-6xl mx-auto mt-16 pb-20">
+                    <h2 className="text-lg font-light text-zinc-500 mb-8 tracking-widest uppercase flex items-center gap-2">
+                        <Search size={16} />
+                        Recent Searches
+                        <span className="text-xs bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 text-zinc-600 font-bold">Admin</span>
+                    </h2>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {profile.recent_searches.map((search: string, idx: number) => (
+                            <div key={idx} className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-xl flex items-center gap-3">
+                                <Search size={16} className="text-zinc-600" />
+                                <span className="text-zinc-300 font-medium truncate">{search}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -20,6 +20,8 @@ const mapTmdbToMovie = (item: any, forcedType?: 'movie' | 'tv'): Movie => {
             ? `https://image.tmdb.org/t/p/original${item.backdrop_path}`
             : undefined,
         genre: [], // Populated separately or via genre map if needed
+        genreIds: item.genre_ids,
+        popularity: item.popularity,
         duration: '', // Not available in list view, requires detail fetch
         director: '', // Not available in list view
         description: item.overview,
@@ -225,12 +227,13 @@ export const TmdbService = {
         }
     },
 
-    search: async (query: string, filters?: { type?: 'movie' | 'tv' | 'multi'; year?: string }): Promise<Movie[]> => {
+    search: async (query: string, filters?: { type?: 'movie' | 'tv' | 'multi'; year?: string; page?: number }): Promise<Movie[]> => {
         if (!API_KEY || !query) return [];
         try {
             // Default to multi search
             const type = filters?.type || 'multi';
-            let url = `${BASE_URL}/search/${type}?api_key=${API_KEY}&query=${encodeURIComponent(query)}&include_adult=false`;
+            const page = filters?.page || 1;
+            let url = `${BASE_URL}/search/${type}?api_key=${API_KEY}&query=${encodeURIComponent(query)}&include_adult=false&page=${page}`;
 
             // Append Year Filter if present
             if (filters?.year) {
@@ -246,8 +249,8 @@ export const TmdbService = {
             // For now, if 'multi' and year is set, we'll try to fetch both movie/tv specific endpoints to honor the year
             if (type === 'multi' && filters?.year) {
                 const [movies, tv] = await Promise.all([
-                    TmdbService.search(query, { type: 'movie', year: filters.year }),
-                    TmdbService.search(query, { type: 'tv', year: filters.year })
+                    TmdbService.search(query, { type: 'movie', year: filters.year, page }),
+                    TmdbService.search(query, { type: 'tv', year: filters.year, page })
                 ]);
                 // Interleave results for basic mixing
                 const mixed: Movie[] = [];

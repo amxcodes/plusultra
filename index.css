@@ -17,8 +17,8 @@ body {
 
 /* Custom Thin Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -26,12 +26,31 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Explicit styling for specific containers */
+/* Explicit styling for specific containers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-radius: 20px !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Base fade-in animation */
