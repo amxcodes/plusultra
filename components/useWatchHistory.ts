@@ -116,7 +116,8 @@ export const useWatchHistory = () => {
           if (attempt > 0) {
             console.log(`[Sync] ✓ Recovered - saved ${data.title}`);
           }
-          localStorage.removeItem('amx_pending_watch_history');
+          const pendingKey = `amx_pending_watch_history_${user.id}`;
+          localStorage.removeItem(pendingKey);
           return true;
         }
 

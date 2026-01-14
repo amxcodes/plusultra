@@ -34,23 +34,10 @@ create table public.profiles (
   created_at timestamptz default now()
 );
 
--- RPC to atomically update a single history item inside the JSON blob
-create or replace function update_watch_history(
-  p_user_id uuid,
-  p_tmdb_id text,
-  p_data jsonb
-)
-returns void as $$
-begin
-  update public.profiles
-  set watch_history = jsonb_set(
-    coalesce(watch_history, '{}'::jsonb), 
-    array[p_tmdb_id], 
-    p_data
-  )
-  where id = p_user_id;
-end;
-$$ language plpgsql security definer;
+-- RPC to update watch history with stats tracking
+-- REMOVED: This function is now defined in MASTER_STATS_MIGRATION.sql
+-- with full stats and genre tracking capabilities.
+-- DO NOT re-add here to avoid conflicts.
 
 -- Secure Profiles (RLS)
 alter table public.profiles enable row level security;

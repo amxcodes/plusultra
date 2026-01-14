@@ -43,6 +43,11 @@ BEGIN
     current_stats := '{"total_movies": 0, "total_shows": 0, "streak_days": 0, "genre_counts": {}}'::jsonb; 
   END IF;
 
+  -- Ensure genre_counts exists even if stats object exists (migration fix)
+  IF current_stats->'genre_counts' IS NULL THEN
+    current_stats := jsonb_set(current_stats, '{genre_counts}', '{}'::jsonb);
+  END IF;
+
   -- 3. Extract media type and genres from the data being saved
   media_type := p_data->>'type';
   genres := p_data->'genres'; -- Try to extract genres array from metadata

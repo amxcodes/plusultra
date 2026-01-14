@@ -280,7 +280,7 @@ function StreamApp() {
     setPlayerState(null); // Close player on tab change
     setActiveTab(tab);
     setIsSearchOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
   const handleNavigate = (page: string, params?: any) => {
@@ -292,7 +292,7 @@ function StreamApp() {
       setSelectedPlaylistId(params?.id);
       setIsSearchOpen(false);
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
   if (loading) return <div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white">Loading...</div>;
