@@ -35,7 +35,6 @@ body {
 }
 
 /* Explicit styling for specific containers */
-/* Explicit styling for specific containers */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px !important;
 }
@@ -68,4 +67,62 @@ body {
 
 .fade-in-up {
   animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Minimalist Entry Animations (Manual Definition) */
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(2rem);
+    /* slide-in-from-bottom-8 */
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoomInFade {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+    /* zoom-in-95 */
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-up-fade {
+  animation: slideUpFade 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  /* Starts invisible */
+}
+
+.animate-zoom-in-fade {
+  animation: zoomInFade 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  /* Starts invisible */
+}
+
+/* Gentle Bounce Animation */
+@keyframes bounceSlow {
+
+  0%,
+  100% {
+    transform: translateY(-5%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounceSlow 3s infinite;
 }

@@ -28,6 +28,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
     // Filter/Search State
     const [playlistSearch, setPlaylistSearch] = useState('');
+    const [userSearch, setUserSearch] = useState('');
+    const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'moderator' | 'user'>('all');
 
     // Movie Search State
     const [movieSearchQuery, setMovieSearchQuery] = useState('');
@@ -145,6 +147,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         p.name.toLowerCase().includes(playlistSearch.toLowerCase()) ||
         (p.profiles?.username || '').toLowerCase().includes(playlistSearch.toLowerCase())
     );
+
+    const filteredUsers = users.filter(u => {
+        const matchesSearch = u.username.toLowerCase().includes(userSearch.toLowerCase());
+        const matchesRole = roleFilter === 'all' || u.role === roleFilter;
+        return matchesSearch && matchesRole;
+    });
 
     if (!isAdmin) return <div className="p-20 text-center text-red-500">Access Denied</div>;
 
@@ -285,10 +293,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         <div
                                             key={check.service}
                                             className={`relative group flex flex-col justify-between p-5 rounded-2xl border transition-all duration-500 overflow-hidden ${isHealthy
-                                                    ? 'bg-gradient-to-br from-green-500/10 to-emerald-900/10 border-green-500/20 hover:border-green-500/50 hover:bg-green-500/20'
-                                                    : isDegraded
-                                                        ? 'bg-gradient-to-br from-yellow-500/10 to-orange-900/10 border-yellow-500/20 hover:border-yellow-500/50 hover:bg-yellow-500/20'
-                                                        : 'bg-gradient-to-br from-red-500/10 to-rose-900/10 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20'
+                                                ? 'bg-gradient-to-br from-green-500/10 to-emerald-900/10 border-green-500/20 hover:border-green-500/50 hover:bg-green-500/20'
+                                                : isDegraded
+                                                    ? 'bg-gradient-to-br from-yellow-500/10 to-orange-900/10 border-yellow-500/20 hover:border-yellow-500/50 hover:bg-yellow-500/20'
+                                                    : 'bg-gradient-to-br from-red-500/10 to-rose-900/10 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20'
                                                 }`}
                                         >
                                             <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-all duration-500 scale-150 rotate-12">
@@ -525,60 +533,172 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {/* USERS TAB */}
                     {activeTab === 'users' && (
-                        <div className="border border-zinc-800 rounded-lg overflow-hidden">
-                            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
-                                <h3 className="font-bold text-white text-sm">Registered Users</h3>
-                                <div className="relative">
-                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search users..."
-                                        className="bg-black/50 text-xs text-white pl-9 pr-4 py-2 rounded border border-zinc-800 focus:border-zinc-600 outline-none w-64 placeholder:text-zinc-600"
-                                    />
+                        <div className="space-y-6">
+                            {/* Stats Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                                    <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Total Users</div>
+                                    <div className="text-3xl font-black text-white">{users.length}</div>
+                                </div>
+                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                                    <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Admins</div>
+                                    <div className="text-3xl font-black text-white">
+                                        {users.filter(u => u.role === 'admin').length}
+                                    </div>
+                                </div>
+                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                                    <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Moderators</div>
+                                    <div className="text-3xl font-black text-white">
+                                        {users.filter(u => u.role === 'moderator').length}
+                                    </div>
+                                </div>
+                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                                    <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Regular Users</div>
+                                    <div className="text-3xl font-black text-white">
+                                        {users.filter(u => u.role === 'user').length}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead className="bg-zinc-900/50 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
-                                        <tr>
-                                            <th className="px-6 py-3">User</th>
-                                            <th className="px-6 py-3">Role</th>
-                                            <th className="px-6 py-3">Joined</th>
-                                            <th className="px-6 py-3 text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-zinc-800/50 text-sm">
-                                        {users.map(u => (
-                                            <tr key={u.id} className="hover:bg-zinc-900/30 transition-colors">
-                                                <td className="px-6 py-3 flex items-center gap-3">
-                                                    <div className="w-6 h-6 rounded-full bg-zinc-800 overflow-hidden">
-                                                        <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}&background=27272a&color=fff&bold=true`} className="w-full h-full object-cover grayscale" />
-                                                    </div>
-                                                    <span className="text-zinc-300 font-medium">{u.username}</span>
-                                                </td>
-                                                <td className="px-6 py-3">
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-wider font-bold ${u.role === 'admin' ? 'bg-white text-black border-white' :
-                                                        u.role === 'moderator' ? 'bg-zinc-800 text-zinc-300 border-zinc-700' :
-                                                            'text-zinc-500 border-transparent'
-                                                        }`}>
-                                                        {u.role}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-3 text-zinc-600 text-xs font-mono">
-                                                    {new Date().toLocaleDateString()}
-                                                </td>
-                                                <td className="px-6 py-3 text-right">
-                                                    <button
-                                                        onClick={() => onNavigate('profile', { id: u.id })}
-                                                        className="text-white hover:text-zinc-300 text-xs font-bold hover:underline"
-                                                    >
-                                                        Review
-                                                    </button>
-                                                </td>
+
+                            {/* Users Table */}
+                            <div className="border border-zinc-800 rounded-lg overflow-hidden">
+                                <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
+                                    <h3 className="font-bold text-white text-sm">User Management</h3>
+                                    <div className="flex gap-3">
+                                        <div className="relative">
+                                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search users..."
+                                                value={userSearch}
+                                                onChange={(e) => setUserSearch(e.target.value)}
+                                                className="bg-black/50 text-xs text-white pl-9 pr-4 py-2 rounded border border-zinc-800 focus:border-zinc-600 outline-none w-64 placeholder:text-zinc-600"
+                                            />
+                                        </div>
+                                        <select
+                                            value={roleFilter}
+                                            onChange={(e) => setRoleFilter(e.target.value as any)}
+                                            className="bg-black/50 text-xs text-white px-3 py-2 rounded border border-zinc-800 focus:border-zinc-600 outline-none"
+                                        >
+                                            <option value="all">All Roles</option>
+                                            <option value="admin">Admins</option>
+                                            <option value="moderator">Moderators</option>
+                                            <option value="user">Users</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-zinc-900/50 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                            <tr>
+                                                <th className="px-6 py-3">User</th>
+                                                <th className="px-6 py-3">Stats</th>
+                                                <th className="px-6 py-3">Role</th>
+                                                <th className="px-6 py-3">Joined</th>
+                                                <th className="px-6 py-3 text-right">Actions</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-zinc-800/50 text-sm">
+                                            {filteredUsers.map(u => (
+                                                <tr key={u.id} className="hover:bg-zinc-900/30 transition-colors group">
+                                                    <td className="px-6 py-3 flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden">
+                                                            <img
+                                                                src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}&background=27272a&color=fff&bold=true`}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-white font-medium">{u.username}</div>
+                                                            <div className="text-zinc-600 text-xs font-mono">{u.id.slice(0, 8)}</div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <div className="flex gap-2 text-xs">
+                                                            <span className="text-zinc-500">
+                                                                {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} watched
+                                                            </span>
+                                                            <span className="text-zinc-700">•</span>
+                                                            <span className="text-zinc-500">
+                                                                {allPlaylists.filter(p => p.user_id === u.id).length} playlists
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <select
+                                                            value={u.role}
+                                                            onChange={async (e) => {
+                                                                if (!confirm(`Change ${u.username}'s role to ${e.target.value}?`)) return;
+                                                                try {
+                                                                    await SocialService.updateUserRole(u.id, e.target.value as any);
+                                                                    setUsers(prev => prev.map(user =>
+                                                                        user.id === u.id ? { ...user, role: e.target.value } : user
+                                                                    ));
+                                                                } catch (e) {
+                                                                    console.error(e);
+                                                                    alert('Failed to update role');
+                                                                }
+                                                            }}
+                                                            className={`text-[10px] px-2 py-1 rounded border uppercase tracking-wider font-bold cursor-pointer ${u.role === 'admin' ? 'bg-white text-black border-white' :
+                                                                u.role === 'moderator' ? 'bg-zinc-800 text-zinc-300 border-zinc-700' :
+                                                                    'bg-transparent text-zinc-500 border-zinc-800'
+                                                                }`}
+                                                        >
+                                                            <option value="admin">Admin</option>
+                                                            <option value="moderator">Moderator</option>
+                                                            <option value="user">User</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="px-6 py-3 text-zinc-600 text-xs font-mono">
+                                                        {new Date(u.created_at).toLocaleDateString()}
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <button
+                                                                onClick={() => onNavigate('profile', { id: u.id })}
+                                                                className="text-xs text-zinc-500 hover:text-white font-bold transition-colors"
+                                                            >
+                                                                View
+                                                            </button>
+                                                            <button
+                                                                onClick={async () => {
+                                                                    if (!confirm(`⚠️ DELETE ${u.username}?\n\nThis will permanently remove:\n• Profile & Stats\n• All Playlists\n• Watch Parties\n• Social connections\n\nAuth record stays for audit logs.\n\nThis action CANNOT be undone.`)) return;
+
+                                                                    // Double confirmation
+                                                                    const confirmText = prompt(`Type "${u.username}" to confirm deletion:`);
+                                                                    if (confirmText !== u.username) {
+                                                                        alert('Deletion cancelled - username did not match');
+                                                                        return;
+                                                                    }
+
+                                                                    try {
+                                                                        setLoading(true);
+                                                                        const result = await SocialService.deleteUserProfile(u.id);
+                                                                        console.log('Deletion result:', result);
+
+                                                                        // Remove from local state
+                                                                        setUsers(prev => prev.filter(user => user.id !== u.id));
+                                                                        alert(`Successfully deleted ${u.username} and all associated data.`);
+                                                                        loadAllData(); // Refresh stats
+                                                                    } catch (e) {
+                                                                        console.error(e);
+                                                                        alert('Failed to delete user. Check console for details.');
+                                                                    } finally {
+                                                                        setLoading(false);
+                                                                    }
+                                                                }}
+                                                                className="p-2 text-zinc-700 hover:text-red-500 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                                                title="Delete User"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     )}

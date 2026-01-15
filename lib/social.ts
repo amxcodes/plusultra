@@ -307,6 +307,24 @@ export const SocialService = {
         return data || [];
     },
 
+    async deleteUserProfile(userId: string) {
+        const { data, error } = await supabase
+            .rpc('admin_delete_user', { p_user_id: userId });
+
+        if (error) throw error;
+        return data;
+    },
+
+    async updateUserRole(userId: string, newRole: 'admin' | 'moderator' | 'user') {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ role: newRole })
+            .eq('id', userId);
+
+        if (error) throw error;
+    },
+
+
     async getUserWatchHistory(userId: string) {
         const { data, error } = await supabase
             .from('profiles')

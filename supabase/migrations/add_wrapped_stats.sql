@@ -1,24 +1,10 @@
 -- ===============================================
--- COMPLETE MIGRATION: Base + Phase 1 Wrapped Fields
+-- WRAPPED STATS UPDATE - MINIMAL VERSION
 -- ===============================================
--- This combines MASTER_STATS_MIGRATION.sql + phase1_add_wrapped_fields.sql
--- Run this ONCE in Supabase SQL Editor
+-- Run this in Supabase SQL Editor
+-- Adds: rewatch tracking, binge detection, per-title counts
 -- ===============================================
 
--- STEP 1: Add stats column if it doesn't exist (safety check)
--- ===============================================
-DO $$ 
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'profiles' AND column_name = 'stats'
-    ) THEN
-        ALTER TABLE public.profiles ADD COLUMN stats JSONB DEFAULT '{}'::jsonb;
-    END IF;
-END $$;
-
--- STEP 2: Create update_watch_history function with Wrapped fields
--- ===============================================
 CREATE OR REPLACE FUNCTION update_watch_history(
   p_user_id uuid,
   p_tmdb_id text,
@@ -37,12 +23,14 @@ DECLARE
   genre_name TEXT;
   current_month TEXT;
   current_year INT;
+  title TEXT;
+  title_rewatch_count INT;
+  today TEXT;
+  today_count INT;
 BEGIN
-  -- 1. Fetch current data
   SELECT watch_history, stats INTO current_history, current_stats 
   FROM public.profiles WHERE id = p_user_id;
 
-  -- 2. Initialize stats with Wrapped fields
   IF current_stats IS NULL THEN 
     current_stats := jsonb_build_object(
       'total_movies', 0,
@@ -64,7 +52,7 @@ BEGIN
     current_history := '{}'::jsonb; 
   END IF;
 
-  -- Ensure all wrapped fields exist (for existing users)
+  -- Ensure all fields exist
   IF current_stats->'genre_counts' IS NULL THEN
     current_stats := jsonb_set(current_stats, '{genre_counts}', '{}'::jsonb);
   END IF;
@@ -90,41 +78,31 @@ BEGIN
     current_stats := jsonb_set(current_stats, '{title_rewatch_counts}', '{}'::jsonb);
   END IF;
 
-  -- 3. Extract metadata
   media_type := p_data->>'type';
   genres := p_data->'genres';
   is_new_item := NOT (current_history ? p_tmdb_id);
 
-  -- 4. Track Rewatches (before updating watch_history)
+  -- Track rewatches
   IF NOT is_new_item THEN
-    -- Increment total rewatch count
     current_stats := jsonb_set(
       current_stats,
       '{rewatch_count}',
       (COALESCE((current_stats->>'rewatch_count')::int, 0) + 1)::text::jsonb
     );
     
-    -- Track per-title rewatches
-    DECLARE
-      title TEXT;
-      title_rewatch_count INT;
-    BEGIN
-      title := p_data->>'title';
-      IF title IS NOT NULL THEN
-        title_rewatch_count := COALESCE((current_stats->'title_rewatch_counts'->>title)::int, 0) + 1;
-        current_stats := jsonb_set(
-          current_stats,
-          array['title_rewatch_counts', title],
-          title_rewatch_count::text::jsonb
-        );
-      END IF;
-    END;
+    title := p_data->>'title';
+    IF title IS NOT NULL THEN
+      title_rewatch_count := COALESCE((current_stats->'title_rewatch_counts'->>title)::int, 0) + 1;
+      current_stats := jsonb_set(
+        current_stats,
+        array['title_rewatch_counts', title],
+        title_rewatch_count::text::jsonb
+      );
+    END IF;
   END IF;
 
-  -- 5. Update watch history
   current_history := jsonb_set(current_history, array[p_tmdb_id], p_data);
 
-  -- 6. Update counters if new item
   IF is_new_item THEN
     IF media_type = 'movie' THEN
       current_stats := jsonb_set(current_stats, '{total_movies}', 
@@ -134,7 +112,6 @@ BEGIN
         ((current_stats->>'total_shows')::int + 1)::text::jsonb);
     END IF;
 
-    -- Update genre counts
     IF genres IS NOT NULL AND jsonb_typeof(genres) = 'array' THEN
       FOR genre_name IN SELECT jsonb_array_elements_text(genres)
       LOOP
@@ -147,7 +124,6 @@ BEGIN
     END IF;
   END IF;
 
-  -- 7. Calculate streak
   previous_last_watched := (current_stats->>'last_watched')::timestamptz;
   current_streak := COALESCE((current_stats->>'streak_days')::int, 0);
   
@@ -168,12 +144,10 @@ BEGIN
   current_stats := jsonb_set(current_stats, '{streak_days}', current_streak::text::jsonb);
   current_stats := jsonb_set(current_stats, '{last_watched}', to_jsonb(now()));
 
-  -- 8. Track max streak (Wrapped)
   IF current_streak > COALESCE((current_stats->>'max_streak')::int, 0) THEN
     current_stats := jsonb_set(current_stats, '{max_streak}', current_streak::text::jsonb);
   END IF;
 
-  -- 9. Track monthly watches (Wrapped)
   current_month := to_char(now(), 'YYYY-MM');
   current_stats := jsonb_set(
     current_stats, 
@@ -181,43 +155,35 @@ BEGIN
     (COALESCE((current_stats->'monthly_watches'->>current_month)::int, 0) + 1)::text::jsonb
   );
 
-  -- 10. Track binge days (Wrapped)
-  DECLARE
-    today TEXT;
-    today_count INT;
-  BEGIN
-    today := to_char(now(), 'YYYY-MM-DD');
-    today_count := COALESCE((current_stats->'daily_watch_count'->>today)::int, 0) + 1;
-    
-    -- Update today's count
+  -- Track binge days
+  today := to_char(now(), 'YYYY-MM-DD');
+  today_count := COALESCE((current_stats->'daily_watch_count'->>today)::int, 0) + 1;
+  
+  current_stats := jsonb_set(
+    current_stats,
+    array['daily_watch_count', today],
+    today_count::text::jsonb
+  );
+  
+  IF today_count = 3 THEN
     current_stats := jsonb_set(
       current_stats,
-      array['daily_watch_count', today],
-      today_count::text::jsonb
+      '{binge_days}',
+      (COALESCE((current_stats->>'binge_days')::int, 0) + 1)::text::jsonb
     );
-    
-    -- If this is the 3rd watch today, increment binge_days
-    IF today_count = 3 THEN
-      current_stats := jsonb_set(
-        current_stats,
-        '{binge_days}',
-        (COALESCE((current_stats->>'binge_days')::int, 0) + 1)::text::jsonb
-      );
-    END IF;
-    
-    -- Cleanup: Remove daily counts older than 30 days to prevent bloat
-    current_stats := jsonb_set(
-      current_stats,
-      '{daily_watch_count}',
-      (
-        SELECT COALESCE(jsonb_object_agg(key, value), '{}'::jsonb)
-        FROM jsonb_each(current_stats->'daily_watch_count')
-        WHERE to_date(key, 'YYYY-MM-DD') > CURRENT_DATE - INTERVAL '30 days'
-      )
-    );
-  END;
+  END IF;
+  
+  -- Cleanup old daily counts
+  current_stats := jsonb_set(
+    current_stats,
+    '{daily_watch_count}',
+    (
+      SELECT COALESCE(jsonb_object_agg(key, value), '{}'::jsonb)
+      FROM jsonb_each(current_stats->'daily_watch_count')
+      WHERE to_date(key, 'YYYY-MM-DD') > CURRENT_DATE - INTERVAL '30 days'
+    )
+  );
 
-  -- 11. Track first watch of year (Wrapped)
   current_year := extract(year from now());
   IF current_stats->'first_watch_of_year' IS NULL OR
      COALESCE((current_stats->'first_watch_of_year'->>'year')::int, 0) < current_year THEN
@@ -230,12 +196,10 @@ BEGIN
     ));
   END IF;
 
-  -- 12. Update year tracker
   IF COALESCE((current_stats->>'year')::int, 0) < current_year THEN
     current_stats := jsonb_set(current_stats, '{year}', current_year::text::jsonb);
   END IF;
 
-  -- 13. Save
   UPDATE public.profiles
   SET 
     watch_history = current_history,
@@ -247,38 +211,5 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ===============================================
--- STEP 3: Disable Pruning (Safe version)
+-- DONE! Function updated with Wrapped stats
 -- ===============================================
-
-DO $$
-BEGIN
-  PERFORM cron.unschedule('periodic-history-prune');
-  RAISE NOTICE 'Unscheduled periodic-history-prune';
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Job periodic-history-prune not found, skipping';
-END $$;
-
-DO $$
-BEGIN
-  PERFORM cron.unschedule('cleanup-inactive-watch-history');
-  RAISE NOTICE 'Unscheduled cleanup-inactive-watch-history';
-EXCEPTION WHEN OTHERS THEN
-  RAISE NOTICE 'Job cleanup-inactive-watch-history not found, skipping';  
-END $$;
-
--- ===============================================
--- ✅ MIGRATION COMPLETE!
--- ===============================================
-
--- Verify the function was created:
-SELECT 
-  routine_name,
-  routine_type
-FROM information_schema.routines 
-WHERE routine_name = 'update_watch_history'
-  AND routine_schema = 'public';
-
--- Should return:
--- routine_name         | routine_type
--- ---------------------|-------------
--- update_watch_history | FUNCTION

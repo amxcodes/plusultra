@@ -7,11 +7,16 @@ import {
     LogOut,
     Bookmark,
     Film,
-    Tv,
-    ShieldCheck,
     Cpu,
-    Trash2
+    Trash2,
+    Lock,
+    Trophy,
+    Play,
+    Tv,
+    ShieldCheck
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { WrappedPage } from './WrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 
@@ -27,11 +32,52 @@ export const SettingsPage: React.FC = () => {
     const [stats, setStats] = useState<UserStats | null>(null);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [showClearModal, setShowClearModal] = useState(false);
+    const [wrappedUnlocked, setWrappedUnlocked] = useState(false);
+    const [showWrapped, setShowWrapped] = useState(false);
 
     useEffect(() => {
+        checkWrappedStatus();
         if (!user) return;
         loadStats();
     }, [user]);
+
+    const checkWrappedStatus = async () => {
+        // 1. Check Date Logic (Auto Unlock on Jan 1st of next year)
+        const currentYear = new Date().getFullYear(); // e.g., 2026
+        // Note: Logic assumes we are tracking for 'currentYear'. Wrapped displays for that year.
+        // It unlocks when we hit the NEXT year.
+        // For testing/dev, we can use the admin override.
+
+        // Example: If today is Jan 2027, we unlock 2026 Wrapped.
+        // Since we are in 2026, it stays locked unless admin overrides.
+        // The user asked specifically: "automatic all year after 2027 first motnh this data gets clears this wrap only data on jan 1 2027"
+
+        // Check Admin Override
+        try {
+            const { data } = await supabase
+                .from('app_settings')
+                .select('value')
+                .eq('key', 'wrapped_enabled')
+                .single();
+
+            if (data?.value === 'true') {
+                setWrappedUnlocked(true);
+                return;
+            }
+        } catch (e) {
+            console.error("Failed to check wrapped admin status", e);
+        }
+
+        // Check Date
+        const today = new Date();
+        const month = today.getMonth(); // 0-11
+        const date = today.getDate();
+
+        // Unlock only during the "Wrapped Season" (Dec 20th - Dec 31st)
+        if (month === 11 && date >= 20) {
+            setWrappedUnlocked(true);
+        }
+    };
 
     const loadStats = async () => {
         if (!user) return;
@@ -123,6 +169,8 @@ export const SettingsPage: React.FC = () => {
 
     return (
         <div className="w-full pl-24 pr-12 pt-6 min-h-screen animate-in fade-in duration-700">
+            {showWrapped && <WrappedPage onClose={() => setShowWrapped(false)} />}
+
             <ClearHistoryModal
                 isOpen={showClearModal}
                 onClose={() => setShowClearModal(false)}
@@ -158,30 +206,54 @@ export const SettingsPage: React.FC = () => {
                 <div className="col-span-12 space-y-8">
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Cloud Storage Stat */}
-                        <section className="bg-gradient-to-b from-zinc-900/80 to-black border border-white/10 rounded-[32px] p-8 relative overflow-hidden group">
-                            <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-                                <Database size={14} /> Cloud Sync
+                        {/* 2026 Wrapped Card */}
+                        <section
+                            onClick={() => {
+                                if (wrappedUnlocked) {
+                                    setShowWrapped(true);
+                                }
+                            }}
+                            className={`relative border rounded-[32px] p-8 overflow-hidden group transition-all duration-500 ${wrappedUnlocked
+                                ? 'bg-zinc-950 border-white/20 hover:border-white/40 cursor-pointer'
+                                : 'bg-zinc-950/50 border-white/5 opacity-60 grayscale'
+                                }`}
+                        >
+                            <h3 className={`text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 ${wrappedUnlocked ? 'text-white' : 'text-zinc-600'}`}>
+                                {wrappedUnlocked ? <Trophy size={14} /> : <Lock size={14} />}
+                                {wrappedUnlocked ? 'Your Year In Review' : 'Locked'}
                             </h3>
 
                             <div className="relative z-10">
                                 <div className="flex items-baseline gap-2 mb-2">
-                                    <span className="text-5xl font-black text-emerald-500">Active</span>
+                                    <span className={`text-6xl font-black tracking-tighter ${wrappedUnlocked ? 'text-white' : 'text-zinc-700'}`}>
+                                        {new Date().getFullYear()}
+                                    </span>
                                 </div>
-                                <p className="text-zinc-500 text-sm mb-8">
-                                    Your data is securely synced to the Cloud.
+                                <div className={`text-2xl font-bold mb-4 font-mono uppercase tracking-widest ${wrappedUnlocked ? 'text-zinc-400' : 'text-zinc-800'}`}>
+                                    Wrapped
+                                </div>
+                                <p className={`text-sm mb-8 max-w-[90%] font-medium ${wrappedUnlocked ? 'text-zinc-500' : 'text-zinc-800'}`}>
+                                    {wrappedUnlocked
+                                        ? "Your 2026 Wrapped is here."
+                                        : `Unlocks automatically on Dec 20th, ${new Date().getFullYear()}.`}
                                 </p>
 
-                                {/* Activity Pulse */}
-                                <div className="flex items-center gap-2">
-                                    <span className="relative flex h-3 w-3">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                                    </span>
-                                    <span className="text-[10px] font-black uppercase tracking-tighter text-zinc-500">
-                                        System Operational
-                                    </span>
-                                </div>
+                                {/* Unlocked Action / Locked status */}
+                                {wrappedUnlocked ? (
+                                    <div className="flex items-center gap-3 text-black bg-white px-5 py-2 rounded-full w-fit font-bold text-xs uppercase tracking-wider group-hover:scale-105 transition-transform">
+                                        <Play size={12} fill="currentColor" />
+                                        <span>Play Wrapped</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 mt-4">
+                                        <div className="h-1.5 w-24 bg-zinc-800 rounded-full overflow-hidden">
+                                            <div className="h-full bg-zinc-700 w-[70%]" />
+                                        </div>
+                                        <span className="text-[10px] font-bold uppercase text-zinc-600">
+                                            Collecting Data...
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </section>
 
