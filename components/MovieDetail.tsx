@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Movie } from '../types';
-import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus } from 'lucide-react';
+import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus, Shuffle } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { TmdbService } from '../services/tmdb';
@@ -144,6 +144,20 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         onPlay(activeMovie, currentSeason, epNum);
     }
 
+    const handlePlayRandom = () => {
+        if (!seasonList || seasonList.length === 0) return;
+
+        // Filter valid seasons (exclude specials if needed, but usually season 0 is specials)
+        // We prefer seasons with episodes
+        const validSeasons = seasonList.filter(s => s.season_number > 0 && s.episode_count > 0);
+        if (validSeasons.length === 0) return;
+
+        const randomSeason = validSeasons[Math.floor(Math.random() * validSeasons.length)];
+        const randomEpisode = Math.floor(Math.random() * randomSeason.episode_count) + 1;
+
+        onPlay(activeMovie, randomSeason.season_number, randomEpisode);
+    };
+
     // Handle switching to a recommended movie
     // Note: We need a way to switch the main view. 
     // Ideally, the parent should handle this, or `MovieDetail` could be recursive but that's complex.
@@ -179,10 +193,10 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         <div className={`fixed inset-0 z-50 bg-[#0f1014] overflow-y-auto transition-opacity duration-300 ease-in-out ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
             <button
                 onClick={handleClose}
-                className="fixed top-6 left-28 z-50 flex items-center gap-2 px-4 py-2 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md border border-white/10 transition-all group"
+                className="fixed top-6 left-28 z-50 flex items-center gap-2 group opacity-70 hover:opacity-100 transition-opacity"
             >
-                <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="text-sm font-medium">Back</span>
+                <ChevronLeft size={24} className="text-white" />
+                <span className="text-sm font-medium text-white tracking-wide">Back</span>
             </button>
 
             {/* Hero / Player */}
@@ -239,17 +253,29 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                             <div className="flex items-center gap-4 mt-2">
                                 <button
                                     onClick={() => onPlay(activeMovie, currentSeason, currentEpisode)}
-                                    className="flex items-center gap-3 bg-white hover:bg-gray-200 text-black px-8 py-3.5 rounded-full font-bold tracking-wide transition-transform hover:scale-105 active:scale-95"
+                                    className="flex items-center gap-3 bg-white hover:bg-zinc-200 text-black px-8 py-3.5 rounded-full font-bold tracking-wide transition-colors"
                                 >
                                     <Play size={20} className="fill-black" />
                                     <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E1` : 'Play Movie'}</span>
                                 </button>
+
+                                {activeMovie.mediaType === 'tv' && (
+                                    <button
+                                        onClick={handlePlayRandom}
+                                        className="h-12 px-6 rounded-full border border-white/10 hover:border-white/30 hover:bg-white/5 text-white/80 hover:text-white font-medium text-sm flex items-center gap-2 transition-all group"
+                                        title="Watch Random Episode"
+                                    >
+                                        <Shuffle size={16} className="group-hover:rotate-180 transition-transform duration-500" />
+                                        <span>Random</span>
+                                    </button>
+                                )}
+
                                 <button
                                     onClick={() => setShowPlaylistModal(true)}
-                                    className="w-12 h-12 rounded-full border-2 border-white/20 hover:border-white bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all hover:scale-105"
+                                    className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                                     title="Add to Playlist"
                                 >
-                                    <ListPlus size={22} />
+                                    <ListPlus size={22} className="text-white" />
                                 </button>
                             </div>
                         </div>
@@ -305,40 +331,43 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                         </div>
 
                                         {/* Season Selector - Grid Layout */}
-                                        <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 select-none p-2 mb-6 transition-opacity ${showSkeleton ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                        <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 select-none py-4 mb-8 transition-opacity ${showSkeleton ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                                             {seasonList.map(s => (
                                                 <div
                                                     key={s.id}
                                                     onClick={() => setCurrentSeason(s.season_number)}
-                                                    className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer transition-all duration-300 group
+                                                    className={`group relative aspect-[3/4] sm:aspect-video rounded-md overflow-hidden cursor-pointer transition-all duration-500 ease-out
                                     ${currentSeason === s.season_number
-                                                            ? 'scale-105 z-10 grayscale-0 shadow-lg shadow-black/50'
-                                                            : 'grayscale hover:grayscale-0 opacity-70 hover:opacity-100 hover:scale-105'}`}
+                                                            ? 'opacity-100'
+                                                            : 'opacity-40 hover:opacity-80'}`}
                                                 >
-                                                    {/* Background Image */}
+                                                    {/* Background Image - Art Focus */}
                                                     {s.poster_path ? (
                                                         <img
-                                                            src={s.poster_path.startsWith('http') ? s.poster_path : `https://image.tmdb.org/t/p/w300${s.poster_path}`}
+                                                            src={s.poster_path.startsWith('http') ? s.poster_path : `https://image.tmdb.org/t/p/w400${s.poster_path}`}
                                                             alt={s.name}
-                                                            className="w-full h-full object-cover"
+                                                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                                                         />
                                                     ) : (
-                                                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                                                            <span className="text-white/20 text-xs">No Image</span>
+                                                        <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+                                                            <span className="text-white/20 text-[10px] tracking-widest uppercase">No Art</span>
                                                         </div>
                                                     )}
 
-                                                    {/* Overlay */}
-                                                    <div className={`absolute inset-0 flex flex-col items-center justify-center p-2 text-center transition-colors
-                                    ${currentSeason === s.season_number ? 'bg-black/40' : 'bg-black/60 group-hover:bg-black/50'}`}>
-                                                        <span className="text-white font-bold text-sm shadow-md line-clamp-1">{s.name}</span>
+                                                    {/* Overlay - Only text, no heavy dimming unless needed for readability */}
+                                                    <div className={`absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 ${currentSeason === s.season_number ? 'opacity-100' : ''} transition-opacity duration-300`}>
+                                                        <span className="text-white font-medium text-sm tracking-wide">{s.name}</span>
                                                         {s.episode_count > 0 && (
-                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full mt-1 font-semibold
-                                            ${currentSeason === s.season_number ? 'bg-purple-600 text-white' : 'bg-white/20 text-gray-200'}`}>
-                                                                {s.episode_count} Eps
+                                                            <span className="text-[10px] text-zinc-400 font-light mt-0.5">
+                                                                {s.episode_count} Episodes
                                                             </span>
                                                         )}
                                                     </div>
+
+                                                    {/* Active Indicator Line */}
+                                                    {currentSeason === s.season_number && (
+                                                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white animate-in fade-in zoom-in duration-300" />
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -347,72 +376,89 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                                         {/* Episode Pagination Controls */}
                                         {episodes.length > 50 && (
-                                            <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
+                                            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-none">
                                                 {Array.from({ length: Math.ceil(episodes.length / 50) }, (_, i) => {
                                                     const start = i * 50 + 1;
                                                     const end = Math.min((i + 1) * 50, episodes.length);
-                                                    // Show limited pages if too many? For now, horizontal scroll is fine.
                                                     return (
                                                         <button
                                                             key={i}
                                                             onClick={() => setEpisodePage(i + 1)}
-                                                            className={`px-3 py-1 text-xs rounded-full whitespace-nowrap transition-colors
-                                                      ${episodePage === i + 1
-                                                                    ? 'bg-purple-600 text-white'
-                                                                    : 'bg-white/10 text-gray-300 hover:bg-white/20'}`}
+                                                            className={`px-4 py-1.5 text-[10px] font-bold tracking-wider rounded-full whitespace-nowrap transition-all border
+                                                          ${episodePage === i + 1
+                                                                    ? 'bg-white text-black border-white'
+                                                                    : 'bg-transparent text-zinc-500 border-zinc-800 hover:border-zinc-600 hover:text-zinc-300'}`}
                                                         >
-                                                            {start}-{end}
+                                                            EPISODES {start} - {end}
                                                         </button>
                                                     );
                                                 })}
                                             </div>
                                         )}
 
-                                        <div className="grid grid-cols-1 gap-4">
+                                        <div className="flex flex-col gap-6">
                                             {episodes
                                                 .slice((episodePage - 1) * 50, episodePage * 50)
                                                 .map((ep) => (
                                                     <div
                                                         key={ep.id}
                                                         onClick={() => handleEpisodeSelect(ep.episode_number)}
-                                                        className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all border group
-                                    ${currentEpisode === ep.episode_number
-                                                                ? 'bg-purple-900/40 border-purple-500/50'
-                                                                : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'}`}
+                                                        className={`group flex flex-col sm:flex-row items-center sm:items-start gap-6 cursor-pointer transition-all duration-500`}
                                                     >
-                                                        {/* Episode Image */}
-                                                        <div className="relative min-w-[120px] w-[120px] aspect-video rounded-lg overflow-hidden bg-black/50">
+                                                        {/* Episode Image - Pure Art */}
+                                                        <div className="relative w-full sm:w-48 aspect-video shrink-0 overflow-hidden rounded-sm shadow-2xl bg-zinc-950">
                                                             {ep.still_path ? (
                                                                 <img
-                                                                    src={ep.still_path.startsWith('http') ? ep.still_path : `https://image.tmdb.org/t/p/w300${ep.still_path}`}
+                                                                    src={ep.still_path.startsWith('http') ? ep.still_path : `https://image.tmdb.org/t/p/w400${ep.still_path}`}
                                                                     alt={ep.name}
-                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                                    className={`w-full h-full object-cover transition-all duration-700 ease-in-out
+                                                                            ${currentEpisode === ep.episode_number ? 'opacity-100 scale-100 saturate-100' : 'opacity-60 scale-105 saturate-0 group-hover:saturate-100 group-hover:opacity-100 group-hover:scale-100'}`}
                                                                 />
                                                             ) : (
-                                                                <div className="flex items-center justify-center h-full text-white/30 text-xs text-center px-1">No Preview</div>
+                                                                <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                                                                    <span className="text-[10px] text-zinc-700 tracking-widest uppercase">No Preview</span>
+                                                                </div>
                                                             )}
-                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <Play size={20} className="fill-white text-white" />
+
+                                                            {/* Minimal Play Icon - Only on Hover/Active */}
+                                                            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 
+                                                                            ${currentEpisode === ep.episode_number ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                                <Play size={24} className="fill-white text-white drop-shadow-lg" />
                                                             </div>
+
+                                                            {/* Progress Line */}
+                                                            {currentEpisode === ep.episode_number && (
+                                                                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
+                                                            )}
                                                         </div>
 
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <h4 className={`text-base font-semibold ${currentEpisode === ep.episode_number ? 'text-purple-400' : 'text-gray-200'}`}>
-                                                                    {ep.episode_number}. {ep.name || `Episode ${ep.episode_number}`}
+                                                        {/* Content - Typography Focused */}
+                                                        <div className="flex-1 min-w-0 flex flex-col justify-center h-full pt-1">
+                                                            <div className="flex items-baseline gap-4 mb-2">
+                                                                <span className={`text-2xl font-light tracking-tighter transition-colors duration-300 font-mono ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-700 group-hover:text-zinc-500'}`}>
+                                                                    {ep.episode_number.toString().padStart(2, '0')}
+                                                                </span>
+                                                                <h4 className={`text-lg font-medium tracking-tight transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
+                                                                    {ep.name || `Episode ${ep.episode_number}`}
                                                                 </h4>
-                                                                <div className="flex items-center gap-2">
-                                                                    {ep.air_date && (
-                                                                        <span className="text-xs text-gray-500 bg-white/10 px-1.5 rounded">{ep.air_date}</span>
-                                                                    )}
-                                                                    {ep.vote_average ? (
-                                                                        <span className="text-xs text-green-500">★ {ep.vote_average.toFixed(1)}</span>
-                                                                    ) : null}
-                                                                </div>
                                                             </div>
-                                                            <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
-                                                                {ep.overview || "No description available for this episode."}
+
+                                                            <p className={`text-sm font-light leading-relaxed line-clamp-2 transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-zinc-400' : 'text-zinc-600 group-hover:text-zinc-500'}`}>
+                                                                {ep.overview || "No description available."}
                                                             </p>
+
+                                                            <div className="flex items-center gap-4 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                                {ep.runtime && (
+                                                                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest">
+                                                                        {ep.runtime}m
+                                                                    </span>
+                                                                )}
+                                                                {ep.vote_average && (
+                                                                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest flex items-center gap-1">
+                                                                        Rating {ep.vote_average.toFixed(1)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -448,7 +494,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                         <h3 className="text-xl font-semibold text-white mb-6">More Like This</h3>
                         <div className="grid grid-cols-2 gap-4">
                             {recommendations.slice(0, activeMovie.mediaType === 'tv' ? 12 : 4).map(simMovie => (
-                                <div key={simMovie.id} className="transform scale-90 origin-top-left hover:scale-95 transition-transform duration-300">
+                                <div key={simMovie.id} className="opacity-60 hover:opacity-100 transition-opacity duration-300">
                                     <MovieCard movie={simMovie} onClick={() => onMovieSelect?.(simMovie)} />
                                 </div>
                             ))}

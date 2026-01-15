@@ -50,6 +50,9 @@ export const requests = {
     fetchKDramas: `/discover/tv?api_key=${API_KEY}&with_original_language=ko&with_genres=18&sort_by=popularity.desc`,
     fetchCDramas: `/discover/tv?api_key=${API_KEY}&with_original_language=zh&with_genres=18&sort_by=popularity.desc`,
     fetchJDramas: `/discover/tv?api_key=${API_KEY}&with_original_language=ja&with_genres=18&without_genres=16&sort_by=popularity.desc`,
+    fetchAiringToday: `/tv/airing_today?api_key=${API_KEY}&language=en-US`,
+    fetchOnTheAir: `/tv/on_the_air?api_key=${API_KEY}&language=en-US`,
+    fetchByProvider: `/discover/movie?api_key=${API_KEY}&language=en-US&sort_by=popularity.desc&watch_region=US&with_watch_providers=`,
 };
 
 export const TmdbService = {
@@ -80,6 +83,39 @@ export const TmdbService = {
         if (!API_KEY) return [];
         try {
             const res = await fetch(`${BASE_URL}${requests.fetchUpcoming}`);
+            const data = await res.json();
+            return data.results.map((i: any) => mapTmdbToMovie(i, 'movie'));
+        } catch (e) {
+            return [];
+        }
+    },
+
+    getAiringToday: async (): Promise<Movie[]> => {
+        if (!API_KEY) return [];
+        try {
+            const res = await fetch(`${BASE_URL}${requests.fetchAiringToday}`);
+            const data = await res.json();
+            return data.results.map((i: any) => mapTmdbToMovie(i, 'tv'));
+        } catch (e) {
+            return [];
+        }
+    },
+
+    getOnTheAir: async (): Promise<Movie[]> => {
+        if (!API_KEY) return [];
+        try {
+            const res = await fetch(`${BASE_URL}${requests.fetchOnTheAir}`);
+            const data = await res.json();
+            return data.results.map((i: any) => mapTmdbToMovie(i, 'tv'));
+        } catch (e) {
+            return [];
+        }
+    },
+
+    getByProvider: async (providerId: number): Promise<Movie[]> => {
+        if (!API_KEY) return [];
+        try {
+            const res = await fetch(`${BASE_URL}${requests.fetchByProvider}${providerId}`);
             const data = await res.json();
             return data.results.map((i: any) => mapTmdbToMovie(i, 'movie'));
         } catch (e) {

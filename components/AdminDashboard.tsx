@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
 import { Profile } from '../types';
-import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart } from 'lucide-react';
+import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart, Wifi, WifiOff, Server } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { TmdbService } from '../services/tmdb';
+import { HealthService, HealthStatus } from '../services/health';
 
 interface AdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -11,7 +12,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings' | 'health'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -19,6 +20,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     const [featuredMovies, setFeaturedMovies] = useState<any[]>([]);
     const [appSettings, setAppSettings] = useState<any>({});
     const [loading, setLoading] = useState(true);
+
+    // Health Check State
+    const [healthChecks, setHealthChecks] = useState<HealthStatus[]>([]);
+    const [isCheckingHealth, setIsCheckingHealth] = useState(false);
+    const [lastHealthCheck, setLastHealthCheck] = useState<number>(0);
 
     // Filter/Search State
     const [playlistSearch, setPlaylistSearch] = useState('');
@@ -185,6 +191,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 >
                     Settings
                 </button>
+                <button
+                    onClick={() => setActiveTab('health')}
+                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'health' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    System Health
+                </button>
             </div>
 
             {loading ? (
@@ -219,6 +231,126 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 </div>
             ) : (
                 <div className="space-y-8">
+                    {/* SYSTEM HEALTH TAB */}
+                    {/* SYSTEM HEALTH TAB - VIBRANT & MINIMAL */}
+                    {activeTab === 'health' && (
+                        <div className="h-[calc(100vh-140px)] flex flex-col">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-6 shrink-0">
+                                <div>
+                                    <h3 className="text-3xl font-bold text-white tracking-tighter flex items-center gap-3">
+                                        System Status
+                                        <div className="flex gap-1">
+                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse delay-75" />
+                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse delay-150" />
+                                        </div>
+                                    </h3>
+                                    <p className="text-zinc-500 font-medium">Real-time Infrastructure Monitoring</p>
+                                </div>
+                                <div className="flex gap-4 items-center">
+                                    {healthChecks.length > 0 && (
+                                        <div className="flex flex-col items-end mr-4">
+                                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Global Status</span>
+                                            <span className={`text-xl font-black tracking-tight ${HealthService.getOverallStatus(healthChecks) === 'healthy' ? 'text-green-400' :
+                                                HealthService.getOverallStatus(healthChecks) === 'degraded' ? 'text-yellow-400' : 'text-red-500'
+                                                }`}>
+                                                {HealthService.getOverallStatus(healthChecks).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={async () => {
+                                            setIsCheckingHealth(true);
+                                            const results = await HealthService.checkAll();
+                                            setHealthChecks(results);
+                                            setLastHealthCheck(Date.now());
+                                            setIsCheckingHealth(false);
+                                        }}
+                                        disabled={isCheckingHealth}
+                                        className="h-12 w-12 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:scale-100"
+                                    >
+                                        <Activity size={24} className={isCheckingHealth ? 'animate-spin' : ''} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Full Height Grid - Single Row Compact */}
+                            <div className="grid grid-cols-5 gap-3 h-56 shrink-0">
+                                {healthChecks.map((check) => {
+                                    const isHealthy = check.status === 'healthy';
+                                    const isDegraded = check.status === 'degraded';
+
+                                    return (
+                                        <div
+                                            key={check.service}
+                                            className={`relative group flex flex-col justify-between p-5 rounded-2xl border transition-all duration-500 overflow-hidden ${isHealthy
+                                                    ? 'bg-gradient-to-br from-green-500/10 to-emerald-900/10 border-green-500/20 hover:border-green-500/50 hover:bg-green-500/20'
+                                                    : isDegraded
+                                                        ? 'bg-gradient-to-br from-yellow-500/10 to-orange-900/10 border-yellow-500/20 hover:border-yellow-500/50 hover:bg-yellow-500/20'
+                                                        : 'bg-gradient-to-br from-red-500/10 to-rose-900/10 border-red-500/20 hover:border-red-500/50 hover:bg-red-500/20'
+                                                }`}
+                                        >
+                                            <div className="absolute -right-4 -top-4 opacity-10 group-hover:opacity-20 transition-all duration-500 scale-150 rotate-12">
+                                                {isHealthy ? <Wifi size={80} className="text-green-500" /> :
+                                                    isDegraded ? <Wifi size={80} className="text-yellow-500" /> :
+                                                        <WifiOff size={80} className="text-red-500" />}
+                                            </div>
+
+                                            <div>
+                                                <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 truncate ${isHealthy ? 'text-green-400' : isDegraded ? 'text-yellow-400' : 'text-red-400'
+                                                    }`}>
+                                                    {check.status}
+                                                </div>
+                                                <h4 className="text-lg font-bold text-white tracking-tight truncate" title={check.service}>
+                                                    {check.service}
+                                                </h4>
+                                            </div>
+
+                                            <div className="mt-4">
+                                                <div className="flex items-end gap-1.5">
+                                                    <span className="text-3xl font-black text-white tracking-tighter leading-none">
+                                                        {check.responseTime}
+                                                    </span>
+                                                    <span className="text-xs font-bold text-zinc-500 mb-1">ms</span>
+                                                </div>
+
+                                                {check.error ? (
+                                                    <div className="mt-2 text-[10px] text-red-300 font-mono truncate opacity-80" title={check.error}>
+                                                        ! {check.error}
+                                                    </div>
+                                                ) : (
+                                                    <div className="h-1 w-full bg-black/20 mt-3 rounded-full overflow-hidden">
+                                                        <div className={`h-full rounded-full w-[60%] animate-pulse ${isHealthy ? 'bg-green-400' : isDegraded ? 'bg-yellow-400' : 'bg-red-500'
+                                                            }`} style={{ width: `${Math.min((check.responseTime / 500) * 100, 100)}%` }} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {healthChecks.length === 0 && (
+                                    <div className="col-span-full h-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 group cursor-pointer hover:bg-zinc-900/30 transition-colors"
+                                        onClick={async () => {
+                                            setIsCheckingHealth(true);
+                                            const results = await HealthService.checkAll();
+                                            setHealthChecks(results);
+                                            setLastHealthCheck(Date.now());
+                                            setIsCheckingHealth(false);
+                                        }}
+                                    >
+                                        <div className="p-4 rounded-full bg-zinc-800 group-hover:bg-white group-hover:scale-110 transition-all duration-500 mb-3">
+                                            <Power size={24} className="text-zinc-400 group-hover:text-black" />
+                                        </div>
+                                        <h3 className="text-lg font-bold text-white">System Check</h3>
+                                        <p className="text-zinc-500 text-xs">Tap to scan services</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* SETTINGS TAB */}
                     {activeTab === 'settings' && (
                         <div className="max-w-3xl mx-auto">

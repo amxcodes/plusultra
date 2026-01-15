@@ -17,7 +17,8 @@ import {
   Bell, // Announcements
   Activity, // Activity Log
   Heart,
-  BarChart2
+  BarChart2,
+  Newspaper // News Feed
 } from 'lucide-react';
 import { SocialService } from '../lib/social';
 
@@ -29,6 +30,7 @@ interface NavbarProps {
 
 const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.DASHBOARD]: LayoutGrid,
+  [NavItem.NEWS]: Newspaper, // High priority
   [NavItem.MOVIES]: Clapperboard,
   [NavItem.SERIES]: MonitorPlay,
   [NavItem.ANIME]: Ghost,
@@ -103,6 +105,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         {/* Divider */}
         <div className="w-8 h-px bg-white/5 my-1"></div>
 
+        {/* News Feed Button - Specific Placement */}
+        <div className="relative group flex justify-center w-full mb-1">
+          <button
+            onClick={() => setActiveTab(NavItem.NEWS)}
+            className={`p-2 rounded-2xl transition-all duration-300 relative ${activeTab === NavItem.NEWS
+              ? 'bg-white text-black shadow-lg shadow-white/10 scale-105'
+              : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
+          >
+            <Newspaper
+              size={16}
+              strokeWidth={activeTab === NavItem.NEWS ? 2.5 : 2}
+            />
+          </button>
+
+          <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md whitespace-nowrap">
+            News Feed
+          </div>
+        </div>
+
         {Object.values(NavItem).filter(item =>
           item !== NavItem.DASHBOARD &&
           item !== NavItem.SETTINGS &&
@@ -112,6 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           item !== NavItem.ACTIVITY &&
           item !== NavItem.PLAYLISTS &&
           item !== NavItem.STATS &&
+          item !== NavItem.NEWS && // Exclude News from generic loop if we want to place it specifically, OR format if we want it in loop. Let's keep it in loop for now, but user "latest" might be different?
           (item !== NavItem.ADMIN || profile?.role === 'admin')
         ).map((item) => {
           const Icon = NAV_ICONS[item];

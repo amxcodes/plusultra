@@ -37,6 +37,7 @@ import { ActivityPage } from './components/ActivityPage';
 import { WatchTogetherService } from './lib/watchTogether';
 import { PlaylistsPage } from './components/PlaylistsPage';
 import { StatsDashboard } from './components/StatsDashboard';
+import { NewsFeed } from './components/NewsFeed';
 
 import { supabase } from './lib/supabase';
 
@@ -360,7 +361,7 @@ function StreamApp() {
             )}
 
 
-            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : 'pt-20'} relative z-20 pl-4 md:pl-10 space-y-2`}>
+            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : (activeTab === NavItem.NEWS ? '' : 'pt-20')} relative z-20 pl-4 md:pl-10 space-y-2`}>
 
               {/* VIEW ALL PAGE */}
               {viewAllCategory && (
@@ -538,6 +539,11 @@ function StreamApp() {
               {/* STATS VIEW */}
               {activeTab === NavItem.STATS && (
                 <StatsDashboard />
+              )}
+
+              {/* NEWS FEED VIEW */}
+              {activeTab === NavItem.NEWS && !viewAllCategory && (
+                <NewsFeed onMovieSelect={handleMovieSelect} />
               )}
 
               {/* Add To Playlist Modal (Global generic overlay) */}
