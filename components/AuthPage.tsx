@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { Loader2, ArrowRight, Check } from 'lucide-react';
 import { TmdbService } from '../services/tmdb';
 import { SocialService } from '../lib/social';
+import { validateEmail } from '../lib/emailValidator';
 
 
 // Fallback images in case API fails or key is missing
@@ -80,6 +81,12 @@ export const AuthPage: React.FC = () => {
                 // Check if registration is enabled
                 if (!registrationEnabled) {
                     throw new Error('New user registration is currently disabled. Please contact the administrator.');
+                }
+
+                // Validate email (format + disposable check)
+                const emailValidation = validateEmail(email);
+                if (!emailValidation.valid) {
+                    throw new Error(emailValidation.error);
                 }
 
                 const { error } = await supabase.auth.signUp({
