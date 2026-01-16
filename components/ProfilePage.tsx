@@ -537,7 +537,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                                             <Lock size={12} className="text-zinc-600" />
                                         }
                                         <span className="text-xs text-zinc-600 font-medium lowercase">
-                                            {playlist.items?.length || 0} tracks
+                                            {playlist.items_count || playlist.items?.length || 0} tracks
                                         </span>
                                     </div>
                                 </div>
