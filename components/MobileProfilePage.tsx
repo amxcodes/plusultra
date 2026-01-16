@@ -199,7 +199,7 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
 
                 {/* Username / Email - Adjusted for long text */}
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 px-8 break-words w-full leading-tight">
-                    {profile.username}
+                    {profile.username.split('@')[0]}
                 </h1>
 
                 {/* Role Badge (Optional, assuming User for now) */}

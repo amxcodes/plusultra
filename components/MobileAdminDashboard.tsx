@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
 import { Profile } from '../types';
-import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database } from 'lucide-react';
+import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { HealthService, HealthStatus } from '../services/health';
 
@@ -24,6 +24,9 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const [isCheckingHealth, setIsCheckingHealth] = useState(false);
 
     const [loading, setLoading] = useState(true);
+
+    // Form State for Creating Announcements
+    const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '', type: 'info' as 'info' | 'warning' | 'success' });
 
     useEffect(() => {
         if (!isAdmin) return;
@@ -106,6 +109,17 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         }
     };
 
+    const handleCreateAnnouncement = async () => {
+        if (!newAnnouncement.title || !newAnnouncement.content) return;
+        try {
+            await SocialService.createAnnouncement(newAnnouncement.title, newAnnouncement.content, newAnnouncement.type);
+            setNewAnnouncement({ title: '', content: '', type: 'info' });
+            loadData(); // Refresh
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const handleToggleSetting = async (key: string, currentValue: string) => {
         const newValue = currentValue === 'true' ? 'false' : 'true';
 
@@ -119,6 +133,15 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
             // Revert on failure
             setAppSettings((prev: any) => ({ ...prev, [key]: currentValue }));
         }
+    };
+
+    const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+
+    const toggleUserExpand = (id: string) => {
+        const newSet = new Set(expandedUsers);
+        if (newSet.has(id)) newSet.delete(id);
+        else newSet.add(id);
+        setExpandedUsers(newSet);
     };
 
     if (!isAdmin) return <div className="p-10 text-center text-red-500">Access Denied</div>;
@@ -189,7 +212,17 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                 <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}&background=27272a&color=fff&bold=true`} className="w-full h-full object-cover" />
                                             </div>
                                             <div>
-                                                <div className="font-bold text-white text-sm">{u.username}</div>
+                                                <div
+                                                    onClick={() => toggleUserExpand(u.id)}
+                                                    className="font-bold text-white text-sm cursor-pointer select-none active:text-zinc-300 transition-colors"
+                                                >
+                                                    {expandedUsers.has(u.id) ? u.username : u.username.split('@')[0]}
+                                                    {u.username.includes('@') && (
+                                                        <span className="text-[10px] text-zinc-600 ml-1.5 font-normal">
+                                                            {expandedUsers.has(u.id) ? '(tap to collapse)' : '...'}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <div className="flex flex-col text-[10px] text-zinc-500 mt-0.5">
                                                     <span>Joined {new Date(u.created_at).toLocaleDateString()}</span>
                                                     <span className="text-zinc-400">
@@ -237,26 +270,124 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
 
                     {/* ANNOUNCEMENTS */}
                     {activeTab === 'announcements' && (
-                        <div className="space-y-3">
-                            <p className="text-xs text-zinc-500 mb-2">Tap toggle to activate/deactivate</p>
-                            {announcements.map(a => (
-                                <div key={a.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${a.type === 'warning' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-zinc-800 text-zinc-400'
-                                            }`}>{a.type}</div>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleToggleAnnouncement(a.id, a.is_active)} className={`${a.is_active ? 'text-green-500' : 'text-zinc-600'}`}>
-                                                <Power size={18} />
-                                            </button>
-                                            <button onClick={() => handleDeleteAnnouncement(a.id)} className="text-zinc-600 hover:text-red-500">
-                                                <Trash2 size={18} />
-                                            </button>
+                        <div className="space-y-4">
+                            {/* Create Form - Premium Mobile UI */}
+                            <div className="bg-gradient-to-br from-zinc-900 via-zinc-900/90 to-black border border-white/5 p-5 rounded-2xl shadow-xl">
+                                <h3 className="text-sm font-bold text-white mb-4 flex items-center justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <div className="p-1.5 bg-white/10 rounded-lg">
+                                            <Megaphone size={14} className="text-white" />
+                                        </div>
+                                        New Announcement
+                                    </span>
+                                </h3>
+                                <div className="space-y-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider ml-1">Title</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Brief headline..."
+                                            value={newAnnouncement.title}
+                                            onChange={(e) => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/5 outline-none transition-all"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider ml-1">Message</label>
+                                        <textarea
+                                            placeholder="What's happening?"
+                                            value={newAnnouncement.content}
+                                            onChange={(e) => setNewAnnouncement(prev => ({ ...prev, content: e.target.value }))}
+                                            rows={3}
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/5 outline-none resize-none transition-all"
+                                        />
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider ml-1 mb-2 block">Type</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[
+                                                { id: 'info', icon: Info, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+                                                { id: 'warning', icon: AlertTriangle, color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+                                                { id: 'success', icon: Database, color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20' }
+                                            ].map(type => (
+                                                <button
+                                                    key={type.id}
+                                                    onClick={() => setNewAnnouncement(prev => ({ ...prev, type: type.id as any }))}
+                                                    className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border transition-all duration-300 ${newAnnouncement.type === type.id
+                                                            ? `${type.bg} ${type.border} ${type.color} ring-1 ring-inset ring-white/10`
+                                                            : 'bg-zinc-900/50 border-white/5 text-zinc-600 hover:bg-zinc-800'
+                                                        }`}
+                                                >
+                                                    <type.icon size={14} strokeWidth={2.5} />
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest">{type.id}</span>
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
-                                    <h3 className="text-white font-bold text-sm">{a.title}</h3>
-                                    <p className="text-zinc-400 text-xs mt-1 line-clamp-2">{a.content}</p>
+
+                                    <button
+                                        onClick={handleCreateAnnouncement}
+                                        disabled={!newAnnouncement.title || !newAnnouncement.content}
+                                        className="w-full mt-2 bg-white text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-lg shadow-white/10"
+                                    >
+                                        Publish Now
+                                    </button>
                                 </div>
-                            ))}
+                            </div>
+
+                            {/* Announcements List Header */}
+                            <div className="flex items-center justify-between pt-4 px-1">
+                                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Active Announcements</h3>
+                                <span className="text-[10px] bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded-full">{announcements.length}</span>
+                            </div>
+
+                            {/* Improved List Items */}
+                            <div className="space-y-3 pb-8">
+                                {announcements.map(a => (
+                                    <div key={a.id} className="bg-zinc-900/40 p-4 rounded-2xl border border-white/5 relative overflow-hidden group">
+                                        {/* Contextual Border Left */}
+                                        <div className={`absolute inset-y-0 left-0 w-1 ${a.type === 'warning' ? 'bg-yellow-500' : a.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
+                                            }`} />
+
+                                        <div className="flex justify-between items-start mb-2 pl-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded border ${a.type === 'warning' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                                                        a.type === 'success' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                    }`}>
+                                                    {a.type}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => handleToggleAnnouncement(a.id, a.is_active)}
+                                                    className={`p-2 rounded-lg transition-colors ${a.is_active ? 'bg-green-500/10 text-green-500' : 'bg-zinc-800 text-zinc-500'}`}
+                                                >
+                                                    <Power size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteAnnouncement(a.id)}
+                                                    className="p-2 bg-zinc-800 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="pl-3">
+                                            <h3 className="text-white font-bold text-sm mb-1">{a.title}</h3>
+                                            <p className="text-zinc-400 text-xs leading-relaxed opacity-80">{a.content}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {announcements.length === 0 && (
+                                    <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-2xl opacity-50">
+                                        <Megaphone size={24} className="text-zinc-600 mb-2" />
+                                        <p className="text-zinc-500 text-xs font-medium">No announcements yet</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
