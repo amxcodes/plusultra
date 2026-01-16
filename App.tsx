@@ -53,6 +53,7 @@ import { MobileActivityPage } from './components/MobileActivityPage';
 import { MobileAnnouncementsPage } from './components/MobileAnnouncementsPage';
 import { MobileAddToPlaylistModal } from './components/MobileAddToPlaylistModal';
 import { MobileWrappedPage } from './components/MobileWrappedPage';
+import { MobileViewAllPage } from './components/MobileViewAllPage';
 
 function StreamApp() {
   const { user, loading } = useAuth();
@@ -414,8 +415,8 @@ function StreamApp() {
             {/* Desktop: pl-10 (Strict Original) | Mobile: px-0 (MobileHome handles padding) */}
             <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : (activeTab === NavItem.NEWS ? '' : 'pt-0 md:pt-20')} relative z-20 px-0 md:pl-10 md:pr-0 space-y-2`}>
 
-              {/* MOBILE HOME VIEW (Handles Dashboard, Movies, Series, My List) */}
-              {!viewAllCategory && !selectedPlaylistId && [NavItem.DASHBOARD, NavItem.MOVIES, NavItem.SERIES, NavItem.MY_LIST].includes(activeTab) && (
+              {/* MOBILE HOME VIEW (Handles Dashboard, Movies, Series) - My List moved to separate view */}
+              {!viewAllCategory && !selectedPlaylistId && [NavItem.DASHBOARD, NavItem.MOVIES, NavItem.SERIES].includes(activeTab) && (
                 <div className="md:hidden">
                   <MobileHome
                     heroMovie={heroMovie}
@@ -434,18 +435,30 @@ function StreamApp() {
                 </div>
               )}
 
-              {/* VIEW ALL PAGE */}
+              {/* VIEW ALL PAGE (Desktop & Mobile) */}
               {viewAllCategory && (
-                <div className="px-4 md:px-0">
-                  <ViewAllPage
-                    title={viewAllCategory.title}
-                    fetchUrl={viewAllCategory.fetchUrl}
-                    initialMovies={viewAllCategory.movies}
-                    forcedMediaType={viewAllCategory.forcedMediaType}
-                    onBack={() => setViewAllCategory(null)}
-                    onMovieSelect={handleMovieSelect}
-                  />
-                </div>
+                <>
+                  <div className="hidden md:block px-4 md:px-0">
+                    <ViewAllPage
+                      title={viewAllCategory.title}
+                      fetchUrl={viewAllCategory.fetchUrl}
+                      initialMovies={viewAllCategory.movies}
+                      forcedMediaType={viewAllCategory.forcedMediaType}
+                      onBack={() => setViewAllCategory(null)}
+                      onMovieSelect={handleMovieSelect}
+                    />
+                  </div>
+                  <div className="md:hidden fixed inset-0 z-50 bg-[#0f1014] overflow-y-auto w-full">
+                    <MobileViewAllPage
+                      title={viewAllCategory.title}
+                      fetchUrl={viewAllCategory.fetchUrl}
+                      initialMovies={viewAllCategory.movies}
+                      forcedMediaType={viewAllCategory.forcedMediaType}
+                      onBack={() => setViewAllCategory(null)}
+                      onMovieSelect={handleMovieSelect}
+                    />
+                  </div>
+                </>
               )}
 
               {/* DASHBOARD VIEW (Desktop) */}
@@ -539,33 +552,43 @@ function StreamApp() {
               )}
 
 
-              {/* MY LIST VIEW (Desktop) */}
+              {/* MY LIST VIEW */}
               {activeTab === NavItem.MY_LIST && (
-                <div className="hidden md:block px-12">
-                  <h2 className="text-2xl font-bold mb-8">My List</h2>
-                  {myList.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {myList.map(movie => (
-                        <div key={movie.id} onClick={() => handleMovieSelect(movie)} className="cursor-pointer hover:scale-105 transition-transform">
-                          <div className="aspect-[2/3] relative rounded-lg overflow-hidden">
-                            <img src={movie.imageUrl} alt={movie.title} className="w-full h-full object-cover" />
+                <>
+                  <div className="hidden md:block px-12">
+                    <h2 className="text-2xl font-bold mb-8">My List</h2>
+                    {myList.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {myList.map(movie => (
+                          <div key={movie.id} onClick={() => handleMovieSelect(movie)} className="cursor-pointer hover:scale-105 transition-transform">
+                            <div className="aspect-[2/3] relative rounded-lg overflow-hidden">
+                              <img src={movie.imageUrl} alt={movie.title} className="w-full h-full object-cover" />
+                            </div>
+                            <p className="mt-2 text-sm text-gray-300 truncate">{movie.title}</p>
                           </div>
-                          <p className="mt-2 text-sm text-gray-300 truncate">{movie.title}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
-                      <div className="bg-zinc-900 p-6 rounded-full mb-4">
-                        <LibraryBig size={48} className="text-zinc-500" />
+                        ))}
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-2">Your list is empty</h3>
-                      <p className="text-zinc-500 max-w-md">
-                        Movies and TV shows you add to your list will appear here.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
+                        <div className="bg-zinc-900 p-6 rounded-full mb-4">
+                          <LibraryBig size={48} className="text-zinc-500" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">Your list is empty</h3>
+                        <p className="text-zinc-500 max-w-md">
+                          Movies and TV shows you add to your list will appear here.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="md:hidden">
+                    <MobileViewAllPage
+                      title="My List"
+                      initialMovies={myList}
+                      onBack={() => setActiveTab(NavItem.DASHBOARD)}
+                      onMovieSelect={handleMovieSelect}
+                    />
+                  </div>
+                </>
               )}
 
               {/* SETTINGS VIEW */}

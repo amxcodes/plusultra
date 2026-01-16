@@ -70,7 +70,7 @@ export const MobileNewsPage: React.FC<MobileNewsPageProps> = ({ onMovieSelect })
                     {/* Feature */}
                     {heroItem && (
                         <div className="relative aspect-[4/5] w-full" onClick={() => onMovieSelect(heroItem)}>
-                            <img src={heroItem.posterUrl} className="w-full h-full object-cover" />
+                            <img src={heroItem.imageUrl} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#0f1014] via-transparent to-transparent" />
                             <div className="absolute bottom-0 left-0 right-0 p-6">
                                 <div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${activeProvider.color}`}>Featured on {activeProvider.name}</div>
