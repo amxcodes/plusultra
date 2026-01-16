@@ -106,6 +106,21 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         }
     };
 
+    const handleToggleSetting = async (key: string, currentValue: string) => {
+        const newValue = currentValue === 'true' ? 'false' : 'true';
+
+        // Optimistic update
+        setAppSettings((prev: any) => ({ ...prev, [key]: newValue }));
+
+        try {
+            await SocialService.updateAppSetting(key, newValue);
+        } catch (e) {
+            console.error(e);
+            // Revert on failure
+            setAppSettings((prev: any) => ({ ...prev, [key]: currentValue }));
+        }
+    };
+
     if (!isAdmin) return <div className="p-10 text-center text-red-500">Access Denied</div>;
 
     return (
@@ -206,8 +221,8 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             value={u.role}
                                             onChange={(e) => handleRoleChange(u, e.target.value)}
                                             className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border bg-transparent outline-none ${u.role === 'admin' ? 'text-white border-white' :
-                                                    u.role === 'moderator' ? 'text-zinc-300 border-zinc-600' :
-                                                        'text-zinc-500 border-zinc-800'
+                                                u.role === 'moderator' ? 'text-zinc-300 border-zinc-600' :
+                                                    'text-zinc-500 border-zinc-800'
                                                 }`}
                                         >
                                             <option value="user" className="bg-zinc-900 text-zinc-400">User</option>
@@ -253,7 +268,10 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                     <div className="text-white font-bold text-sm">Registration</div>
                                     <div className="text-zinc-500 text-[10px]">Allow new signups</div>
                                 </div>
-                                <div className={`w-10 h-6 rounded-full relative transition-colors ${appSettings.registration_enabled === 'true' ? 'bg-white' : 'bg-zinc-800'}`}>
+                                <div
+                                    onClick={() => handleToggleSetting('registration_enabled', appSettings.registration_enabled)}
+                                    className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${appSettings.registration_enabled === 'true' ? 'bg-white' : 'bg-zinc-800'}`}
+                                >
                                     <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${appSettings.registration_enabled === 'true' ? 'translate-x-4' : ''}`} />
                                 </div>
                             </div>
@@ -262,7 +280,10 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                     <div className="text-white font-bold text-sm">Clear History</div>
                                     <div className="text-zinc-500 text-[10px]">User privacy</div>
                                 </div>
-                                <div className={`w-10 h-6 rounded-full relative transition-colors ${appSettings.clear_history_enabled === 'true' ? 'bg-white' : 'bg-zinc-800'}`}>
+                                <div
+                                    onClick={() => handleToggleSetting('clear_history_enabled', appSettings.clear_history_enabled)}
+                                    className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${appSettings.clear_history_enabled === 'true' ? 'bg-white' : 'bg-zinc-800'}`}
+                                >
                                     <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${appSettings.clear_history_enabled === 'true' ? 'translate-x-4' : ''}`} />
                                 </div>
                             </div>
