@@ -3,6 +3,7 @@ import { Movie } from '../types';
 import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus, Shuffle } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
+import { MobileAddToPlaylistModal } from './MobileAddToPlaylistModal';
 import { TmdbService } from '../services/tmdb';
 
 interface MovieDetailProps {
@@ -193,28 +194,29 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         <div className={`fixed inset-0 z-50 bg-[#0f1014] overflow-y-auto transition-opacity duration-300 ease-in-out ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
             <button
                 onClick={handleClose}
-                className="fixed top-6 left-28 z-50 flex items-center gap-2 group opacity-70 hover:opacity-100 transition-opacity"
+                className="fixed top-4 left-4 md:top-6 md:left-28 z-50 flex items-center gap-2 group opacity-70 hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-md p-2 rounded-full md:bg-transparent md:p-0"
             >
                 <ChevronLeft size={24} className="text-white" />
-                <span className="text-sm font-medium text-white tracking-wide">Back</span>
+                <span className="text-sm font-medium text-white tracking-wide hidden md:inline">Back</span>
             </button>
 
             {/* Hero / Player */}
             <div className="relative w-full min-h-[70vh] md:min-h-[80vh] flex items-center justify-center bg-black">
                 {showSkeleton ? (
                     // SKELETON LOADER (Hero)
+                    // SKELETON LOADER (Hero)
                     <div className="w-full h-full absolute inset-0 bg-[#0f1014] animate-pulse">
                         <div className="absolute inset-0 bg-white/5" />
-                        <div className="absolute bottom-0 left-0 w-full px-8 md:px-16 pb-12 flex flex-col gap-6 pl-24 md:pl-32">
-                            <div className="h-16 w-3/4 bg-white/10 rounded-lg mb-2" />
+                        <div className="absolute bottom-0 left-0 w-full px-6 md:px-16 pb-8 md:pb-12 flex flex-col gap-6 md:pl-32">
+                            <div className="h-12 md:h-16 w-3/4 bg-white/10 rounded-lg mb-2" />
                             <div className="flex gap-4">
-                                <div className="h-6 w-20 bg-white/10 rounded" />
-                                <div className="h-6 w-20 bg-white/10 rounded" />
-                                <div className="h-6 w-20 bg-white/10 rounded" />
+                                <div className="h-6 w-16 md:w-20 bg-white/10 rounded" />
+                                <div className="h-6 w-16 md:w-20 bg-white/10 rounded" />
+                                <div className="h-6 w-16 md:w-20 bg-white/10 rounded" />
                             </div>
                             <div className="flex gap-4 mt-2">
-                                <div className="h-14 w-40 bg-white/10 rounded-full" />
-                                <div className="h-14 w-14 bg-white/10 rounded-full" />
+                                <div className="h-12 md:h-14 w-32 md:w-40 bg-white/10 rounded-full" />
+                                <div className="h-12 md:h-14 w-12 md:w-14 bg-white/10 rounded-full" />
                             </div>
                         </div>
                     </div>
@@ -230,8 +232,8 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                             <div className="absolute inset-0 bg-gradient-to-r from-[#0f1014] via-[#0f1014]/40 to-transparent" />
                         </div>
 
-                        <div className="absolute bottom-0 left-0 w-full px-8 md:px-16 pb-12 flex flex-col gap-6 pl-24 md:pl-32">
-                            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight drop-shadow-2xl max-w-4xl">
+                        <div className="absolute bottom-0 left-0 w-full px-6 md:px-16 pb-8 md:pb-12 flex flex-col gap-4 md:gap-6 md:pl-32">
+                            <h1 className="text-3xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight drop-shadow-2xl max-w-4xl leading-[0.9]">
                                 {activeMovie.title}
                             </h1>
 
@@ -250,10 +252,10 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-4 mt-2">
+                            <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2">
                                 <button
                                     onClick={() => onPlay(activeMovie, currentSeason, currentEpisode)}
-                                    className="flex items-center gap-3 bg-white hover:bg-zinc-200 text-black px-8 py-3.5 rounded-full font-bold tracking-wide transition-colors"
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-black px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold tracking-wide transition-colors whitespace-nowrap"
                                 >
                                     <Play size={20} className="fill-black" />
                                     <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E1` : 'Play Movie'}</span>
@@ -266,7 +268,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                         title="Watch Random Episode"
                                     >
                                         <Shuffle size={16} className="group-hover:rotate-180 transition-transform duration-500" />
-                                        <span>Random</span>
+                                        <span className="hidden md:inline">Random</span>
                                     </button>
                                 )}
 
@@ -281,18 +283,26 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                         </div>
 
                         {showPlaylistModal && (
-                            <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                                <AddToPlaylistModal
-                                    movie={activeMovie}
-                                    onClose={() => setShowPlaylistModal(false)}
-                                />
-                            </div>
+                            <>
+                                <div className="hidden md:flex fixed inset-0 z-[60] items-center justify-center">
+                                    <AddToPlaylistModal
+                                        movie={activeMovie}
+                                        onClose={() => setShowPlaylistModal(false)}
+                                    />
+                                </div>
+                                <div className="md:hidden">
+                                    <MobileAddToPlaylistModal
+                                        movie={activeMovie}
+                                        onClose={() => setShowPlaylistModal(false)}
+                                    />
+                                </div>
+                            </>
                         )}
                     </>
                 )}
             </div>
 
-            <div className="px-8 md:px-16 pb-20 w-full max-w-[1600px] mx-auto pl-24 md:pl-32">
+            <div className="px-4 md:px-16 pb-20 w-full max-w-[1600px] mx-auto md:pl-32">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
                     {/* Main Info */}
                     <div className="lg:col-span-2 space-y-8">

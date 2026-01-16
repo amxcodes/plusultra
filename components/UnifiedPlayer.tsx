@@ -345,24 +345,24 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 {/* Watch Together Button - Synclify Redirect */}
                 <button
                     onClick={() => setShowWatchPartyModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md transition-all bg-black/50 text-white hover:bg-white/20"
+                    className="flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all bg-black/50 text-white hover:bg-white/20"
                 >
                     <Users size={16} />
-                    <span className="text-sm font-medium">Watch Together</span>
+                    <span className="text-sm font-medium hidden md:inline">Watch Together</span>
                 </button>
 
                 <div className="relative" id="server-menu">
                     <button
                         onClick={() => setShowServers(!showServers)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 backdrop-blur-md transition-all
+                        className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all
                         ${showServers ? 'bg-white text-black' : 'bg-black/50 text-white hover:bg-white/20'}`}
                     >
                         <Settings size={16} />
-                        <span className="text-sm font-medium">Servers</span>
+                        <span className="text-sm font-medium hidden md:inline">Servers</span>
                     </button>
 
                     {showServers && (
-                        <div className="absolute right-0 top-full mt-2 w-72 bg-[#0f1014]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                        <div className="absolute right-0 top-full mt-2 w-64 md:w-72 bg-[#0f1014]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
                             {PROVIDERS.map((p) => {
                                 const isActive = provider === p.id;
                                 return (
@@ -415,7 +415,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             {/* Skip Intro Button */}
             {showSkipIntro && (
                 <button
-                    className="absolute bottom-24 right-8 px-6 py-2 bg-white text-black font-bold rounded-full shadow-lg 
+                    className="absolute bottom-20 right-4 md:bottom-24 md:right-8 px-4 py-2 md:px-6 md:py-2 bg-white text-black text-sm md:text-base font-bold rounded-full shadow-lg 
                             hover:bg-gray-200 transition-transform hover:scale-105 z-50 animate-in fade-in slide-in-from-bottom-4"
                     onClick={() => {
                         console.log("Skip clicked");

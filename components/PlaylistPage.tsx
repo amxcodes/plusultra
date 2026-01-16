@@ -6,6 +6,7 @@ import { PlaylistEngagement } from '../lib/playlistEngagement';
 import { Playlist, Movie } from '../types';
 import { Trash2, Share2, ChevronLeft, X, CheckCircle, Heart, Eye, Edit2, Check } from 'lucide-react';
 import { MovieCard } from './MovieCard';
+import { MobileConfirmModal } from './MobileConfirmModal';
 
 interface PlaylistPageProps {
     playlistId: string;
@@ -216,17 +217,47 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
 
     return (
         <div className="min-h-screen bg-[#0f1014] pt-24 px-4 md:px-12 pb-20 fade-in-up relative">
-            <RemoveItemModal
-                isOpen={!!removeTargetId}
-                onClose={() => setRemoveTargetId(null)}
-                onConfirm={handleConfirmRemove}
-            />
+            <div className="hidden md:block">
+                <RemoveItemModal
+                    isOpen={!!removeTargetId}
+                    onClose={() => setRemoveTargetId(null)}
+                    onConfirm={handleConfirmRemove}
+                />
+            </div>
+            <div className="md:hidden">
+                <MobileConfirmModal
+                    isOpen={!!removeTargetId}
+                    onClose={() => setRemoveTargetId(null)}
+                    onConfirm={handleConfirmRemove}
+                    title="Remove from Playlist?"
+                    description="This movie will be removed from your list."
+                    isDestructive
+                    confirmLabel="Yes, remove"
+                    cancelLabel="Keep it"
+                    icon={Trash2}
+                />
+            </div>
 
-            <DeletePlaylistModal
-                isOpen={showDeletePlaylistModal}
-                onClose={() => setShowDeletePlaylistModal(false)}
-                onConfirm={handleDeletePlaylist}
-            />
+            <div className="hidden md:block">
+                <DeletePlaylistModal
+                    isOpen={showDeletePlaylistModal}
+                    onClose={() => setShowDeletePlaylistModal(false)}
+                    onConfirm={handleDeletePlaylist}
+                />
+            </div>
+            <div className="md:hidden">
+                <MobileConfirmModal
+                    isOpen={showDeletePlaylistModal}
+                    onClose={() => setShowDeletePlaylistModal(false)}
+                    onConfirm={handleDeletePlaylist}
+                    title="Delete Entire Playlist?"
+                    description="This will permanently delete this playlist and all its contents. This action cannot be undone."
+                    isDestructive
+                    confirmLabel="Delete Playlist"
+                    cancelLabel="Cancel"
+                    icon={Trash2}
+                />
+            </div>
 
             {/* Header */}
             <div className="max-w-7xl mx-auto mb-16">

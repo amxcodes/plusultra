@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Row } from './Row';
+import { MobileRow } from './MobileRow';
 import { Movie } from '../types';
 
 interface CategoryRowProps {
@@ -25,5 +26,14 @@ export const CategoryRow: React.FC<CategoryRowProps> = ({ title, fetcher, onMovi
 
     if (!loading && (!movies || movies.length === 0)) return null;
 
-    return <Row title={title} movies={movies} onMovieSelect={onMovieSelect} isLarge={isLarge} forcedMediaType={forcedMediaType} isLoading={loading} />;
+    return (
+        <>
+            <div className="hidden md:block">
+                <Row title={title} movies={movies} onMovieSelect={onMovieSelect} isLarge={isLarge} forcedMediaType={forcedMediaType} isLoading={loading} />
+            </div>
+            <div className="md:hidden">
+                <MobileRow title={title} movies={movies} onMovieSelect={onMovieSelect} isLarge={isLarge} forcedMediaType={forcedMediaType} isLoading={loading} />
+            </div>
+        </>
+    );
 };

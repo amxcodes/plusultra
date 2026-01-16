@@ -367,7 +367,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
   }, [results, sortBy, minRating, activeTab]);
 
   return (
-    <div className="min-h-screen w-full bg-[#0f1014] relative overflow-hidden pl-24 pr-8 selection:bg-white/20">
+    <div className="min-h-screen w-full bg-[#0f1014] relative overflow-hidden px-4 md:pl-24 md:pr-8 selection:bg-white/20">
 
       <div className={`
         relative w-full max-w-7xl mx-auto flex flex-col transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1)
@@ -505,14 +505,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
 
         {/* Detailed Filters (Only for Movies & TV tab) */}
         {hasQuery && activeTab === SearchTab.MOVIES && (
-          <div className="flex flex-wrap items-center gap-3 mt-6 animate-in fade-in zoom-in-95 duration-500">
+          <div className="flex flex-wrap items-center gap-3 mt-6 animate-in fade-in zoom-in-95 duration-500 overflow-x-auto pb-4 md:pb-0 scrollbar-hide w-full flex-nowrap md:flex-wrap">
 
             {/* Sort Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setIsSortOpen(!isSortOpen)}
                 className={`
-                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all
+                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all whitespace-nowrap
                   ${isSortOpen ? 'border-white/20 text-white' : 'border-white/5 hover:border-white/10 hover:text-white'}
                 `}
               >
@@ -560,7 +560,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
               <button
                 onClick={() => setIsGenreOpen(!isGenreOpen)}
                 className={`
-                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all
+                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all whitespace-nowrap
                   ${isGenreOpen ? 'border-white/20 text-white' : 'border-white/5 hover:border-white/10 hover:text-white'}
                 `}
               >
@@ -641,7 +641,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
               <button
                 onClick={() => setIsRatingOpen(!isRatingOpen)}
                 className={`
-                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all
+                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all whitespace-nowrap
                   ${isRatingOpen ? 'border-white/20 text-white' : 'border-white/5 hover:border-white/10 hover:text-white'}
                 `}
               >
@@ -740,7 +740,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
           <>
             {/* MOVIE RESULTS */}
             {activeTab === SearchTab.MOVIES && sortedResults.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 pb-20 animate-in fade-in zoom-in-95 duration-500">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 pb-20 animate-in fade-in zoom-in-95 duration-500">
                 {sortedResults
                   .filter(m => m.imageUrl && !m.imageUrl.includes('placeholder'))
                   .filter(m => filterGenres.length === 0 || (m.genreIds && m.genreIds.some(id => filterGenres.includes(id.toString())))) // Multi-genre filter
@@ -779,7 +779,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
 
             {/* USER RESULTS */}
             {activeTab === SearchTab.USERS && userResults.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 {userResults.map(user => (
                   <div
                     key={user.id}

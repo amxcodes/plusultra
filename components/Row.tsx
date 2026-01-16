@@ -62,7 +62,7 @@ export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect
 
     if (showSkeleton) {
         return (
-            <div className="pl-4 md:pl-12 my-8 relative z-10 animate-pulse">
+            <div className="pl-4 md:pl-12 my-6 md:my-8 relative z-10 animate-pulse">
                 {/* Title Skeleton */}
                 <div className="h-6 w-48 bg-white/5 rounded mb-4 ml-2" />
 
@@ -71,7 +71,7 @@ export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                         <div
                             key={i}
-                            className={`bg-zinc-900 rounded-lg ${variant === 'continue-watching' ? 'min-w-[280px] md:min-w-[320px] aspect-video' : 'min-w-[180px] md:min-w-[220px] aspect-[2/3]'}`}
+                            className={`bg-zinc-900 rounded-lg ${variant === 'continue-watching' ? 'min-w-[240px] md:min-w-[320px] aspect-video' : 'min-w-[140px] md:min-w-[220px] aspect-[2/3]'}`}
                         />
                     ))}
                 </div>
@@ -82,10 +82,10 @@ export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect
     if (data.length === 0) return null;
 
     return (
-        <div className="pl-4 md:pl-12 my-8 relative group z-10">
+        <div className="pl-4 md:pl-12 my-6 md:my-8 relative group z-10">
             {/* Header: Title + Show More */}
             <div className="flex items-end justify-between pr-4 md:pr-12 mb-4">
-                <h2 className="text-xl md:text-2xl font-semibold text-white/90 hover:text-white transition-colors cursor-pointer pl-2 pb-1">
+                <h2 className="text-lg md:text-2xl font-semibold text-white/90 hover:text-white transition-colors cursor-pointer pl-2 pb-1">
                     {title}
                 </h2>
 
@@ -102,7 +102,7 @@ export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect
             <div className="relative group">
                 {/* Left Button */}
                 <div
-                    className={`absolute top-0 bottom-0 left-0 z-[60] flex items-center justify-center w-12 transition-opacity duration-300 ${showLeft ? 'opacity-0 group-hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    className={`absolute top-0 bottom-0 left-0 z-[60] hidden md:flex items-center justify-center w-12 transition-opacity duration-300 ${showLeft ? 'opacity-0 group-hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
                 >
                     <button
                         onClick={() => handleClick("left")}
@@ -116,13 +116,13 @@ export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect
                 <div
                     ref={rowRef}
                     onScroll={handleScroll}
-                    className="flex items-center space-x-4 overflow-x-scroll scrollbar-hide md:space-x-6 px-4 py-8"
+                    className="flex items-center space-x-3 md:space-x-6 overflow-x-scroll scrollbar-hide px-2 md:px-4 py-4 md:py-8"
                     style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
                 >
                     {data.map((movie) => (
                         <div
                             key={movie.id}
-                            className={`relative ${variant === 'continue-watching' ? 'min-w-[280px] md:min-w-[320px]' : 'min-w-[180px] md:min-w-[220px]'} cursor-pointer transition duration-200 ease-out hover:z-50`}
+                            className={`relative ${variant === 'continue-watching' ? 'min-w-[240px] md:min-w-[320px]' : 'min-w-[140px] md:min-w-[220px]'} cursor-pointer transition duration-200 ease-out hover:z-50`}
                         >
                             {variant === 'continue-watching' ? (
                                 <ContinueWatchingCard movie={movie} onClick={() => onMovieSelect(movie)} />
@@ -137,7 +137,7 @@ export const Row: React.FC<RowProps> = ({ title, fetchUrl, movies, onMovieSelect
 
                 {/* Right Button */}
                 <div
-                    className={`absolute top-0 bottom-0 right-0 z-[60] flex items-center justify-center w-12 transition-opacity duration-300 ${showRight ? 'opacity-0 group-hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    className={`absolute top-0 bottom-0 right-0 z-[60] hidden md:flex items-center justify-center w-12 transition-opacity duration-300 ${showRight ? 'opacity-0 group-hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
                 >
                     <button
                         onClick={() => handleClick("right")}

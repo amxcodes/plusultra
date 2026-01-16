@@ -40,6 +40,19 @@ import { StatsDashboard } from './components/StatsDashboard';
 import { NewsFeed } from './components/NewsFeed';
 
 import { supabase } from './lib/supabase';
+import { MobileNavbar } from './components/MobileNavbar';
+import { MobileMenu } from './components/MobileMenu';
+import { MobileHome } from './components/MobileHome';
+import { MobileAdminDashboard } from './components/MobileAdminDashboard';
+import { MobileStatsDashboard } from './components/MobileStatsDashboard';
+import { MobileProfilePage } from './components/MobileProfilePage';
+import { MobileSearchPage } from './components/MobileSearchPage';
+import { MobileSettingsPage } from './components/MobileSettingsPage';
+import { MobileNewsPage } from './components/MobileNewsPage';
+import { MobileActivityPage } from './components/MobileActivityPage';
+import { MobileAnnouncementsPage } from './components/MobileAnnouncementsPage';
+import { MobileAddToPlaylistModal } from './components/MobileAddToPlaylistModal';
+import { MobileWrappedPage } from './components/MobileWrappedPage';
 
 function StreamApp() {
   const { user, loading } = useAuth();
@@ -64,7 +77,13 @@ function StreamApp() {
   }, [user]);
 
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.DASHBOARD);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | undefined>(undefined);
@@ -313,15 +332,35 @@ function StreamApp() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f1014] text-white selection:bg-white/30 selection:text-white font-sans overflow-x-hidden">
-      <Navbar
-        activeTab={activeTab}
-        setActiveTab={handleTabChange}
-        onSearchClick={() => {
-          setIsSearchOpen(true);
-          setSelectedMovie(null);
-        }}
-      />
+    <div className="min-h-screen bg-[#0f1014] text-white selection:bg-white/30 selection:text-white font-sans overflow-x-hidden pb-16 md:pb-0">
+      <div className="hidden md:block">
+        <Navbar
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          onSearchClick={() => {
+            setIsSearchOpen(true);
+            setSelectedMovie(null);
+          }}
+        />
+      </div>
+
+      <div className="md:hidden">
+        <MobileNavbar
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+          onSearchClick={() => {
+            setIsSearchOpen(true);
+            setSelectedMovie(null);
+          }}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+        />
+        <MobileMenu
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+          activeTab={activeTab}
+          setActiveTab={handleTabChange}
+        />
+      </div>
 
       {selectedMovie && (
         <MovieDetail
@@ -337,47 +376,81 @@ function StreamApp() {
       <div className={`transition-opacity duration-300 ${selectedMovie ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {isSearchOpen ? (
           <div className="fixed inset-0 z-50 bg-[#0f1014] animate-in fade-in duration-500 overflow-y-auto custom-scrollbar">
-            <SearchPage
-              onMovieSelect={handleMovieSelect}
-              onNavigate={handleNavigate}
-            />
+            <div className="hidden md:block">
+              <SearchPage
+                onMovieSelect={handleMovieSelect}
+                onNavigate={handleNavigate}
+              />
+            </div>
+            <div className="md:hidden">
+              <MobileSearchPage
+                onMovieSelect={handleMovieSelect}
+                onNavigate={handleNavigate}
+                onClose={() => setIsSearchOpen(false)}
+              />
+            </div>
           </div>
         ) : (
           <div>
             {activeTab === NavItem.DASHBOARD && !selectedPlaylistId && !viewAllCategory && (
-              <Hero
-                movie={heroMovie || {
-                  id: 0,
-                  title: "Loading...",
-                  year: 2024,
-                  match: 0,
-                  imageUrl: "",
-                  backdropUrl: "",
-                  description: ""
-                }}
-                onPlay={(m) => handlePlay(m as Movie)}
-                onAddToPlaylist={(m) => setPlaylistModalMovie(m as Movie)}
-              />
+              <div className="hidden md:block">
+                <Hero
+                  movie={heroMovie || {
+                    id: 0,
+                    title: "Loading...",
+                    year: 2024,
+                    match: 0,
+                    imageUrl: "",
+                    backdropUrl: "",
+                    description: ""
+                  }}
+                  onPlay={(m) => handlePlay(m as Movie)}
+                  onAddToPlaylist={(m) => setPlaylistModalMovie(m as Movie)}
+                />
+              </div>
             )}
 
 
-            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : (activeTab === NavItem.NEWS ? '' : 'pt-20')} relative z-20 pl-4 md:pl-10 space-y-2`}>
+            {/* Desktop: pl-10 (Strict Original) | Mobile: px-0 (MobileHome handles padding) */}
+            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : (activeTab === NavItem.NEWS ? '' : 'pt-0 md:pt-20')} relative z-20 px-0 md:pl-10 md:pr-0 space-y-2`}>
+
+              {/* MOBILE HOME VIEW (Handles Dashboard, Movies, Series, My List) */}
+              {!viewAllCategory && !selectedPlaylistId && [NavItem.DASHBOARD, NavItem.MOVIES, NavItem.SERIES, NavItem.MY_LIST].includes(activeTab) && (
+                <div className="md:hidden">
+                  <MobileHome
+                    heroMovie={heroMovie}
+                    featuredMovies={featuredMovies}
+                    featuredPlaylists={featuredPlaylists}
+                    continueWatching={continueWatching}
+                    myList={myList}
+                    activeTab={activeTab}
+                    viewAllCategory={viewAllCategory}
+                    onPlay={(m) => handlePlay(m)}
+                    onMovieSelect={handleMovieSelect}
+                    onPlaylistSelect={handlePlaylistSelect}
+                    onAddToPlaylist={(m) => setPlaylistModalMovie(m)}
+                    onViewAll={setViewAllCategory}
+                  />
+                </div>
+              )}
 
               {/* VIEW ALL PAGE */}
               {viewAllCategory && (
-                <ViewAllPage
-                  title={viewAllCategory.title}
-                  fetchUrl={viewAllCategory.fetchUrl}
-                  initialMovies={viewAllCategory.movies}
-                  forcedMediaType={viewAllCategory.forcedMediaType}
-                  onBack={() => setViewAllCategory(null)}
-                  onMovieSelect={handleMovieSelect}
-                />
+                <div className="px-4 md:px-0">
+                  <ViewAllPage
+                    title={viewAllCategory.title}
+                    fetchUrl={viewAllCategory.fetchUrl}
+                    initialMovies={viewAllCategory.movies}
+                    forcedMediaType={viewAllCategory.forcedMediaType}
+                    onBack={() => setViewAllCategory(null)}
+                    onMovieSelect={handleMovieSelect}
+                  />
+                </div>
               )}
 
-              {/* DASHBOARD VIEW */}
+              {/* DASHBOARD VIEW (Desktop) */}
               {activeTab === NavItem.DASHBOARD && !viewAllCategory && (
-                <>
+                <div className="hidden md:block">
                   {continueWatching.length > 0 && (
                     <Row
                       title="Continue Watching"
@@ -420,32 +493,28 @@ function StreamApp() {
                   <Row title="Scary Movies" fetchUrl={requests.fetchHorrorMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Scary Movies", fetchUrl: requests.fetchHorrorMovies })} />
                   <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Romance", fetchUrl: requests.fetchRomanceMovies })} />
                   <Row title="Documentaries" fetchUrl={requests.fetchDocumentaries} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Documentaries", fetchUrl: requests.fetchDocumentaries })} />
-                </>
+                </div>
               )}
 
               {/* MOVIES ONLY VIEW */}
-              {/* MOVIES ONLY VIEW */}
+              {/* MOVIES ONLY VIEW (Desktop) */}
               {activeTab === NavItem.MOVIES && !viewAllCategory && (
-                <>
+                <div className="hidden md:block">
                   <Row title="Trending Movies" fetchUrl={requests.fetchTrending} forcedMediaType='movie' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending Movies", fetchUrl: requests.fetchTrending, forcedMediaType: 'movie' })} />
-                  <Row title="Top Rated Movies" fetchUrl={requests.fetchTopRated} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated Movies", fetchUrl: requests.fetchTopRated, forcedMediaType: 'movie' })} />
-                  <Row title="Action" fetchUrl={requests.fetchActionMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action", fetchUrl: requests.fetchActionMovies, forcedMediaType: 'movie' })} />
-                  <Row title="Comedy" fetchUrl={requests.fetchComedyMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Comedy", fetchUrl: requests.fetchComedyMovies, forcedMediaType: 'movie' })} />
-                  <Row title="Horror" fetchUrl={requests.fetchHorrorMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Horror", fetchUrl: requests.fetchHorrorMovies, forcedMediaType: 'movie' })} />
                   <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Romance", fetchUrl: requests.fetchRomanceMovies, forcedMediaType: 'movie' })} />
-                </>
+                </div>
               )}
 
               {/* TV SERIES ONLY VIEW */}
-              {/* TV SERIES ONLY VIEW */}
+              {/* TV SERIES ONLY VIEW (Desktop) */}
               {activeTab === NavItem.SERIES && !viewAllCategory && (
-                <>
+                <div className="hidden md:block">
                   <Row title="Trending TV" fetchUrl={requests.fetchNetflixOriginals} forcedMediaType='tv' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending TV", fetchUrl: requests.fetchNetflixOriginals, forcedMediaType: 'tv' })} />
                   <Row title="Top Rated TV" fetchUrl={requests.fetchTopRated} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated TV", fetchUrl: requests.fetchTopRated, forcedMediaType: 'tv' })} />
                   <Row title="Action & Adventure" fetchUrl={requests.fetchActionMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action & Adventure", fetchUrl: requests.fetchActionMovies, forcedMediaType: 'tv' })} />
                   <Row title="Comedy Series" fetchUrl={requests.fetchComedyMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Comedy Series", fetchUrl: requests.fetchComedyMovies, forcedMediaType: 'tv' })} />
                   <Row title="Documentary Series" fetchUrl={requests.fetchDocumentaries} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Documentary Series", fetchUrl: requests.fetchDocumentaries, forcedMediaType: 'tv' })} />
-                </>
+                </div>
               )}
 
               {/* ANIME VIEW */}
@@ -470,9 +539,9 @@ function StreamApp() {
               )}
 
 
-              {/* MY LIST VIEW */}
+              {/* MY LIST VIEW (Desktop) */}
               {activeTab === NavItem.MY_LIST && (
-                <div className="px-12">
+                <div className="hidden md:block px-12">
                   <h2 className="text-2xl font-bold mb-8">My List</h2>
                   {myList.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -501,31 +570,70 @@ function StreamApp() {
 
               {/* SETTINGS VIEW */}
               {activeTab === NavItem.SETTINGS && (
-                <SettingsPage />
+                <>
+                  <div className="hidden md:block">
+                    <SettingsPage />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileSettingsPage />
+                  </div>
+                </>
               )}
 
               {/* ADMIN DASHBOARD VIEW */}
               {activeTab === NavItem.ADMIN && (
-                <AdminDashboard onNavigate={handleNavigate} />
+                <>
+                  <div className="hidden md:block">
+                    <AdminDashboard onNavigate={handleNavigate} />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileAdminDashboard onNavigate={handleNavigate} />
+                  </div>
+                </>
               )}
 
               {/* PROFILE VIEW */}
               {activeTab === NavItem.PROFILE && !selectedPlaylistId && (
-                <ProfilePage
-                  userId={selectedProfileId}
-                  onNavigate={handleNavigate}
-                  onMovieSelect={handleMovieSelect}
-                />
+                <>
+                  <div className="hidden md:block">
+                    <ProfilePage
+                      userId={selectedProfileId}
+                      onNavigate={handleNavigate}
+                      onMovieSelect={handleMovieSelect}
+                    />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileProfilePage
+                      userId={selectedProfileId}
+                      onNavigate={handleNavigate}
+                      onMovieSelect={handleMovieSelect}
+                    />
+                  </div>
+                </>
               )}
 
               {/* ANNOUNCEMENTS VIEW */}
               {activeTab === NavItem.ANNOUNCEMENTS && (
-                <AnnouncementsPage />
+                <>
+                  <div className="hidden md:block">
+                    <AnnouncementsPage />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileAnnouncementsPage />
+                  </div>
+                </>
               )}
 
               {/* ACTIVITY VIEW */}
               {activeTab === NavItem.ACTIVITY && (
-                <ActivityPage onNavigate={handleNavigate} />
+                <>
+                  <div className="hidden md:block">
+                    <ActivityPage onNavigate={handleNavigate} />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileActivityPage onNavigate={handleNavigate} />
+                  </div>
+                </>
               )}
 
               {/* PLAYLISTS VIEW */}
@@ -538,22 +646,44 @@ function StreamApp() {
 
               {/* STATS VIEW */}
               {activeTab === NavItem.STATS && (
-                <StatsDashboard />
+                <>
+                  <div className="hidden md:block">
+                    <StatsDashboard />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileStatsDashboard />
+                  </div>
+                </>
               )}
 
               {/* NEWS FEED VIEW */}
               {activeTab === NavItem.NEWS && !viewAllCategory && (
-                <NewsFeed onMovieSelect={handleMovieSelect} />
+                <>
+                  <div className="hidden md:block">
+                    <NewsFeed onMovieSelect={handleMovieSelect} />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileNewsPage onMovieSelect={handleMovieSelect} />
+                  </div>
+                </>
               )}
 
               {/* Add To Playlist Modal (Global generic overlay) */}
               {playlistModalMovie && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center">
-                  <AddToPlaylistModal
-                    movie={playlistModalMovie}
-                    onClose={() => setPlaylistModalMovie(null)}
-                  />
-                </div>
+                <>
+                  <div className="hidden md:flex fixed inset-0 z-[60] items-center justify-center">
+                    <AddToPlaylistModal
+                      movie={playlistModalMovie}
+                      onClose={() => setPlaylistModalMovie(null)}
+                    />
+                  </div>
+                  <div className="md:hidden">
+                    <MobileAddToPlaylistModal
+                      movie={playlistModalMovie}
+                      onClose={() => setPlaylistModalMovie(null)}
+                    />
+                  </div>
+                </>
               )}
 
 
