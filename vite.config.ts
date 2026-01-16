@@ -23,9 +23,9 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
-          name: 'StreamWrapp',
-          short_name: 'StreamWrapp',
-          description: 'Your ultimate streaming companion and wrapped experience.',
+          name: 'Plus Ultra',
+          short_name: 'Plus Ultra',
+          description: 'Your ultimate streaming companion. ',
           theme_color: '#000000',
           background_color: '#000000',
           display: 'standalone',
