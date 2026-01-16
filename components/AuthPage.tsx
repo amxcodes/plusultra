@@ -52,7 +52,7 @@ export const AuthPage: React.FC = () => {
 
             // Fetch registration status
             try {
-                const settings = await SocialService.getAppSettings();
+                const settings = await SocialService.getAppSettings() as Record<string, string>;
                 setRegistrationEnabled(settings.registration_enabled === 'true');
             } catch (e) {
                 // Default to enabled if fetch fails
