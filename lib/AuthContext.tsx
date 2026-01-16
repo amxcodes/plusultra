@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
+import { cache, CACHE_KEYS } from './cache'
 
 // Define the shape of our Profile
 type Profile = {
@@ -55,16 +56,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchProfile = async (userId: string) => {
         try {
+            // Check cache first (sessionStorage, 5 min TTL)
+            const cachedProfile = cache.get<Profile>(CACHE_KEYS.USER_PROFILE, true);
+            if (cachedProfile) {
+                setProfile(cachedProfile);
+                setLoading(false);
+                return;
+            }
+
+            // Fetch from database
             const { data, error } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('id, username, avatar_url, role') // Only fetch needed fields
                 .eq('id', userId)
                 .single()
 
             if (error) {
                 console.error('Error fetching profile:', error)
             } else {
-                setProfile(data as Profile)
+                const profileData = data as Profile;
+                setProfile(profileData);
+                // Cache for 5 minutes in sessionStorage
+                cache.set(CACHE_KEYS.USER_PROFILE, profileData, 5, true);
             }
         } catch (err) {
             console.error('Unexpected error fetching profile:', err)
@@ -78,9 +91,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null)
         setUser(null)
         setSession(null)
+        // Clear all cached data on logout
+        cache.clearAll()
     }
 
     const refreshProfile = async () => {
+        // Invalidate cache and force refresh
+        cache.invalidate(CACHE_KEYS.USER_PROFILE, true)
         if (user) await fetchProfile(user.id)
     }
 

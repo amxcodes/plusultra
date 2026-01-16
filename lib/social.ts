@@ -1,6 +1,7 @@
 
 import { supabase } from './supabase';
 import { Movie, Profile, Playlist } from '../types';
+import { cache, CACHE_KEYS } from './cache';
 
 export const SocialService = {
     // --- Profiles ---
@@ -422,12 +423,19 @@ export const SocialService = {
     },
 
     async getFeaturedMovies() {
+        // Check cache first (1 hour TTL)
+        const cached = cache.get(CACHE_KEYS.FEATURED_MOVIES);
+        if (cached) return cached;
+
         const { data, error } = await supabase
             .from('featured_movies')
             .select('*')
             .order('created_at', { ascending: false });
         if (error) throw error;
-        return data || [];
+
+        const movies = data || [];
+        cache.set(CACHE_KEYS.FEATURED_MOVIES, movies, 60); // Cache for 1 hour
+        return movies;
     },
 
     async addFeaturedMovie(movie: any) {
@@ -459,6 +467,10 @@ export const SocialService = {
     },
 
     async getFeaturedPlaylists() {
+        // Check cache first (1 hour TTL)
+        const cached = cache.get(CACHE_KEYS.FEATURED_PLAYLISTS);
+        if (cached) return cached;
+
         const { data, error } = await supabase
             .from('playlists')
             .select(`
@@ -474,10 +486,13 @@ export const SocialService = {
             return [];
         }
 
-        return data.map((p: any) => ({
+        const playlists = data.map((p: any) => ({
             ...p,
             items: p.items.slice(0, 9)
         }));
+
+        cache.set(CACHE_KEYS.FEATURED_PLAYLISTS, playlists, 60); // Cache for 1 hour
+        return playlists;
     },
 
     async getUserStats(userId: string) {
@@ -596,6 +611,10 @@ export const SocialService = {
     // --- App Settings ---
 
     async getAppSettings() {
+        // Check cache first (no TTL - permanent until invalidated)
+        const cached = cache.get(CACHE_KEYS.APP_SETTINGS);
+        if (cached) return cached;
+
         const { data, error } = await supabase
             .from('app_settings')
             .select('*');
@@ -608,6 +627,8 @@ export const SocialService = {
         // Convert array to object
         const settings: Record<string, string> = {};
         data?.forEach((s: any) => settings[s.key] = s.value);
+
+        cache.set(CACHE_KEYS.APP_SETTINGS, settings, 1440); // Cache for 24 hours
         return settings;
     },
 
@@ -616,6 +637,9 @@ export const SocialService = {
             .from('app_settings')
             .upsert({ key, value });
         if (error) throw error;
+
+        // Invalidate cache so next fetch gets fresh data
+        cache.invalidate(CACHE_KEYS.APP_SETTINGS);
     },
 
     // --- Recent Searches (Hybrid Storage) ---

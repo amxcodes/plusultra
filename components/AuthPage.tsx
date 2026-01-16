@@ -31,6 +31,7 @@ export const AuthPage: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [posters, setPosters] = useState<string[]>([]);
     const [registrationEnabled, setRegistrationEnabled] = useState<boolean>(true);
+    const [cooldown, setCooldown] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -63,6 +64,16 @@ export const AuthPage: React.FC = () => {
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Prevent spam: Don't allow submission if already loading or in cooldown
+        if (loading || cooldown) return;
+
+        // Early check: Don't even attempt if registration is disabled
+        if (!isLogin && !registrationEnabled) {
+            setError('New user registration is currently disabled.');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
@@ -78,11 +89,6 @@ export const AuthPage: React.FC = () => {
                 localStorage.setItem('AMX_REMEMBER_ME', rememberMe ? 'true' : 'false');
                 sessionStorage.setItem('AMX_SESSION_ACTIVE', 'true');
             } else {
-                // Check if registration is enabled
-                if (!registrationEnabled) {
-                    throw new Error('New user registration is currently disabled. Please contact the administrator.');
-                }
-
                 // Validate email (format + disposable check)
                 const emailValidation = validateEmail(email);
                 if (!emailValidation.valid) {
@@ -97,6 +103,10 @@ export const AuthPage: React.FC = () => {
             }
         } catch (err: any) {
             setError(err.message);
+
+            // Add cooldown on error to prevent spam
+            setCooldown(true);
+            setTimeout(() => setCooldown(false), 3000); // 3 second cooldown
         } finally {
             setLoading(false);
         }
@@ -197,13 +207,13 @@ export const AuthPage: React.FC = () => {
 
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="mt-6 bg-white text-black text-sm font-bold h-10 rounded-md hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        disabled={loading || cooldown || (!isLogin && !registrationEnabled)}
+                        className="mt-6 bg-white text-black text-sm font-bold h-10 rounded-md hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? <Loader2 className="animate-spin" size={16} /> : (
                             <>
-                                <span>{isLogin ? 'Continue' : 'Get Started'}</span>
-                                <ArrowRight size={16} />
+                                <span>{isLogin ? 'Continue' : (registrationEnabled ? 'Get Started' : 'Registration Disabled')}</span>
+                                {isLogin && <ArrowRight size={16} />}
                             </>
                         )}
                     </button>
