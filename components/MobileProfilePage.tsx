@@ -16,6 +16,62 @@ interface JikanCharacter {
     name: string;
 }
 
+// Mobile Create Playlist Modal
+const MobileCreatePlaylistModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () => void; onSubmit: (name: string, isPublic: boolean) => void }) => {
+    const [name, setName] = useState("");
+    const [isPublic, setIsPublic] = useState(true);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-md flex items-center justify-center px-4">
+            <div className="w-full max-w-md bg-gradient-to-br from-zinc-900 via-zinc-900/90 to-black border border-white/10 rounded-2xl p-6 shadow-2xl">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-white">New Playlist</h3>
+                    <button onClick={onClose} className="p-2 bg-zinc-800/50 rounded-full text-zinc-400 hover:text-white transition-colors">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <input
+                    type="text"
+                    placeholder="Playlist Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-white/20 transition-colors mb-4 placeholder:text-zinc-600"
+                    autoFocus
+                />
+
+                <div className="flex items-center justify-between gap-3 mb-6 p-3 bg-zinc-900/50 rounded-xl border border-white/5" onClick={() => setIsPublic(!isPublic)}>
+                    <span className="text-sm text-zinc-300 font-medium">
+                        {isPublic ? 'Public Playlist' : 'Private Playlist'}
+                    </span>
+                    <div className={`w-11 h-6 rounded-full p-0.5 transition-colors cursor-pointer ${isPublic ? 'bg-white' : 'bg-zinc-700'}`}>
+                        <div className={`w-5 h-5 rounded-full bg-black transition-transform ${isPublic ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </div>
+                </div>
+
+                <div className="flex gap-3">
+                    <button onClick={onClose} className="flex-1 py-3 text-zinc-400 font-bold hover:bg-zinc-900 rounded-xl transition-colors">
+                        Cancel
+                    </button>
+                    <button
+                        onClick={() => {
+                            onSubmit(name, isPublic);
+                            setName("");
+                            setIsPublic(true);
+                        }}
+                        disabled={!name.trim()}
+                        className="flex-1 py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                    >
+                        Create
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const MobileAvatarModal = ({ isOpen, onClose, onSelect, currentAvatar }: { isOpen: boolean; onClose: () => void; onSelect: (url: string) => void; currentAvatar?: string }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [characters, setCharacters] = useState<JikanCharacter[]>([]);
@@ -105,6 +161,7 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
 
     // Modals
     const [showAvatarModal, setShowAvatarModal] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
 
     const targetId = userId || currentUser?.id;
     const isOwnProfile = currentUser?.id === targetId;
@@ -163,6 +220,20 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
         } catch (e) { console.error(e); }
     };
 
+    const handleCreatePlaylist = async (name: string, isPublic: boolean) => {
+        if (!currentUser) return;
+        try {
+            const newPlaylist = await SocialService.createPlaylist(currentUser.id, name, "", isPublic);
+            if (newPlaylist) {
+                const playlistWithItems = { ...newPlaylist, items: [] };
+                setPlaylists([playlistWithItems, ...playlists]);
+                setShowCreateModal(false);
+            }
+        } catch (e) {
+            console.error("Failed to create playlist", e);
+        }
+    };
+
     if (loading) return <div className="h-screen flex items-center justify-center text-zinc-500 pt-20">Loading...</div>;
     if (!profile) return <div className="h-screen flex items-center justify-center text-zinc-500 pt-20">User not found</div>;
 
@@ -173,6 +244,11 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                 onClose={() => setShowAvatarModal(false)}
                 onSelect={handleAvatarUpdate}
                 currentAvatar={profile.avatar_url}
+            />
+            <MobileCreatePlaylistModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSubmit={handleCreatePlaylist}
             />
 
             {/* Premium Header Design */}
@@ -248,7 +324,10 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                             <span className="text-xs font-normal text-zinc-500 bg-white/5 px-2 py-0.5 rounded-full border border-white/5">{playlists.length}</span>
                         </h2>
                         {isOwnProfile && (
-                            <button className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-full shadow-lg shadow-white/10 active:scale-90 transition-transform">
+                            <button
+                                onClick={() => setShowCreateModal(true)}
+                                className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-full shadow-lg shadow-white/10 active:scale-90 transition-transform"
+                            >
                                 <Plus size={16} strokeWidth={3} />
                             </button>
                         )}
