@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, Lock, Globe, Check, Image as ImageIcon, LayoutGrid, List } from 'lucide-react';
+import { X, Plus, Lock, Globe, Check, Image as ImageIcon, LayoutGrid, List, Search } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { Playlist, Movie } from '../types';
@@ -24,6 +24,11 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({ movie, o
 
     // Track which playlists contain this movie
     const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredPlaylists = playlists.filter(p =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     useEffect(() => {
         if (!user) return;
@@ -146,16 +151,36 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({ movie, o
                     </div>
                 </div>
 
+                {/* Search Bar - conditionally shown */}
+                {(playlists.length > 5 || searchQuery) && (
+                    <div className="px-3 pt-3 pb-1 shrink-0">
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-white transition-colors" size={14} />
+                            <input
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search playlists..."
+                                className="w-full bg-zinc-900 border border-white/5 rounded-lg py-2 pl-9 pr-8 text-xs text-white focus:outline-none focus:border-white/10 focus:bg-zinc-800 transition-all placeholder:text-zinc-600"
+                            />
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Playlist List */}
-                <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1 custom-scrollbar min-h-0" style={{ maxHeight: '280px' }}>
                     {loading ? (
                         <div className="flex flex-col items-center justify-center h-40 text-zinc-500 gap-3">
                             <div className="w-6 h-6 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
                             <span className="text-xs">Loading playlists...</span>
                         </div>
                     ) : (
-                        playlists.length > 0 ? (
-                            playlists.map(list => {
+                        filteredPlaylists.length > 0 ? (
+                            filteredPlaylists.map(list => {
                                 const isAdded = addedIds.has(list.id);
                                 return (
                                     <button

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Lock, Globe, Check, Image as ImageIcon, LayoutGrid, List, ChevronRight } from 'lucide-react';
+import { X, Plus, Lock, Globe, Check, Image as ImageIcon, LayoutGrid, List, ChevronRight, Search } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { Playlist, Movie } from '../types';
@@ -23,6 +23,11 @@ export const MobileAddToPlaylistModal: React.FC<MobileAddToPlaylistModalProps> =
 
     // Track which playlists contain this movie
     const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredPlaylists = playlists.filter(p =>
+        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     useEffect(() => {
         if (!user) return;
@@ -129,7 +134,7 @@ export const MobileAddToPlaylistModal: React.FC<MobileAddToPlaylistModalProps> =
                 <div className="flex flex-col flex-1 overflow-hidden">
 
                     {/* Header */}
-                    <div className="px-6 py-4 flex items-center justify-start gap-4 border-b border-white/5 bg-[#121214]">
+                    <div className="px-6 py-4 flex items-center justify-start gap-4 border-b border-white/5 bg-[#121214] shrink-0">
                         <div className="w-12 h-16 rounded bg-zinc-800 overflow-hidden shrink-0 shadow-lg">
                             <img src={movie.posterUrl || movie.imageUrl} className="w-full h-full object-cover" />
                         </div>
@@ -142,14 +147,34 @@ export const MobileAddToPlaylistModal: React.FC<MobileAddToPlaylistModalProps> =
                         </button>
                     </div>
 
+                    {/* Search Bar - conditionally shown if > 5 playlists or already searching */}
+                    {(playlists.length > 5 || searchQuery) && (
+                        <div className="px-4 pt-4 pb-2 shrink-0 animate-in fade-in slide-in-from-top-2">
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                                <input
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search playlists..."
+                                    className="w-full bg-zinc-800/50 border border-white/5 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white focus:outline-none focus:border-white/10 focus:bg-zinc-800 transition-all placeholder:text-zinc-600"
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Playlists */}
-                    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 custom-scrollbar min-h-0" style={{ maxHeight: '320px' }}>
                         {loading ? (
                             <div className="py-10 flex justify-center">
                                 <div className="animate-spin w-6 h-6 border-2 border-white/20 border-t-white rounded-full" />
                             </div>
                         ) : (
-                            playlists.map(list => {
+                            filteredPlaylists.map(list => {
                                 const isAdded = addedIds.has(list.id);
                                 return (
                                     <button
