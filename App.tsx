@@ -141,7 +141,7 @@ function StreamApp() {
         ]);
 
         // Map featured movies metadata to Movie objects
-        setFeaturedMovies(fMovies.map((m: any) => ({
+        setFeaturedMovies((fMovies as any[]).map((m: any) => ({
           ...m.metadata,
           // Ensure ID is number as Component expects
           id: parseInt(m.tmdb_id),
