@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
 import { useSkipData } from './useSkipData';
-import { Settings, Check, Users, Download, ExternalLink, ThumbsUp } from 'lucide-react';
+import { Settings, Check, Users, Download, ExternalLink, ThumbsUp, X } from 'lucide-react';
 import { CommunityService, RequestReply } from '../lib/community';
 import { TmdbService } from '../services/tmdb';
 import { WatchPartyModal } from './WatchPartyModal';
@@ -391,8 +391,30 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                         )}
                     </button>
 
+                    {/* Mobile Backdrop */}
                     {showCommunity && (
-                        <div className="absolute right-0 top-full mt-2 w-80 bg-[#0f1014]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[60]">
+                        <div
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden animate-in fade-in duration-200"
+                            onClick={() => setShowCommunity(false)}
+                        />
+                    )}
+
+                    {showCommunity && (
+                        <div className="fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 
+                                            w-[90vw] md:w-80 mt-0 md:mt-2 bg-[#0f1014] md:bg-[#0f1014]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl 
+                                            p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] md:max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[70] md:z-[60]">
+
+                            {/* Mobile Header */}
+                            <div className="flex items-center justify-between px-2 pt-2 pb-1 md:hidden">
+                                <h3 className="text-white font-bold text-lg">Downloads</h3>
+                                <button
+                                    onClick={() => setShowCommunity(false)}
+                                    className="p-1 text-zinc-400 hover:text-white bg-white/5 rounded-full"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+
                             {communityLinks.length === 0 ? (
                                 <div className="text-center py-8 px-4">
                                     <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-2 text-zinc-600">
