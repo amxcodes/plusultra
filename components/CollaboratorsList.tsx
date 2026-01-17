@@ -60,8 +60,8 @@ export const CollaboratorsList: React.FC<CollaboratorsListProps> = ({
     const activeCollaborators = collaborators.filter(c => c.status !== 'rejected');
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 fade-in">
-            <div className="w-full max-w-md bg-[#0f1014] border border-white/10 rounded-2xl shadow-2xl overflow-hidden scale-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 fade-in pb-20 md:pb-0">
+            <div className="w-full max-w-sm bg-[#0f1014] border border-white/10 rounded-2xl shadow-2xl overflow-hidden scale-in">
 
                 {/* Header */}
                 <div className="p-4 border-b border-white/5 flex items-center justify-between bg-zinc-900/50">

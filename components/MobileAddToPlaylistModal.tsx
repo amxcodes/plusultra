@@ -115,20 +115,15 @@ export const MobileAddToPlaylistModal: React.FC<MobileAddToPlaylistModalProps> =
     if (!user) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] z-[100]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
                 onClick={onClose}
             />
 
-            {/* Bottom Sheet */}
-            <div className="absolute bottom-0 left-0 right-0 bg-[#121214] rounded-t-3xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85vh] flex flex-col">
-
-                {/* Drag Handle */}
-                <div className="w-full flex justify-center pt-3 pb-1" onClick={onClose}>
-                    <div className="w-12 h-1.5 bg-zinc-800 rounded-full" />
-                </div>
+            {/* Centered Card */}
+            <div className="relative w-full max-w-xs bg-[#121214] rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
 
                 {/* Content */}
                 <div className="flex flex-col flex-1 overflow-hidden">
@@ -161,8 +156,8 @@ export const MobileAddToPlaylistModal: React.FC<MobileAddToPlaylistModalProps> =
                                         key={list.id}
                                         onClick={() => handleTogglePlaylist(list.id)}
                                         className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${isAdded
-                                                ? 'bg-white text-black border-transparent shadow-lg shadow-white/10'
-                                                : 'bg-zinc-900/50 text-zinc-300 border-white/5 active:scale-[0.98]'
+                                            ? 'bg-white text-black border-transparent shadow-lg shadow-white/10'
+                                            : 'bg-zinc-900/50 text-zinc-300 border-white/5 active:scale-[0.98]'
                                             }`}
                                     >
                                         {/* Icon */}
