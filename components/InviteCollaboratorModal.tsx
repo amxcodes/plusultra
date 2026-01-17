@@ -90,7 +90,7 @@ export const InviteCollaboratorModal: React.FC<InviteCollaboratorModalProps> = (
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 fade-in pb-20 md:pb-0">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4 fade-in pb-32 md:pb-0">
             <div className="w-full max-w-sm bg-[#0f1014] border border-white/10 rounded-2xl shadow-2xl overflow-hidden scale-in">
 
                 {/* Header */}
@@ -145,17 +145,17 @@ export const InviteCollaboratorModal: React.FC<InviteCollaboratorModalProps> = (
                                 const isPending = pendingInvites.has(result.id);
 
                                 return (
-                                    <div key={result.id} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800">
+                                    <div key={result.id} className="flex items-center justify-between p-3 hover:bg-white/5 rounded-xl transition-colors group gap-3">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 shrink-0">
                                                 <img
                                                     src={result.avatar_url || `https://ui-avatars.com/api/?name=${result.username}`}
                                                     alt={result.username}
                                                     className="w-full h-full object-cover"
                                                 />
                                             </div>
-                                            <div className="text-left">
-                                                <div className="text-white font-medium text-sm">{result.username}</div>
+                                            <div className="text-left min-w-0 flex-1">
+                                                <div className="text-white font-medium text-sm truncate">{result.username}</div>
                                                 {/* <div className="text-zinc-600 text-[10px] uppercase font-bold">User</div> */}
                                             </div>
                                         </div>
@@ -168,7 +168,7 @@ export const InviteCollaboratorModal: React.FC<InviteCollaboratorModalProps> = (
                                             <button
                                                 onClick={() => handleInvite(result)}
                                                 disabled={isPending}
-                                                className="px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                                className="px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shrink-0"
                                             >
                                                 {isPending ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
                                                 Invite
