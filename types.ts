@@ -17,6 +17,11 @@ export interface Movie {
   screenshots?: string[]; // New
   genreIds?: number[]; // For filtering
   popularity?: number; // For sorting
+  addedBy?: {
+    username: string;
+    avatarUrl?: string;
+  };
+  addedByUserId?: string; // ID of the user who added this
 }
 
 export interface HeroMovie extends Movie {
@@ -73,4 +78,39 @@ export interface Playlist {
     weekly_views: number;
     monthly_views: number;
   };
+}
+
+export interface PlaylistCollaborator {
+  id: string;
+  playlist_id: string;
+  user_id: string;
+  role: 'editor' | 'viewer';
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+  profile?: Profile;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: 'playlist_invite' | 'system' | 'follow';
+  title: string;
+  message: string;
+  data: any;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface TasteCompatibility {
+  score: number;
+  shared: string[];
+  message?: string;
+}
+
+export interface CollaborationStats {
+  user_id: string;
+  username: string;
+  avatar_url: string;
+  items_added: number;
+  role: 'owner' | 'editor' | 'viewer';
 }

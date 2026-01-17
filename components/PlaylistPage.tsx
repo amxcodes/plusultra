@@ -1,12 +1,15 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { PlaylistEngagement } from '../lib/playlistEngagement';
 import { Playlist, Movie } from '../types';
-import { Trash2, Share2, ChevronLeft, X, CheckCircle, Heart, Eye, Edit2, Check } from 'lucide-react';
+import { Trash2, Share2, ChevronLeft, X, CheckCircle, Heart, Eye, Edit2, Check, UserPlus, Users } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { MobileConfirmModal } from './MobileConfirmModal';
+import { CollaboratorsList } from './CollaboratorsList';
+import { InviteCollaboratorModal } from './InviteCollaboratorModal';
+import { AttributionTag } from './AttributionTag';
+import { CollaborationStats } from './CollaborationStats';
 
 interface PlaylistPageProps {
     playlistId: string;
@@ -85,10 +88,16 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     const [showDeletePlaylistModal, setShowDeletePlaylistModal] = useState(false);
     const [siteUrl, setSiteUrl] = useState('');
     const [copied, setCopied] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [showCollaboratorsModal, setShowCollaboratorsModal] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
-    const [isEditingName, setIsEditingName] = useState(false);
+    const [isEditingName, setIsEditingName] = useState('');
     const [editedName, setEditedName] = useState('');
+
+    // Collaborative State
+    const [isCollaborator, setIsCollaborator] = useState(false);
+    const [collaborators, setCollaborators] = useState<any[]>([]);
 
     useEffect(() => {
         const loadData = async () => {
@@ -109,6 +118,15 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
                 setPlaylist(playlistDetails);
                 if (playlistDetails) setLikeCount(playlistDetails.likes_count || 0);
 
+                // Check if collaborator
+                // Only if user is logged in
+                if (user) {
+                    const collabs = await SocialService.getCollaborators(playlistId);
+                    setCollaborators(collabs);
+                    const me = collabs.find((c: any) => c.user_id === user.id && c.status === 'accepted');
+                    setIsCollaborator(!!me);
+                }
+
                 setSiteUrl(window.location.origin);
                 setIsLiked(liked);
             } catch (e) {
@@ -118,7 +136,7 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
             }
         };
         loadData();
-    }, [playlistId]);
+    }, [playlistId, user]);
 
     const handleLikeToggle = async () => {
         if (!playlist) return;
@@ -214,9 +232,17 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
 
     const isOwner = user && playlist && user.id === playlist.user_id;
     const isSystem = playlist?.type === 'watch_later' || playlist?.type === 'favorites';
+    const activeCollaborators = collaborators.filter(c => c.status === 'accepted');
+    const showCollaborativeView = !isSystem && activeCollaborators.length > 0 && (isOwner || isCollaborator);
 
     return (
-        <div className="min-h-screen bg-[#0f1014] pt-24 px-4 md:px-12 pb-20 fade-in-up relative">
+        <div className={`min-h-screen pt-20 px-4 md:px-12 pb-20 fade-in-up relative bg-[#0f1014]`}>
+            {/* Ambient Modern Gradient Background */}
+            <div className="fixed inset-0 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/10 rounded-full blur-[120px] mix-blend-screen" />
+                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[120px] mix-blend-screen" />
+            </div>
+
             <div className="hidden md:block">
                 <RemoveItemModal
                     isOpen={!!removeTargetId}
@@ -259,101 +285,178 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
                 />
             </div>
 
+            <InviteCollaboratorModal
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+                playlistId={playlistId}
+                playlistName={playlist?.name || 'Playlist'}
+            />
+
+            <CollaboratorsList
+                isOpen={showCollaboratorsModal}
+                onClose={() => setShowCollaboratorsModal(false)}
+                playlistId={playlistId}
+                isOwner={!!isOwner}
+            />
+
             {/* Header */}
-            <div className="max-w-7xl mx-auto mb-16">
+            <div className="max-w-7xl mx-auto mb-10 relative z-10">
                 <button
                     onClick={onBack}
-                    className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white hover:border-zinc-600 transition-all mb-8 group"
+                    className="w-10 h-10 rounded-full bg-zinc-900/50 backdrop-blur-md border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white hover:border-zinc-600 transition-all mb-6 group"
                 >
                     <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
                 </button>
 
-                <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-8 border-b border-zinc-800/50">
-                    <div>
-                        {isEditingName ? (
-                            <div className="flex items-center gap-3 mb-4">
-                                <input
-                                    type="text"
-                                    value={editedName}
-                                    onChange={(e) => setEditedName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveName();
-                                        if (e.key === 'Escape') setIsEditingName(false);
-                                    }}
-                                    className="text-5xl md:text-6xl font-black text-white tracking-tighter bg-transparent border-b-2 border-white/20 focus:border-white outline-none flex-1"
-                                    autoFocus
+                {/* Collaborative Dashboard OR Standard Header */}
+                {showCollaborativeView ? (
+                    <div className="animate-in fade-in duration-500">
+                        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-6 border-b border-zinc-800/30 mb-8">
+                            <div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <span className="text-zinc-500 text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                                        <Users size={12} /> Collaborative
+                                    </span>
+                                </div>
+                                <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter mb-2">
+                                    {playlist?.name}
+                                </h1>
+                                <p className="text-zinc-500 text-sm flex items-center gap-3 font-mono">
+                                    <span>{collaborators.filter(c => c.status === 'accepted').length + 1} MEMBERS</span>
+                                    <span>/</span>
+                                    <span>{items.length} ITEMS</span>
+                                </p>
+                            </div>
+
+                            {/* Actions for Collab View */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setShowInviteModal(true)}
+                                    children={<><UserPlus size={16} /> <span className="hidden md:inline">Invite</span></>}
+                                    className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg text-sm font-bold flex items-center gap-2 transition-all"
                                 />
                                 <button
-                                    onClick={handleSaveName}
-                                    className="p-3 bg-white text-black rounded-xl hover:bg-white/90 transition-all"
+                                    onClick={handleShare}
+                                    className="px-4 py-2 bg-transparent hover:bg-zinc-900 text-zinc-400 hover:text-white rounded-lg text-sm font-bold border border-zinc-800 transition-all flex items-center gap-2"
                                 >
-                                    <Check size={24} />
+                                    <Share2 size={16} /> <span className="hidden md:inline">Share</span>
                                 </button>
-                                <button
-                                    onClick={() => setIsEditingName(false)}
-                                    className="p-3 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all"
-                                >
-                                    <X size={24} />
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3 mb-4 group/title">
-                                <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter">
-                                    {playlist?.name || (items.length === 0 ? 'Empty Playlist' : 'Playlist Content')}
-                                </h1>
-                                {isOwner && !isSystem && (
+                                {isOwner && (
                                     <button
-                                        onClick={() => {
-                                            setEditedName(playlist?.name || '');
-                                            setIsEditingName(true);
-                                        }}
-                                        className="p-2 text-zinc-600 hover:text-white hover:bg-zinc-900 rounded-lg transition-all opacity-0 group-hover/title:opacity-100"
+                                        onClick={() => setShowDeletePlaylistModal(true)}
+                                        className="px-4 py-2 bg-transparent text-zinc-600 hover:text-red-500 rounded-lg text-sm font-bold border border-transparent hover:bg-zinc-900 transition-all"
                                     >
-                                        <Edit2 size={20} />
+                                        <Trash2 size={16} />
                                     </button>
                                 )}
                             </div>
-                        )}
-                        <p className="text-lg text-zinc-500 font-light flex items-center gap-4">
-                            <span className="flex items-center gap-2"><Eye size={16} /> {(playlist?.analytics?.total_views || 0).toLocaleString()} views</span>
-                            <span className="text-zinc-700">•</span>
-                            <span className="text-white font-bold">{items.length}</span> items stored
-                        </p>
-                    </div>
-                    {/* Action Buttons */}
-                    <div className="flex gap-4">
-                        <button
-                            onClick={handleLikeToggle}
-                            className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 border transition-all ${isLiked ? 'bg-pink-500/10 text-pink-500 border-pink-500/50' : 'bg-black/20 text-zinc-400 border-zinc-700 hover:border-zinc-500 hover:text-white'}`}
-                        >
-                            <Heart size={20} className={isLiked ? "fill-pink-500" : ""} />
-                            <span>{likeCount}</span>
-                        </button>
+                        </div>
 
-                        {isOwner && !isSystem && (
-                            <button
-                                onClick={() => setShowDeletePlaylistModal(true)}
-                                className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all"
-                            >
-                                <Trash2 size={18} /> Delete Helper
-                            </button>
-                        )}
-                        <button
-                            onClick={handleShare}
-                            className="group px-6 py-3 rounded-xl font-bold flex items-center gap-3 bg-gradient-to-r from-zinc-900 to-zinc-900 border border-zinc-800 hover:border-pink-500/50 transition-all duration-300 shadow-lg shadow-black/20 hover:shadow-pink-500/10 active:scale-95"
-                        >
-                            {copied ? <CheckCircle size={18} className="text-green-400" /> : <Share2 size={18} className="text-zinc-400 group-hover:text-white transition-colors" />}
-                            <span className={`bg-clip-text text-transparent transition-all ${copied ? 'bg-green-400' : 'bg-gradient-to-r from-zinc-200 to-zinc-400 group-hover:from-white group-hover:to-pink-200'}`}>
-                                {copied ? 'Link Copied!' : 'Share Playlist'}
-                            </span>
-                            {!copied && (
-                                <span className="text-red-500 group-hover:scale-125 transition-transform duration-300 inline-block">
-                                    ❤️
-                                </span>
-                            )}
-                        </button>
+                        {/* Stats Component */}
+                        <CollaborationStats playlistId={playlistId} items={items} />
                     </div>
-                </div>
+                ) : (
+                    <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 pb-8 border-b border-zinc-800/50">
+                        {/* Standard Header Content (Existing) */}
+                        <div>
+                            {isEditingName ? (
+                                <div className="flex items-center gap-3 mb-4">
+                                    <input
+                                        type="text"
+                                        value={editedName}
+                                        onChange={(e) => setEditedName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveName();
+                                            if (e.key === 'Escape') setIsEditingName(false);
+                                        }}
+                                        className="text-5xl md:text-6xl font-black text-white tracking-tighter bg-transparent border-b-2 border-white/20 focus:border-white outline-none flex-1"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={handleSaveName}
+                                        className="p-3 bg-white text-black rounded-xl hover:bg-white/90 transition-all"
+                                    >
+                                        <Check size={24} />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditingName(false)}
+                                        className="p-3 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-3 mb-4 group/title">
+                                    <h1 className="text-5xl md:text-6xl font-black text-white tracking-tighter">
+                                        {playlist?.name || (items.length === 0 ? 'Empty Playlist' : 'Playlist Content')}
+                                    </h1>
+                                    {isOwner && !isSystem && (
+                                        <button
+                                            onClick={() => {
+                                                setEditedName(playlist?.name || '');
+                                                setIsEditingName(true);
+                                            }}
+                                            className="p-2 text-zinc-600 hover:text-white hover:bg-zinc-900 rounded-lg transition-all opacity-0 group-hover/title:opacity-100"
+                                        >
+                                            <Edit2 size={20} />
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                            <p className="text-lg text-zinc-500 font-light flex items-center gap-4">
+                                <span className="flex items-center gap-2"><Eye size={16} /> {(playlist?.analytics?.total_views || 0).toLocaleString()} views</span>
+                                <span className="text-zinc-700">•</span>
+                                <span className="text-white font-bold">{items.length}</span> items stored
+                            </p>
+                        </div>
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 flex-wrap md:flex-nowrap">
+                            <button
+                                onClick={handleLikeToggle}
+                                className={`px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 border transition-all text-sm ${isLiked ? 'bg-zinc-900 text-white border-zinc-700' : 'bg-transparent text-zinc-500 border-zinc-800 hover:text-white hover:border-zinc-600'}`}
+                            >
+                                <Heart size={18} className={isLiked ? "fill-white" : ""} />
+                                <span>{likeCount}</span>
+                            </button>
+
+                            <button
+                                onClick={handleShare}
+                                className="group px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 bg-transparent border border-zinc-800 hover:bg-zinc-900 hover:text-white text-zinc-400 transition-all text-sm"
+                            >
+                                {copied ? <CheckCircle size={18} className="text-white" /> : <Share2 size={18} />}
+                                <span>{copied ? 'Copied' : 'Share'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => setShowCollaboratorsModal(true)}
+                                className="px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 bg-transparent border border-zinc-800 hover:bg-zinc-900 hover:text-white text-zinc-400 transition-all text-sm"
+                                title="View Collaborators"
+                            >
+                                <Users size={18} />
+                                <span className="hidden md:inline">Collabs</span>
+                            </button>
+
+                            {isOwner && !isSystem && (
+                                <>
+                                    <button
+                                        onClick={() => setShowInviteModal(true)}
+                                        className="px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 bg-white text-black hover:bg-zinc-200 transition-all text-sm border border-transparent"
+                                    >
+                                        <UserPlus size={18} /> Invite
+                                    </button>
+
+                                    <button
+                                        onClick={() => setShowDeletePlaylistModal(true)}
+                                        className="px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 bg-transparent text-zinc-600 border border-transparent hover:bg-red-500/10 hover:text-red-500 transition-all text-sm"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </>
+                            )}
+
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Grid */}
@@ -363,6 +466,13 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
                         <div onClick={() => onMovieSelect && onMovieSelect(movie)} className="cursor-pointer">
                             <MovieCard movie={movie} />
                         </div>
+
+                        {/* Attribution Tag */}
+                        {movie.addedBy && (
+                            <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <AttributionTag addedBy={movie.addedBy} />
+                            </div>
+                        )}
 
                         {/* Remove Button - styled minimally */}
                         <button

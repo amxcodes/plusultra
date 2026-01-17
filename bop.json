@@ -1,0 +1,1878 @@
+[
+    {
+        "table_name": "announcements",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+    },
+    {
+        "table_name": "announcements",
+        "column_name": "title",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "announcements",
+        "column_name": "content",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "announcements",
+        "column_name": "type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'info'::text"
+    },
+    {
+        "table_name": "announcements",
+        "column_name": "is_active",
+        "data_type": "boolean",
+        "udt_name": "bool",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "true"
+    },
+    {
+        "table_name": "announcements",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "app_settings",
+        "column_name": "key",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "app_settings",
+        "column_name": "value",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "community_stats",
+        "column_name": "id",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "NO",
+        "column_default": "1"
+    },
+    {
+        "table_name": "community_stats",
+        "column_name": "trending_daily",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'[]'::jsonb"
+    },
+    {
+        "table_name": "community_stats",
+        "column_name": "trending_weekly",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'[]'::jsonb"
+    },
+    {
+        "table_name": "community_stats",
+        "column_name": "most_watched_all_time",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'[]'::jsonb"
+    },
+    {
+        "table_name": "community_stats",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "community_stats_cache",
+        "column_name": "id",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "NO",
+        "column_default": "1"
+    },
+    {
+        "table_name": "community_stats_cache",
+        "column_name": "stats",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "'{}'::jsonb"
+    },
+    {
+        "table_name": "community_stats_cache",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "community_stats_cache",
+        "column_name": "user_count",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "featured_movies",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+    },
+    {
+        "table_name": "featured_movies",
+        "column_name": "tmdb_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "featured_movies",
+        "column_name": "media_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "featured_movies",
+        "column_name": "metadata",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "featured_movies",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "title",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "description",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "content_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "display_order",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "is_active",
+        "data_type": "boolean",
+        "udt_name": "bool",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "true"
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "items",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "featured_sections",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "follows",
+        "column_name": "follower_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "follows",
+        "column_name": "following_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "follows",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "playlist_items",
+        "column_name": "playlist_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "playlist_items",
+        "column_name": "tmdb_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "playlist_items",
+        "column_name": "media_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "playlist_items",
+        "column_name": "metadata",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "playlist_items",
+        "column_name": "added_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "playlist_likes",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "playlist_likes",
+        "column_name": "playlist_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "playlist_likes",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "name",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "description",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "is_public",
+        "data_type": "boolean",
+        "udt_name": "bool",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "true"
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'custom'::text"
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "is_featured",
+        "data_type": "boolean",
+        "udt_name": "bool",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "false"
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "likes_count",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "playlists",
+        "column_name": "analytics",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'{\"week_start\": null, \"month_start\": null, \"total_views\": 0, \"last_viewers\": [], \"weekly_views\": 0, \"monthly_views\": 0}'::jsonb"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "username",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "avatar_url",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "role",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'user'::text"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "watch_history",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'{}'::jsonb"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "last_seen_announcements",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "last_seen_activity",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "recent_searches",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'[]'::jsonb"
+    },
+    {
+        "table_name": "profiles",
+        "column_name": "stats",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'{\"streak_days\": 0, \"total_shows\": 0, \"genre_counts\": {}, \"last_watched\": null, \"total_movies\": 0}'::jsonb"
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "gen_random_uuid()"
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "tmdb_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "media_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "season",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "episode",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "1"
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "provider_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "vote_count",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "server_votes",
+        "column_name": "last_updated",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "title",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "description",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "poster_url",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "starts_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "tmdb_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "media_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "is_active",
+        "data_type": "boolean",
+        "udt_name": "bool",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "true"
+    },
+    {
+        "table_name": "upcoming_events",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "watch_history",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_history",
+        "column_name": "tmdb_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_history",
+        "column_name": "media_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_history",
+        "column_name": "progress",
+        "data_type": "double precision",
+        "udt_name": "float8",
+        "character_maximum_length": null,
+        "numeric_precision": 53,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "watch_history",
+        "column_name": "duration",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "0"
+    },
+    {
+        "table_name": "watch_history",
+        "column_name": "metadata",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_history",
+        "column_name": "last_watched",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "uuid_generate_v4()"
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "host_id",
+        "data_type": "uuid",
+        "udt_name": "uuid",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "tmdb_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "media_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "season",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "episode",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": null
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "current_server",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "'cinemaos'::text"
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "invite_code",
+        "data_type": "text",
+        "udt_name": "text",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "NO",
+        "column_default": "generate_invite_code()"
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "now()"
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "expires_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "character_maximum_length": null,
+        "numeric_precision": null,
+        "numeric_scale": null,
+        "is_nullable": "YES",
+        "column_default": "(now() + '04:00:00'::interval)"
+    },
+    {
+        "table_name": "watch_parties",
+        "column_name": "max_participants",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "character_maximum_length": null,
+        "numeric_precision": 32,
+        "numeric_scale": 0,
+        "is_nullable": "YES",
+        "column_default": "4"
+    }
+]
+
+[
+    {
+        "schema_name": "public",
+        "table_name": "announcements",
+        "rls_enabled": true,
+        "policyname": "Admins can manage announcements",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "announcements",
+        "rls_enabled": true,
+        "policyname": "Announcements are viewable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "announcements_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "app_settings",
+        "rls_enabled": true,
+        "policyname": "Admins can manage settings",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "app_settings",
+        "rls_enabled": true,
+        "policyname": "Allow public read access",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "app_settings",
+        "rls_enabled": true,
+        "policyname": "Only admins can update settings",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "app_settings",
+        "rls_enabled": true,
+        "policyname": "Settings are viewable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "app_settings",
+        "rls_enabled": true,
+        "policyname": "Settings viewable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "app_settings_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "community_stats",
+        "rls_enabled": true,
+        "policyname": "Public community stats",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "community_stats_cache",
+        "rls_enabled": true,
+        "policyname": "Community stats cache readable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "community_stats_cache",
+        "rls_enabled": true,
+        "policyname": "Only system can update cache",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "using_expression": "false",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "community_stats_cache_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "community_stats_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "featured_movies",
+        "rls_enabled": true,
+        "policyname": "Admins can manage featured movies",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "featured_movies",
+        "rls_enabled": true,
+        "policyname": "Featured movies viewable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "featured_movies_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "featured_sections",
+        "rls_enabled": true,
+        "policyname": "Admins can manage sections",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "featured_sections",
+        "rls_enabled": true,
+        "policyname": "Featured sections viewable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(is_active = true)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "featured_sections_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "follows",
+        "rls_enabled": true,
+        "policyname": "Follows viewable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "follows",
+        "rls_enabled": true,
+        "policyname": "Users can follow others",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(auth.uid() = follower_id)"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "follows",
+        "rls_enabled": true,
+        "policyname": "Users can unfollow",
+        "cmd": "DELETE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = follower_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "follows_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlist_items_added_at",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlist_items_playlist_id",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlist_likes_user_playlist",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlists_featured",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlists_likes_count",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlists_monthly_views",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlists_user_id",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_playlists_weekly_views",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_profiles_stats_gin",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_profiles_stats_not_null",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "idx_server_votes_lookup",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_items",
+        "rls_enabled": false,
+        "policyname": "Admins can view all playlist items.",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_items",
+        "rls_enabled": false,
+        "policyname": "Items viewable if playlist is viewable",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM playlists p\n  WHERE ((p.id = playlist_items.playlist_id) AND ((p.is_public = true) OR (p.user_id = auth.uid())))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_items",
+        "rls_enabled": false,
+        "policyname": "Users can add items to own playlists",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(EXISTS ( SELECT 1\n   FROM playlists p\n  WHERE ((p.id = playlist_items.playlist_id) AND (p.user_id = auth.uid()))))"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_items",
+        "rls_enabled": false,
+        "policyname": "Users can remove items from own playlists",
+        "cmd": "DELETE",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM playlists p\n  WHERE ((p.id = playlist_items.playlist_id) AND (p.user_id = auth.uid()))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_items_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_likes",
+        "rls_enabled": true,
+        "policyname": "Anyone can view likes",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_likes",
+        "rls_enabled": true,
+        "policyname": "Users can like playlists",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(auth.uid() = user_id)"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_likes",
+        "rls_enabled": true,
+        "policyname": "Users can unlike playlists",
+        "cmd": "DELETE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = user_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlist_likes_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists",
+        "rls_enabled": false,
+        "policyname": "Admins can update all playlists.",
+        "cmd": "UPDATE",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists",
+        "rls_enabled": false,
+        "policyname": "Admins can view all playlists.",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists",
+        "rls_enabled": false,
+        "policyname": "Public playlists are viewable by everyone.",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(is_public = true)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists",
+        "rls_enabled": false,
+        "policyname": "Users can delete own playlists.",
+        "cmd": "DELETE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = user_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists",
+        "rls_enabled": false,
+        "policyname": "Users can insert their own playlists.",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(auth.uid() = user_id)"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists",
+        "rls_enabled": false,
+        "policyname": "Users can update own playlists.",
+        "cmd": "UPDATE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = user_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists",
+        "rls_enabled": false,
+        "policyname": "Users can view their own private playlists.",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = user_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "playlists_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "profiles",
+        "rls_enabled": true,
+        "policyname": "Public profiles are viewable by everyone.",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "profiles",
+        "rls_enabled": true,
+        "policyname": "Users can insert their own profile.",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(auth.uid() = id)"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "profiles",
+        "rls_enabled": true,
+        "policyname": "Users can update own profile.",
+        "cmd": "UPDATE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "profiles_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "profiles_username_key",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "server_votes",
+        "rls_enabled": true,
+        "policyname": "Anyone can view server votes",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "true",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "server_votes",
+        "rls_enabled": true,
+        "policyname": "Authenticated users can vote",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(auth.uid() IS NOT NULL)"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "server_votes_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "server_votes_tmdb_id_media_type_season_episode_provider_id_key",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "upcoming_events",
+        "rls_enabled": true,
+        "policyname": "Admins can manage events",
+        "cmd": "ALL",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "upcoming_events",
+        "rls_enabled": true,
+        "policyname": "Events viewable by everyone",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(is_active = true)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "upcoming_events_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_history",
+        "rls_enabled": true,
+        "policyname": "Admins can view all history",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(EXISTS ( SELECT 1\n   FROM profiles\n  WHERE ((profiles.id = auth.uid()) AND (profiles.role = 'admin'::text))))",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_history",
+        "rls_enabled": true,
+        "policyname": "Users can insert/update own history",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(auth.uid() = user_id)"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_history",
+        "rls_enabled": true,
+        "policyname": "Users can update own history",
+        "cmd": "UPDATE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = user_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_history",
+        "rls_enabled": true,
+        "policyname": "Users can view own history",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = user_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_history_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_parties",
+        "rls_enabled": true,
+        "policyname": "Anyone can view active parties",
+        "cmd": "SELECT",
+        "roles": "{public}",
+        "using_expression": "(expires_at > now())",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_parties",
+        "rls_enabled": true,
+        "policyname": "Host can delete party",
+        "cmd": "DELETE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = host_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_parties",
+        "rls_enabled": true,
+        "policyname": "Host can update party",
+        "cmd": "UPDATE",
+        "roles": "{public}",
+        "using_expression": "(auth.uid() = host_id)",
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_parties",
+        "rls_enabled": true,
+        "policyname": "Users can create parties",
+        "cmd": "INSERT",
+        "roles": "{public}",
+        "using_expression": null,
+        "with_check_expression": "(auth.uid() = host_id)"
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_parties_invite_code_key",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    },
+    {
+        "schema_name": "public",
+        "table_name": "watch_parties_pkey",
+        "rls_enabled": false,
+        "policyname": null,
+        "cmd": null,
+        "roles": null,
+        "using_expression": null,
+        "with_check_expression": null
+    }
+]
+
+[
+    {
+        "function_name": "admin_delete_user",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_delete_user(p_user_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n    deleted_user jsonb;\r\n    is_admin boolean;\r\nBEGIN\r\n    -- Security: Only admins can call this\r\n    SELECT role = 'admin' INTO is_admin\r\n    FROM profiles WHERE id = auth.uid();\r\n    \r\n    IF NOT is_admin THEN\r\n        RAISE EXCEPTION 'Unauthorized: Admin role required';\r\n    END IF;\r\n    \r\n    -- Prevent self-deletion\r\n    IF p_user_id = auth.uid() THEN\r\n        RAISE EXCEPTION 'Cannot delete your own account';\r\n    END IF;\r\n    \r\n    -- Get user info before deletion (for confirmation/logging)\r\n    SELECT jsonb_build_object(\r\n        'id', id,\r\n        'username', username,\r\n        'role', role,\r\n        'created_at', created_at,\r\n        'deleted_at', now()\r\n    ) INTO deleted_user\r\n    FROM profiles WHERE id = p_user_id;\r\n    \r\n    -- Check if user exists\r\n    IF deleted_user IS NULL THEN\r\n        RAISE EXCEPTION 'User not found';\r\n    END IF;\r\n    \r\n    -- Delete from profiles table\r\n    -- Foreign key CASCADE will handle:\r\n    --   - playlists (user_id FK)\r\n    --   - playlist_items (via playlists cascade)\r\n    --   - watch_party (created_by FK)  \r\n    --   - watch_party_members (user_id FK)\r\n    --   - playlist_likes (user_id FK)\r\n    --   - follows (follower_id/following_id FK)\r\n    DELETE FROM profiles WHERE id = p_user_id;\r\n    \r\n    -- Return deleted user info for audit logging\r\n    RETURN deleted_user;\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "check_registration_enabled",
+        "definition": "CREATE OR REPLACE FUNCTION public.check_registration_enabled()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n    is_enabled text;\r\nBEGIN\r\n    -- Check app_settings for registration status\r\n    -- Use exception handling to avoid 500 errors\r\n    BEGIN\r\n        SELECT value INTO is_enabled \r\n        FROM public.app_settings \r\n        WHERE key = 'registration_enabled';\r\n    EXCEPTION\r\n        WHEN OTHERS THEN\r\n            -- If table doesn't exist or query fails, allow registration (fail-safe)\r\n            RETURN NEW;\r\n    END;\r\n    \r\n    -- Block signup if explicitly disabled\r\n    IF is_enabled = 'false' THEN\r\n        RAISE EXCEPTION 'New user registration is currently disabled. Please contact an administrator.'\r\n            USING HINT = 'Registration can be enabled by an admin in the dashboard';\r\n    END IF;\r\n    \r\n    -- Allow registration (if enabled or setting not found)\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "cleanup_expired_parties",
+        "definition": "CREATE OR REPLACE FUNCTION public.cleanup_expired_parties()\n RETURNS void\n LANGUAGE sql\nAS $function$\r\n  delete from public.watch_parties where expires_at < now();\r\n$function$\n"
+    },
+    {
+        "function_name": "clear_my_watch_history",
+        "definition": "CREATE OR REPLACE FUNCTION public.clear_my_watch_history()\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\ndeclare\r\n  is_enabled text;\r\nbegin\r\n  select value into is_enabled \r\n  from public.app_settings \r\n  where key = 'clear_history_enabled';\r\n  \r\n  if is_enabled != 'true' then\r\n    raise exception 'This feature is currently disabled by the administrator.';\r\n  end if;\r\n\r\n  update public.profiles\r\n  set watch_history = '{}'::jsonb\r\n  where id = auth.uid();\r\nend;\r\n$function$\n"
+    },
+    {
+        "function_name": "generate_invite_code",
+        "definition": "CREATE OR REPLACE FUNCTION public.generate_invite_code()\n RETURNS text\n LANGUAGE sql\nAS $function$\r\n  select upper(substring(md5(random()::text) from 1 for 6));\r\n$function$\n"
+    },
+    {
+        "function_name": "get_community_stats",
+        "definition": "CREATE OR REPLACE FUNCTION public.get_community_stats(p_user_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  result jsonb;\r\n  user_stats jsonb;\r\n  user_total int;\r\n  user_movies int;\r\n  user_shows int;\r\n  user_streak int;\r\n  user_rewatches int;\r\n  cache_age interval;\r\n  use_cache boolean := false;\r\nBEGIN\r\n  -- Get user's stats\r\n  SELECT stats INTO user_stats \r\n  FROM public.profiles \r\n  WHERE id = p_user_id;\r\n  \r\n  -- If user has no stats, return null\r\n  IF user_stats IS NULL OR user_stats = '{}'::jsonb THEN\r\n    RETURN jsonb_build_object(\r\n      'error', 'No stats available for user',\r\n      'user_percentile', jsonb_build_object(\r\n        'total_content', 0,\r\n        'streak', 0,\r\n        'rewatches', 0\r\n      )\r\n    );\r\n  END IF;\r\n  \r\n  -- Extract user's metrics\r\n  user_movies := COALESCE((user_stats->>'total_movies')::int, 0);\r\n  user_shows := COALESCE((user_stats->>'total_shows')::int, 0);\r\n  user_total := user_movies + user_shows;\r\n  user_streak := COALESCE((user_stats->>'max_streak')::int, 0);\r\n  user_rewatches := COALESCE((user_stats->>'rewatch_count')::int, 0);\r\n  \r\n  -- Check if cache is fresh (less than 24 hours old)\r\n  SELECT EXTRACT(EPOCH FROM (now() - updated_at))::int / 3600 < 24 INTO use_cache\r\n  FROM public.community_stats_cache WHERE id = 1;\r\n  \r\n  -- Calculate community stats (with or without cache)\r\n  WITH community_data AS (\r\n    SELECT \r\n      -- Averages\r\n      ROUND(AVG(COALESCE((stats->>'total_movies')::int, 0) + \r\n                COALESCE((stats->>'total_shows')::int, 0)), 1) as avg_total,\r\n      ROUND(AVG(COALESCE((stats->>'total_movies')::int, 0)), 1) as avg_movies,\r\n      ROUND(AVG(COALESCE((stats->>'total_shows')::int, 0)), 1) as avg_shows,\r\n      ROUND(AVG(COALESCE((stats->>'max_streak')::int, 0)), 1) as avg_streak,\r\n      ROUND(AVG(COALESCE((stats->>'rewatch_count')::int, 0)), 1) as avg_rewatches,\r\n      \r\n      -- Count active users\r\n      COUNT(*) as total_users,\r\n      \r\n      -- Medians for reference\r\n      PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY \r\n        COALESCE((stats->>'total_movies')::int, 0) + \r\n        COALESCE((stats->>'total_shows')::int, 0)) as median_total,\r\n      PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY \r\n        COALESCE((stats->>'max_streak')::int, 0)) as median_streak\r\n    FROM public.profiles\r\n    WHERE stats IS NOT NULL \r\n      AND stats != '{}'::jsonb\r\n      AND (COALESCE((stats->>'total_movies')::int, 0) + \r\n           COALESCE((stats->>'total_shows')::int, 0)) > 0\r\n  ),\r\n  user_percentiles AS (\r\n    SELECT\r\n      -- Percentile: % of users this user is better than\r\n      ROUND(\r\n        (COUNT(CASE \r\n          WHEN (COALESCE((stats->>'total_movies')::int, 0) + \r\n                COALESCE((stats->>'total_shows')::int, 0)) < user_total \r\n          THEN 1 END)::float / NULLIF(COUNT(*)::float, 0) * 100)::numeric, \r\n        1\r\n      ) as total_percentile,\r\n      \r\n      ROUND(\r\n        (COUNT(CASE \r\n          WHEN COALESCE((stats->>'max_streak')::int, 0) < user_streak \r\n          THEN 1 END)::float / NULLIF(COUNT(*)::float, 0) * 100)::numeric, \r\n        1\r\n      ) as streak_percentile,\r\n      \r\n      ROUND(\r\n        (COUNT(CASE \r\n          WHEN COALESCE((stats->>'rewatch_count')::int, 0) < user_rewatches \r\n          THEN 1 END)::float / NULLIF(COUNT(*)::float, 0) * 100)::numeric, \r\n        1\r\n      ) as rewatch_percentile\r\n    FROM public.profiles\r\n    WHERE stats IS NOT NULL \r\n      AND stats != '{}'::jsonb\r\n      AND (COALESCE((stats->>'total_movies')::int, 0) + \r\n           COALESCE((stats->>'total_shows')::int, 0)) > 0\r\n  ),\r\n  top_community_genres AS (\r\n    -- Aggregate all genre counts across users\r\n    SELECT \r\n      genre,\r\n      SUM(count::int) as total_count\r\n    FROM public.profiles,\r\n    LATERAL jsonb_each_text(COALESCE(stats->'genre_counts', '{}'::jsonb)) AS genre_data(genre, count)\r\n    WHERE stats IS NOT NULL\r\n    GROUP BY genre\r\n    ORDER BY total_count DESC\r\n    LIMIT 10\r\n  )\r\n  SELECT jsonb_build_object(\r\n    'avg_total_content', COALESCE(cd.avg_total, 0),\r\n    'avg_movies', COALESCE(cd.avg_movies, 0),\r\n    'avg_shows', COALESCE(cd.avg_shows, 0),\r\n    'avg_streak', COALESCE(cd.avg_streak, 0),\r\n    'avg_rewatch_count', COALESCE(cd.avg_rewatches, 0),\r\n    'median_total', COALESCE(cd.median_total, 0),\r\n    'median_streak', COALESCE(cd.median_streak, 0),\r\n    'total_users', COALESCE(cd.total_users, 0),\r\n    'user_percentile', jsonb_build_object(\r\n      'total_content', COALESCE(up.total_percentile, 0),\r\n      'streak', COALESCE(up.streak_percentile, 0),\r\n      'rewatches', COALESCE(up.rewatch_percentile, 0)\r\n    ),\r\n    'top_community_genres', (\r\n      SELECT jsonb_agg(jsonb_build_object('genre', genre, 'count', total_count))\r\n      FROM top_community_genres\r\n    ),\r\n    'user_stats', jsonb_build_object(\r\n      'total_content', user_total,\r\n      'movies', user_movies,\r\n      'shows', user_shows,\r\n      'streak', user_streak,\r\n      'rewatches', user_rewatches\r\n    ),\r\n    'cache_used', use_cache,\r\n    'generated_at', now()\r\n  ) INTO result\r\n  FROM community_data cd\r\n  CROSS JOIN user_percentiles up;\r\n  \r\n  RETURN result;\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "handle_new_user",
+        "definition": "CREATE OR REPLACE FUNCTION public.handle_new_user()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nbegin\r\n  -- 1. Create Profile\r\n  insert into public.profiles (id, username, avatar_url, role)\r\n  values (new.id, new.email, new.raw_user_meta_data->>'avatar_url', 'user');\r\n\r\n  -- 2. Create Default 'Watch Later' Playlist\r\n  insert into public.playlists (user_id, name, is_public, type)\r\n  values (new.id, 'Watch Later', false, 'watch_later');\r\n\r\n  -- 3. Create Default 'Favorites' Playlist\r\n  insert into public.playlists (user_id, name, is_public, type)\r\n  values (new.id, 'Favorites', true, 'favorites');\r\n\r\n  return new;\r\nend;\r\n$function$\n"
+    },
+    {
+        "function_name": "increment_server_vote",
+        "definition": "CREATE OR REPLACE FUNCTION public.increment_server_vote(p_tmdb_id text, p_media_type text, p_season integer, p_episode integer, p_provider_id text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n  INSERT INTO public.server_votes (tmdb_id, media_type, season, episode, provider_id, vote_count)\r\n  VALUES (p_tmdb_id, p_media_type, p_season, p_episode, p_provider_id, 1)\r\n  ON CONFLICT (tmdb_id, media_type, season, episode, provider_id)\r\n  DO UPDATE SET \r\n    vote_count = server_votes.vote_count + 1,\r\n    last_updated = NOW();\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "like_playlist",
+        "definition": "CREATE OR REPLACE FUNCTION public.like_playlist(p_playlist_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nbegin\r\n  -- Insert like\r\n  insert into public.playlist_likes (user_id, playlist_id)\r\n  values (auth.uid(), p_playlist_id)\r\n  on conflict do nothing;\r\n  \r\n  -- Increment counter\r\n  update public.playlists\r\n  set likes_count = likes_count + 1\r\n  where id = p_playlist_id;\r\nend;\r\n$function$\n"
+    },
+    {
+        "function_name": "prune_watch_history",
+        "definition": "CREATE OR REPLACE FUNCTION public.prune_watch_history()\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\r\nDECLARE\r\n  user_record RECORD;\r\n  new_history JSONB;\r\n  cutoff_ms BIGINT;\r\nBEGIN\r\n  -- 60 days ago in milliseconds\r\n  cutoff_ms := (EXTRACT(EPOCH FROM NOW()) - (60 * 24 * 60 * 60)) * 1000;\r\n\r\n  FOR user_record IN SELECT id, watch_history FROM public.profiles WHERE watch_history IS NOT NULL LOOP\r\n    \r\n    -- Filter items older than 60 days\r\n    SELECT jsonb_object_agg(key, value)\r\n    INTO new_history\r\n    FROM jsonb_each(user_record.watch_history)\r\n    WHERE (value->>'lastUpdated')::bigint >= cutoff_ms;\r\n\r\n    -- Update if changed\r\n    IF new_history IS DISTINCT FROM user_record.watch_history THEN\r\n      UPDATE public.profiles\r\n      SET watch_history = COALESCE(new_history, '{}'::jsonb)\r\n      WHERE id = user_record.id;\r\n    END IF;\r\n    \r\n  END LOOP;\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "refresh_community_stats_cache",
+        "definition": "CREATE OR REPLACE FUNCTION public.refresh_community_stats_cache()\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  cached_stats jsonb;\r\n  active_users int;\r\nBEGIN\r\n  -- Calculate community-wide statistics\r\n  WITH community_aggregates AS (\r\n    SELECT \r\n      ROUND(AVG(COALESCE((stats->>'total_movies')::int, 0) + \r\n                COALESCE((stats->>'total_shows')::int, 0)), 1) as avg_total,\r\n      ROUND(AVG(COALESCE((stats->>'total_movies')::int, 0)), 1) as avg_movies,\r\n      ROUND(AVG(COALESCE((stats->>'total_shows')::int, 0)), 1) as avg_shows,\r\n      ROUND(AVG(COALESCE((stats->>'max_streak')::int, 0)), 1) as avg_streak,\r\n      ROUND(AVG(COALESCE((stats->>'rewatch_count')::int, 0)), 1) as avg_rewatches,\r\n      COUNT(*) as total_users,\r\n      PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY \r\n        COALESCE((stats->>'total_movies')::int, 0) + \r\n        COALESCE((stats->>'total_shows')::int, 0)) as median_total\r\n    FROM public.profiles\r\n    WHERE stats IS NOT NULL \r\n      AND stats != '{}'::jsonb\r\n      AND (COALESCE((stats->>'total_movies')::int, 0) + \r\n           COALESCE((stats->>'total_shows')::int, 0)) > 0\r\n  ),\r\n  top_genres AS (\r\n    SELECT \r\n      genre,\r\n      SUM(count::int) as total_count\r\n    FROM public.profiles,\r\n    LATERAL jsonb_each_text(COALESCE(stats->'genre_counts', '{}'::jsonb)) AS genre_data(genre, count)\r\n    WHERE stats IS NOT NULL\r\n    GROUP BY genre\r\n    ORDER BY total_count DESC\r\n    LIMIT 10\r\n  )\r\n  SELECT \r\n    jsonb_build_object(\r\n      'avg_total_content', ca.avg_total,\r\n      'avg_movies', ca.avg_movies,\r\n      'avg_shows', ca.avg_shows,\r\n      'avg_streak', ca.avg_streak,\r\n      'avg_rewatch_count', ca.avg_rewatches,\r\n      'median_total', ca.median_total,\r\n      'top_genres', (SELECT jsonb_agg(jsonb_build_object('genre', genre, 'count', total_count)) FROM top_genres)\r\n    ),\r\n    ca.total_users\r\n  INTO cached_stats, active_users\r\n  FROM community_aggregates ca;\r\n  \r\n  -- Update cache\r\n  UPDATE public.community_stats_cache\r\n  SET \r\n    stats = cached_stats,\r\n    user_count = active_users,\r\n    updated_at = now()\r\n  WHERE id = 1;\r\n  \r\n  RAISE NOTICE 'Community stats cache refreshed for % users', active_users;\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "track_playlist_view",
+        "definition": "CREATE OR REPLACE FUNCTION public.track_playlist_view(p_playlist_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\ndeclare\r\n  current_analytics jsonb;\r\n  current_week text;\r\n  current_month text;\r\n  stored_week text;\r\n  stored_month text;\r\n  new_analytics jsonb;\r\nbegin\r\n  current_analytics := (select analytics from public.playlists where id = p_playlist_id);\r\n  current_week := to_char(now(), 'IYYY-IW'); -- ISO week format\r\n  current_month := to_char(now(), 'YYYY-MM');\r\n  \r\n  stored_week := current_analytics->>'week_start';\r\n  stored_month := current_analytics->>'month_start';\r\n  \r\n  -- Build new analytics object\r\n  new_analytics := jsonb_build_object(\r\n    'total_views', coalesce((current_analytics->>'total_views')::int, 0) + 1,\r\n    'weekly_views', case when stored_week = current_week then coalesce((current_analytics->>'weekly_views')::int, 0) + 1 else 1 end,\r\n    'monthly_views', case when stored_month = current_month then coalesce((current_analytics->>'monthly_views')::int, 0) + 1 else 1 end,\r\n    'week_start', current_week,\r\n    'month_start', current_month,\r\n    'last_viewers', (\r\n      select jsonb_agg(viewer order by (viewer->>'timestamp')::bigint desc)\r\n      from (\r\n        select jsonb_array_elements(coalesce(current_analytics->'last_viewers', '[]'::jsonb)) as viewer\r\n        union all\r\n        select jsonb_build_object('user_id', auth.uid()::text, 'timestamp', extract(epoch from now())::bigint)\r\n        limit 10\r\n      ) viewers\r\n    )\r\n  );\r\n  \r\n  update public.playlists\r\n  set analytics = new_analytics\r\n  where id = p_playlist_id;\r\nend;\r\n$function$\n"
+    },
+    {
+        "function_name": "unlike_playlist",
+        "definition": "CREATE OR REPLACE FUNCTION public.unlike_playlist(p_playlist_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nbegin\r\n  -- Delete like\r\n  delete from public.playlist_likes\r\n  where user_id = auth.uid() and playlist_id = p_playlist_id;\r\n  \r\n  -- Decrement counter\r\n  update public.playlists\r\n  set likes_count = greatest(likes_count - 1, 0)\r\n  where id = p_playlist_id;\r\nend;\r\n$function$\n"
+    },
+    {
+        "function_name": "update_watch_history",
+        "definition": "CREATE OR REPLACE FUNCTION public.update_watch_history(p_user_id uuid, p_tmdb_id text, p_data jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  current_stats JSONB;\r\n  current_history JSONB;\r\n  is_new_item BOOLEAN;\r\n  media_type TEXT;\r\n  previous_last_watched TIMESTAMPTZ;\r\n  days_since_last_watch INT;\r\n  current_streak INT;\r\n  genres JSONB;\r\n  genre_name TEXT;\r\n  current_month TEXT;\r\n  current_year INT;\r\n  stored_year INT;\r\n  title TEXT;\r\n  title_rewatch_count INT;\r\n  today TEXT;\r\n  today_count INT;\r\nBEGIN\r\n  SELECT watch_history, stats INTO current_history, current_stats \r\n  FROM public.profiles WHERE id = p_user_id;\r\n\r\n  -- Initialize if null\r\n  IF current_stats IS NULL THEN \r\n    current_stats := jsonb_build_object(\r\n      'total_movies', 0,\r\n      'total_shows', 0,\r\n      'streak_days', 0,\r\n      'max_streak', 0,\r\n      'genre_counts', '{}'::jsonb,\r\n      'monthly_watches', '{}'::jsonb,\r\n      'first_watch_of_year', null,\r\n      'year', extract(year from now()),\r\n      'rewatch_count', 0,\r\n      'binge_days', 0,\r\n      'daily_watch_count', '{}'::jsonb,\r\n      'title_rewatch_counts', '{}'::jsonb,\r\n      'past_years', '{}'::jsonb\r\n    );\r\n  END IF;\r\n  \r\n  IF current_history IS NULL THEN \r\n    current_history := '{}'::jsonb; \r\n  END IF;\r\n\r\n  -- ===============================================\r\n  -- YEAR TRANSITION LOGIC (Jan 1st Auto-Reset)\r\n  -- ===============================================\r\n  current_year := extract(year from now());\r\n  stored_year := COALESCE((current_stats->>'year')::int, current_year);\r\n\r\n  IF stored_year < current_year THEN\r\n     -- Initialize past_years if needed\r\n     IF current_stats->'past_years' IS NULL THEN\r\n        current_stats := jsonb_set(current_stats, '{past_years}', '{}'::jsonb);\r\n     END IF;\r\n     \r\n     -- Snapshot old year's stats (e.g., save 2026 stats before resetting)\r\n     current_stats := jsonb_set(\r\n        current_stats,\r\n        array['past_years', stored_year::text],\r\n        current_stats - 'past_years'\r\n     );\r\n\r\n     -- Reset all counters for new year\r\n     current_stats := jsonb_set(current_stats, '{total_movies}', '0'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{total_shows}', '0'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{streak_days}', '0'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{max_streak}', '0'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{genre_counts}', '{}'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{monthly_watches}', '{}'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{first_watch_of_year}', 'null'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{rewatch_count}', '0'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{binge_days}', '0'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{daily_watch_count}', '{}'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{title_rewatch_counts}', '{}'::jsonb);\r\n     current_stats := jsonb_set(current_stats, '{year}', current_year::text::jsonb);\r\n  END IF;\r\n\r\n  -- Ensure fields exist (for users running migration mid-year)\r\n  IF current_stats->'genre_counts' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{genre_counts}', '{}'::jsonb);\r\n  END IF;\r\n  IF current_stats->'max_streak' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{max_streak}', '0'::jsonb);\r\n  END IF;\r\n  IF current_stats->'monthly_watches' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{monthly_watches}', '{}'::jsonb);\r\n  END IF;\r\n  IF current_stats->'year' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{year}', to_jsonb(extract(year from now())::int));\r\n  END IF;\r\n  IF current_stats->'rewatch_count' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{rewatch_count}', '0'::jsonb);\r\n  END IF;\r\n  IF current_stats->'binge_days' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{binge_days}', '0'::jsonb);\r\n  END IF;\r\n  IF current_stats->'daily_watch_count' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{daily_watch_count}', '{}'::jsonb);\r\n  END IF;\r\n  IF current_stats->'title_rewatch_counts' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{title_rewatch_counts}', '{}'::jsonb);\r\n  END IF;\r\n  IF current_stats->'past_years' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{past_years}', '{}'::jsonb);\r\n  END IF;\r\n\r\n  -- Extract metadata\r\n  media_type := p_data->>'type';\r\n  genres := p_data->'genres';\r\n  is_new_item := NOT (current_history ? p_tmdb_id);\r\n\r\n  -- ===============================================\r\n  -- REWATCH TRACKING\r\n  -- ===============================================\r\n  IF NOT is_new_item THEN\r\n    current_stats := jsonb_set(\r\n      current_stats,\r\n      '{rewatch_count}',\r\n      (COALESCE((current_stats->>'rewatch_count')::int, 0) + 1)::text::jsonb\r\n    );\r\n    \r\n    title := p_data->>'title';\r\n    IF title IS NOT NULL THEN\r\n      title_rewatch_count := COALESCE((current_stats->'title_rewatch_counts'->>title)::int, 0) + 1;\r\n      current_stats := jsonb_set(\r\n        current_stats,\r\n        array['title_rewatch_counts', title],\r\n        title_rewatch_count::text::jsonb\r\n      );\r\n    END IF;\r\n  END IF;\r\n\r\n  -- Update watch history\r\n  current_history := jsonb_set(current_history, array[p_tmdb_id], p_data);\r\n\r\n  -- Update counters if new item\r\n  IF is_new_item THEN\r\n    IF media_type = 'movie' THEN\r\n      current_stats := jsonb_set(current_stats, '{total_movies}', \r\n        ((current_stats->>'total_movies')::int + 1)::text::jsonb);\r\n    ELSIF media_type = 'tv' THEN\r\n      current_stats := jsonb_set(current_stats, '{total_shows}', \r\n        ((current_stats->>'total_shows')::int + 1)::text::jsonb);\r\n    END IF;\r\n\r\n    IF genres IS NOT NULL AND jsonb_typeof(genres) = 'array' THEN\r\n      FOR genre_name IN SELECT jsonb_array_elements_text(genres)\r\n      LOOP\r\n        current_stats := jsonb_set(\r\n          current_stats,\r\n          array['genre_counts', genre_name],\r\n          (COALESCE((current_stats->'genre_counts'->>genre_name)::int, 0) + 1)::text::jsonb\r\n        );\r\n      END LOOP;\r\n    END IF;\r\n  END IF;\r\n\r\n  -- Calculate streak\r\n  previous_last_watched := (current_stats->>'last_watched')::timestamptz;\r\n  current_streak := COALESCE((current_stats->>'streak_days')::int, 0);\r\n  \r\n  IF previous_last_watched IS NULL THEN\r\n    current_streak := 1;\r\n  ELSE\r\n    days_since_last_watch := CURRENT_DATE - DATE(previous_last_watched);\r\n    \r\n    IF days_since_last_watch = 0 THEN\r\n      current_streak := current_streak;\r\n    ELSIF days_since_last_watch = 1 THEN\r\n      current_streak := current_streak + 1;\r\n    ELSE\r\n      current_streak := 1;\r\n    END IF;\r\n  END IF;\r\n  \r\n  current_stats := jsonb_set(current_stats, '{streak_days}', current_streak::text::jsonb);\r\n  current_stats := jsonb_set(current_stats, '{last_watched}', to_jsonb(now()));\r\n\r\n  IF current_streak > COALESCE((current_stats->>'max_streak')::int, 0) THEN\r\n    current_stats := jsonb_set(current_stats, '{max_streak}', current_streak::text::jsonb);\r\n  END IF;\r\n\r\n  -- Track monthly watches\r\n  current_month := to_char(now(), 'YYYY-MM');\r\n  current_stats := jsonb_set(\r\n    current_stats, \r\n    array['monthly_watches', current_month], \r\n    (COALESCE((current_stats->'monthly_watches'->>current_month)::int, 0) + 1)::text::jsonb\r\n  );\r\n\r\n  -- ===============================================\r\n  -- BINGE DAY TRACKING\r\n  -- ===============================================\r\n  today := to_char(now(), 'YYYY-MM-DD');\r\n  today_count := COALESCE((current_stats->'daily_watch_count'->>today)::int, 0) + 1;\r\n  \r\n  current_stats := jsonb_set(\r\n    current_stats,\r\n    array['daily_watch_count', today],\r\n    today_count::text::jsonb\r\n  );\r\n  \r\n  IF today_count = 3 THEN\r\n    current_stats := jsonb_set(\r\n      current_stats,\r\n      '{binge_days}',\r\n      (COALESCE((current_stats->>'binge_days')::int, 0) + 1)::text::jsonb\r\n    );\r\n  END IF;\r\n  \r\n  -- Cleanup old daily counts (keep last 30 days)\r\n  current_stats := jsonb_set(\r\n    current_stats,\r\n    '{daily_watch_count}',\r\n    (\r\n      SELECT COALESCE(jsonb_object_agg(key, value), '{}'::jsonb)\r\n      FROM jsonb_each(current_stats->'daily_watch_count')\r\n      WHERE to_date(key, 'YYYY-MM-DD') > CURRENT_DATE - INTERVAL '30 days'\r\n    )\r\n  );\r\n\r\n  -- Track first watch of year\r\n  current_year := extract(year from now());\r\n  IF current_stats->'first_watch_of_year' IS NULL OR\r\n     COALESCE((current_stats->'first_watch_of_year'->>'year')::int, 0) < current_year THEN\r\n    current_stats := jsonb_set(current_stats, '{first_watch_of_year}', jsonb_build_object(\r\n      'tmdb_id', p_tmdb_id,\r\n      'title', p_data->>'title',\r\n      'date', current_date::text,\r\n      'type', media_type,\r\n      'year', current_year\r\n    ));\r\n  END IF;\r\n\r\n  -- Save\r\n  UPDATE public.profiles\r\n  SET \r\n    watch_history = current_history,\r\n    stats = current_stats,\r\n    last_seen_activity = now()\r\n  WHERE id = p_user_id;\r\n\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "update_watch_history_v2",
+        "definition": "CREATE OR REPLACE FUNCTION public.update_watch_history_v2(p_user_id uuid, p_tmdb_id text, p_data jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  current_stats JSONB;\r\n  current_history JSONB;\r\n  is_new_item BOOLEAN;\r\n  media_type TEXT;\r\n  previous_last_watched TIMESTAMPTZ;\r\n  days_since_last_watch INT;\r\n  current_streak INT;\r\n  genres JSONB;\r\n  genre_name TEXT;\r\nBEGIN\r\n  SELECT watch_history, stats INTO current_history, current_stats \r\n  FROM public.profiles WHERE id = p_user_id;\r\n\r\n  IF current_history IS NULL THEN current_history := '{}'::jsonb; END IF;\r\n  IF current_stats IS NULL THEN \r\n    current_stats := '{\"total_movies\": 0, \"total_shows\": 0, \"streak_days\": 0, \"genre_counts\": {}}'::jsonb; \r\n  END IF;\r\n  IF current_stats->'genre_counts' IS NULL THEN\r\n    current_stats := jsonb_set(current_stats, '{genre_counts}', '{}'::jsonb);\r\n  END IF;\r\n\r\n  media_type := p_data->>'type';\r\n  genres := p_data->'genres';\r\n  is_new_item := NOT (current_history ? p_tmdb_id);\r\n  current_history := jsonb_set(current_history, array[p_tmdb_id], p_data);\r\n\r\n  IF is_new_item THEN\r\n    IF media_type = 'movie' THEN\r\n      current_stats := jsonb_set(current_stats, '{total_movies}', \r\n        ((current_stats->>'total_movies')::int + 1)::text::jsonb);\r\n    ELSIF media_type = 'tv' THEN\r\n      current_stats := jsonb_set(current_stats, '{total_shows}', \r\n        ((current_stats->>'total_shows')::int + 1)::text::jsonb);\r\n    END IF;\r\n\r\n    IF genres IS NOT NULL AND jsonb_typeof(genres) = 'array' THEN\r\n      FOR genre_name IN SELECT jsonb_array_elements_text(genres)\r\n      LOOP\r\n        current_stats := jsonb_set(\r\n          current_stats,\r\n          array['genre_counts', genre_name],\r\n          (COALESCE((current_stats->'genre_counts'->>genre_name)::int, 0) + 1)::text::jsonb\r\n        );\r\n      END LOOP;\r\n    END IF;\r\n  END IF;\r\n\r\n  previous_last_watched := (current_stats->>'last_watched')::timestamptz;\r\n  current_streak := COALESCE((current_stats->>'streak_days')::int, 0);\r\n  \r\n  IF previous_last_watched IS NULL THEN\r\n    current_streak := 1;\r\n  ELSE\r\n    days_since_last_watch := EXTRACT(DAY FROM (CURRENT_DATE - DATE(previous_last_watched)));\r\n    IF days_since_last_watch = 0 THEN current_streak := current_streak;\r\n    ELSIF days_since_last_watch = 1 THEN current_streak := current_streak + 1;\r\n    ELSE current_streak := 1;\r\n    END IF;\r\n  END IF;\r\n  \r\n  current_stats := jsonb_set(current_stats, '{streak_days}', current_streak::text::jsonb);\r\n  current_stats := jsonb_set(current_stats, '{last_watched}', to_jsonb(now()));\r\n\r\n  UPDATE public.profiles\r\n  SET watch_history = current_history, stats = current_stats, last_seen_activity = now()\r\n  WHERE id = p_user_id;\r\nEND;\r\n$function$\n"
+    },
+    {
+        "function_name": "update_watch_history_with_stats",
+        "definition": "CREATE OR REPLACE FUNCTION public.update_watch_history_with_stats(p_user_id uuid, p_tmdb_id text, p_media_type text, p_duration integer, p_genres text[], p_data jsonb)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n  current_stats JSONB;\r\n  current_history JSONB;\r\n  is_new_item BOOLEAN;\r\n  g text;\r\nBEGIN\r\n  -- Fetch current data\r\n  SELECT watch_history, stats INTO current_history, current_stats \r\n  FROM public.profiles WHERE id = p_user_id;\r\n\r\n  -- Initialize defaults\r\n  IF current_history IS NULL THEN current_history := '{}'::jsonb; END IF;\r\n  IF current_stats IS NULL THEN \r\n    current_stats := '{\"total_movies\": 0, \"total_shows\": 0, \"streak_days\": 0, \"genre_counts\": {}}'::jsonb; \r\n  END IF;\r\n\r\n  -- Check if new item\r\n  is_new_item := NOT (current_history ? p_tmdb_id);\r\n\r\n  -- Update watch history\r\n  current_history := jsonb_set(current_history, array[p_tmdb_id], p_data);\r\n\r\n  -- Update counters if new\r\n  IF is_new_item THEN\r\n    IF p_media_type = 'movie' THEN\r\n      current_stats := jsonb_set(current_stats, '{total_movies}', ((current_stats->>'total_movies')::int + 1)::text::jsonb);\r\n    ELSE\r\n      current_stats := jsonb_set(current_stats, '{total_shows}', ((current_stats->>'total_shows')::int + 1)::text::jsonb);\r\n    END IF;\r\n  END IF;\r\n\r\n  -- Update genres\r\n  IF is_new_item AND p_genres IS NOT NULL THEN\r\n    FOREACH g IN ARRAY p_genres\r\n    LOOP\r\n      current_stats := jsonb_set(\r\n        current_stats,\r\n        array['genre_counts', g],\r\n        (COALESCE((current_stats->'genre_counts'->>g)::int, 0) + 1)::text::jsonb\r\n      );\r\n    END LOOP;\r\n  END IF;\r\n\r\n  -- Update last watched & calculate streak\r\n  DECLARE\r\n    previous_last_watched TIMESTAMPTZ;\r\n    days_since_last_watch INT;\r\n    current_streak INT;\r\n  BEGIN\r\n    previous_last_watched := (current_stats->>'last_watched')::timestamptz;\r\n    current_streak := COALESCE((current_stats->>'streak_days')::int, 0);\r\n    \r\n    IF previous_last_watched IS NULL THEN\r\n      -- First time watching\r\n      current_streak := 1;\r\n    ELSE\r\n      -- Calculate days between last watch and today\r\n      days_since_last_watch := EXTRACT(DAY FROM (CURRENT_DATE - DATE(previous_last_watched)));\r\n      \r\n      IF days_since_last_watch = 0 THEN\r\n        -- Watched earlier today, keep streak\r\n        current_streak := current_streak;\r\n      ELSIF days_since_last_watch = 1 THEN\r\n        -- Watched yesterday, increment streak\r\n        current_streak := current_streak + 1;\r\n      ELSE\r\n        -- Missed a day or more, reset streak\r\n        current_streak := 1;\r\n      END IF;\r\n    END IF;\r\n    \r\n    -- Update stats with new streak and timestamp\r\n    current_stats := jsonb_set(current_stats, '{streak_days}', current_streak::text::jsonb);\r\n    current_stats := jsonb_set(current_stats, '{last_watched}', to_jsonb(now()));\r\n  END;\r\n\r\n  -- Commit\r\n  UPDATE public.profiles\r\n  SET \r\n    watch_history = current_history,\r\n    stats = current_stats,\r\n    last_seen_activity = now()\r\n  WHERE id = p_user_id;\r\n\r\nEND;\r\n$function$\n"
+    }
+]

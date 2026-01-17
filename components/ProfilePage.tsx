@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { Profile, Playlist } from '../types';
-import { UserPlus, UserMinus, Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp } from 'lucide-react';
+import { UserPlus, UserMinus, Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp, Users } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import { ContinueWatchingCard } from './ContinueWatchingCard'; // Keep if used elsewhere or remove later
 import { MovieCard } from './MovieCard';
@@ -532,12 +532,18 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                                         {playlist.name}
                                     </h3>
                                     <div className="flex items-center gap-2 mt-1">
-                                        {playlist.is_public ?
-                                            <Globe size={12} className="text-zinc-600" /> :
-                                            <Lock size={12} className="text-zinc-600" />
-                                        }
-                                        <span className="text-xs text-zinc-600 font-medium lowercase">
-                                            {playlist.items_count || playlist.items?.length || 0} tracks
+                                        {playlist.user_id !== (userId || currentUser?.id) ? (
+                                            <div className="flex items-center gap-1 text-blue-400" title="Collaborative Playlist">
+                                                <Users size={12} />
+                                                <span className="text-xs font-medium">Shared</span>
+                                            </div>
+                                        ) : (
+                                            playlist.is_public ?
+                                                <Globe size={12} className="text-zinc-600" /> :
+                                                <Lock size={12} className="text-zinc-600" />
+                                        )}
+                                        <span className="text-xs text-zinc-600 font-medium">
+                                            • {playlist.items_count || playlist.items?.length || 0} tracks
                                         </span>
                                     </div>
                                 </div>

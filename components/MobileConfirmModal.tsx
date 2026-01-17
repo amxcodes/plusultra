@@ -28,7 +28,7 @@ export const MobileConfirmModal: React.FC<MobileConfirmModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
@@ -36,8 +36,7 @@ export const MobileConfirmModal: React.FC<MobileConfirmModalProps> = ({
             />
 
             {/* Content */}
-            <div className="absolute bottom-0 left-0 right-0 bg-[#18181b] rounded-t-3xl p-6 pb-safe animate-in slide-in-from-bottom duration-300">
-                <div className="w-12 h-1 bg-zinc-800 rounded-full mx-auto mb-6" />
+            <div className="relative w-full max-w-sm bg-[#18181b] rounded-2xl p-6 animate-in zoom-in-95 duration-300 shadow-2xl border border-white/5">
 
                 <div className="flex flex-col items-center text-center">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${isDestructive ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'
@@ -52,8 +51,8 @@ export const MobileConfirmModal: React.FC<MobileConfirmModalProps> = ({
                         <button
                             onClick={() => { onConfirm(); onClose(); }}
                             className={`w-full h-14 rounded-xl font-bold text-base flex items-center justify-center transition-transform active:scale-[0.98] ${isDestructive
-                                    ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-900/20'
-                                    : 'bg-white text-black hover:bg-zinc-200'
+                                ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-900/20'
+                                : 'bg-white text-black hover:bg-zinc-200'
                                 }`}
                         >
                             {confirmLabel}

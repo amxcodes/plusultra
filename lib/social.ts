@@ -100,7 +100,10 @@ export const SocialService = {
     // --- Playlists ---
 
     async getPlaylists(userId: string): Promise<Playlist[]> {
-        const { data, error } = await supabase
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        const isOwnProfile = currentUser?.id === userId;
+
+        let query = supabase
             .from('playlists')
             .select(`
                 *,
@@ -108,8 +111,34 @@ export const SocialService = {
                     metadata
                 )
             `)
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
+
+        if (isOwnProfile) {
+            // Fetch playlists I own OR collaborate on
+            // First, get IDs of playlists I collaborate on
+            const { data: collaborations } = await supabase
+                .from('playlist_collaborators')
+                .select('playlist_id')
+                .eq('user_id', userId)
+                .eq('status', 'accepted');
+
+            const collabIds = collaborations?.map(c => c.playlist_id) || [];
+
+            // If has collaborations, construct OR query
+            if (collabIds.length > 0) {
+                // Syntax: user_id.eq.X,id.in.(Y,Z)
+                // Note: id.in.(...) syntax in .or() can be tricky, using filter composition
+                query = query.or(`user_id.eq.${userId},id.in.(${collabIds.join(',')})`);
+            } else {
+                // No collaborations, just owned
+                query = query.eq('user_id', userId);
+            }
+        } else {
+            // Viewing someone else: Only show their OWNED playlists
+            query = query.eq('user_id', userId);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching playlists:', error);
@@ -219,13 +248,18 @@ export const SocialService = {
     },
 
     async addToPlaylist(playlistId: string, movie: Movie) {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
         // We only store essential metadata to reconstruct the card
         const metadata = {
             title: movie.title,
             poster_path: movie.imageUrl,
             backdrop_path: movie.backdropUrl,
             vote_average: movie.match ? movie.match / 10 : 0, // Convert back to 0-10 scale if needed
-            release_date: movie.year ? `${movie.year}-01-01` : null // Approx
+            release_date: movie.year ? `${movie.year}-01-01` : null, // Approx
+            genre_ids: movie.genreIds // Store genre IDs
         };
 
         const { error } = await supabase
@@ -234,7 +268,8 @@ export const SocialService = {
                 playlist_id: playlistId,
                 tmdb_id: movie.id.toString(),
                 media_type: movie.mediaType || 'movie',
-                metadata
+                metadata,
+                added_by_user_id: user.id // Track who added this item
             });
 
         if (error) {
@@ -253,7 +288,7 @@ export const SocialService = {
     },
 
     async getPlaylistItems(playlistId: string): Promise<Movie[]> {
-        const { data, error } = await supabase
+        const { data: items, error } = await supabase
             .from('playlist_items')
             .select('*')
             .eq('playlist_id', playlistId)
@@ -264,17 +299,38 @@ export const SocialService = {
             return [];
         }
 
+        // Fetch profiles for added_by_user_id
+        const userIds = [...new Set(items.map(i => i.added_by_user_id).filter(Boolean))];
+        let profilesMap: Record<string, any> = {};
+
+        if (userIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username, avatar_url')
+                .in('id', userIds);
+
+            if (profiles) {
+                profilesMap = profiles.reduce((acc, p) => ({ ...acc, [p.id]: p }), {});
+            }
+        }
+
         // Map DB items back to local Movie interface
-        return data.map((item: any) => ({
+        return items.map((item: any) => ({
             id: parseInt(item.tmdb_id),
             tmdbId: parseInt(item.tmdb_id),
             title: item.metadata.title,
             imageUrl: item.metadata.poster_path,
             backdropUrl: item.metadata.backdrop_path,
-            match: Math.round((item.metadata.vote_average || 0) * 10),
             year: item.metadata.release_date ? new Date(item.metadata.release_date).getFullYear() : 0,
-            genre: [],
-            description: '',
+            match: Math.round(item.metadata.vote_average * 10),
+            description: item.metadata.overview,
+            genre: [], // Encoded in metadata if needed
+            genreIds: item.metadata.genre_ids || [], // Retrieve genre IDs
+            addedBy: item.added_by_user_id && profilesMap[item.added_by_user_id] ? {
+                username: profilesMap[item.added_by_user_id].username,
+                avatarUrl: profilesMap[item.added_by_user_id].avatar_url
+            } : undefined,
+            addedByUserId: item.added_by_user_id, // Map user ID
             mediaType: item.media_type
         }));
     },
@@ -680,5 +736,145 @@ export const SocialService = {
             .single();
 
         return profile?.recent_searches || [];
+    },
+
+    // --- Collaboration & Taste ---
+
+    async inviteCollaborator(playlistId: string, userId: string) {
+        const { error } = await supabase
+            .from('playlist_collaborators')
+            .insert({ playlist_id: playlistId, user_id: userId, role: 'editor', status: 'pending' });
+        if (error) throw error;
+    },
+
+    async getCollaborators(playlistId: string) {
+        const { data, error } = await supabase
+            .from('playlist_collaborators')
+            .select(`
+                *,
+                profile:user_id(id, username, avatar_url)
+            `)
+            .eq('playlist_id', playlistId);
+        if (error) throw error;
+        return data || [];
+    },
+
+    async respondToInvite(collaboratorId: string, status: 'accepted' | 'rejected') {
+        if (status === 'rejected') {
+            const { error } = await supabase
+                .from('playlist_collaborators')
+                .delete()
+                .eq('id', collaboratorId);
+            if (error) throw error;
+        } else {
+            const { error } = await supabase
+                .from('playlist_collaborators')
+                .update({ status: 'accepted' })
+                .eq('id', collaboratorId);
+            if (error) throw error;
+        }
+    },
+
+    async removeCollaborator(collaboratorId: string) {
+        const { error } = await supabase
+            .from('playlist_collaborators')
+            .delete()
+            .eq('id', collaboratorId);
+        if (error) throw error;
+    },
+
+    async getNotifications(userId: string) {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+    },
+
+    async markNotificationRead(notificationId: string) {
+        const { error } = await supabase
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('id', notificationId);
+        if (error) throw error;
+    },
+
+    async updateTasteCompatibility(userA: string, userB: string, score: number, shared: string[]) {
+        const { error } = await supabase
+            .rpc('upsert_friend_compatibility', {
+                p_user_1: userA,
+                p_user_2: userB,
+                p_score: score,
+                p_shared_genres: shared
+            });
+        if (error) console.error("Failed to update compatibility:", error);
+    },
+
+    async getTasteCompatibility(userA: string, userB: string) {
+        // 1. Try fetching from persistent storage
+        const u1 = userA < userB ? userA : userB;
+        const u2 = userA < userB ? userB : userA;
+
+        const { data: stored } = await supabase
+            .from('friend_compatibility')
+            .select('*')
+            .eq('user_a', u1)
+            .eq('user_b', u2)
+            .single();
+
+        if (stored) {
+            return {
+                score: stored.score,
+                shared: stored.shared_genres || [],
+                message: stored.score > 75 ? "Vibe Twins!" : stored.score > 50 ? "Solid Mix" : "Eclectic Dup"
+            };
+        }
+
+        // 2. Fallback to dynamic calculation
+        const { data, error } = await supabase
+            .rpc('calculate_taste_compatibility', { user_a: userA, user_b: userB });
+        if (error) throw error;
+        return data;
+    },
+
+    async getPlaylistCollaborationStats(playlistId: string) {
+        const { data, error } = await supabase
+            .rpc('get_playlist_collaboration_stats', { p_playlist_id: playlistId });
+        if (error) throw error;
+        return data || [];
+    },
+
+    async getWatchTogetherRecommendations(playlistId: string) {
+        // 1. Get all items in the playlist
+        const { data: items, error } = await supabase
+            .from('playlist_items')
+            .select('metadata')
+            .eq('playlist_id', playlistId);
+
+        if (error) throw error;
+        if (!items || items.length === 0) return { matching_genres: ['Action', 'Comedy', 'Sci-Fi'] }; // Defaults
+
+        // 2. Aggregate genres
+        const genreCounts: Record<string, number> = {};
+        items.forEach((item: any) => {
+            // Try to extract genres from metadata (names or ids)
+            const genres = item.metadata.genres || item.metadata.genre_ids || [];
+            genres.forEach((g: any) => {
+                const name = typeof g === 'object' ? g.name : g; // Handle {id, name} or "Name" or ID
+                if (typeof name === 'string' || typeof name === 'number') {
+                    genreCounts[name] = (genreCounts[name] || 0) + 1;
+                }
+            });
+        });
+
+        // 3. Sort by frequency
+        const sortedGenres = Object.entries(genreCounts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([genre]) => genre)
+            .slice(0, 3); // Top 3
+
+        return { matching_genres: sortedGenres.length > 0 ? sortedGenres : ['Action', 'Adventure', 'Sci-Fi'] };
     }
 };

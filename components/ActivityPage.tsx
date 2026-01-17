@@ -2,8 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
-import { Profile } from '../types';
-import { UserPlus, UserCheck, Activity } from 'lucide-react';
+import { Profile, Notification } from '../types';
+import { UserPlus, UserCheck, Activity, Bell, Check, X } from 'lucide-react';
 
 interface ActivityPageProps {
     onNavigate?: (page: string, params?: any) => void;
@@ -13,6 +13,7 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
     const { user } = useAuth();
     const [followers, setFollowers] = useState<Profile[]>([]);
     const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
+    const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -26,24 +27,23 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
                 setFollowers(myFollowers);
 
                 // 2. Check which of them I ALREADY follow back
-                // We can fetch who I follow and compare IDs
-                // 2. Check which of them I ALREADY follow back 
-                // We need actual IDs. Let's do a quick check for each or fetch all my following.
-                // Optimally: fetch all 'following' where follower_id = me.
-
-                // Since SocialService.getFollowStats only returns counts, let's use a new helper or just iterate valid checks if list is small.
-                // or just check isFollowing for each. Parallel is fine for < 50 items.
                 const statusMap = new Set<string>();
-
-                // Parallel check (can be optimized later with a bulk query)
                 await Promise.all(myFollowers.map(async (follower) => {
                     const isFollowing = await SocialService.isFollowing(user.id, follower.id);
                     if (isFollowing) statusMap.add(follower.id);
                 }));
-
                 setFollowingIds(statusMap);
 
-                // Mark activity as seen
+                // 3. Get Notifications (Invites)
+                const notifs = await SocialService.getNotifications(user.id);
+                // Filter only unread pending invites for now, or just show last 10?
+                // For invites, we usually want to see them until acted upon.
+                // But the notification table doesn't delete on act, just marks read.
+                // We should probably filter by !is_read or specially handle invites.
+                // Actually, if we respond, we should mark as read. So showing !is_read is good.
+                setNotifications(notifs.filter(n => !n.is_read));
+
+                // Mark activity as seen (followers only tracking)
                 await SocialService.markActivitySeen(user.id);
 
             } catch (error) {
@@ -70,6 +70,18 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
             newSet.add(targetId);
             setFollowingIds(newSet);
             await SocialService.followUser(user.id, targetId);
+        }
+    };
+
+    const handleRespondToInvite = async (notification: Notification, status: 'accepted' | 'rejected') => {
+        if (!notification.data?.invite_id) return;
+        try {
+            await SocialService.respondToInvite(notification.data.invite_id, status);
+            await SocialService.markNotificationRead(notification.id);
+            // Remove from list
+            setNotifications(notifications.filter(n => n.id !== notification.id));
+        } catch (e) {
+            console.error("Failed to respond to invite", e);
         }
     };
 
@@ -109,6 +121,8 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
         );
     }
 
+    const playlistInvites = notifications.filter(n => n.type === 'playlist_invite');
+
     return (
         <div className="pt-24 pb-40 px-8 md:px-16 max-w-4xl mx-auto min-h-screen animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center gap-4 mb-8">
@@ -117,10 +131,54 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
                 </div>
                 <div>
                     <h1 className="text-3xl font-bold text-white">Activity</h1>
-                    <p className="text-zinc-400">See who follows you and confirm connections.</p>
+                    <p className="text-zinc-400">See who follows you and manage invitations.</p>
                 </div>
             </div>
 
+            {/* NOTIFICATIONS SECTION */}
+            {playlistInvites.length > 0 && (
+                <div className="bg-[#0f1014] border border-white/10 rounded-2xl overflow-hidden shadow-2xl mb-8">
+                    <div className="p-6 border-b border-white/5 flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                            <Bell size={20} />
+                        </div>
+                        <h2 className="text-lg font-semibold text-white">Pending Invitations</h2>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                        {playlistInvites.map(notif => (
+                            <div key={notif.id} className="p-4 flex items-center justify-between hover:bg-white/5 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    {/* Placeholder Icon or Avatar if we fetch inviter profile */}
+                                    <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/30">
+                                        <Bell size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-white font-medium text-lg">{notif.title}</h4>
+                                        <p className="text-zinc-400 text-sm">{notif.message}</p>
+                                        <p className="text-zinc-500 text-xs mt-1">{new Date(notif.created_at).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => handleRespondToInvite(notif, 'accepted')}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 border border-green-500/20 rounded-xl hover:bg-green-500 hover:text-white transition-all font-medium text-sm"
+                                    >
+                                        <Check size={16} /> Accept
+                                    </button>
+                                    <button
+                                        onClick={() => handleRespondToInvite(notif, 'rejected')}
+                                        className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500 hover:text-white transition-all font-medium text-sm"
+                                    >
+                                        <X size={16} /> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* FOLLOWERS SECTION */}
             <div className="bg-[#0f1014] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
                 <div className="p-6 border-b border-white/5">
                     <h2 className="text-lg font-semibold text-white">Recent Follows</h2>

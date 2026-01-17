@@ -37,7 +37,7 @@ export const PlaylistEngagement = {
                 .select('*')
                 .eq('playlist_id', playlistId)
                 .eq('user_id', user.user.id)
-                .single();
+                .maybeSingle();
 
             return !!data && !error;
         } catch {
