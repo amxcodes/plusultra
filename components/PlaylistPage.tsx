@@ -427,14 +427,7 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
                                 <span>{copied ? 'Copied' : 'Share'}</span>
                             </button>
 
-                            <button
-                                onClick={() => setShowCollaboratorsModal(true)}
-                                className="px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 bg-transparent border border-zinc-800 hover:bg-zinc-900 hover:text-white text-zinc-400 transition-all text-sm"
-                                title="View Collaborators"
-                            >
-                                <Users size={18} />
-                                <span className="hidden md:inline">Collabs</span>
-                            </button>
+
 
                             {isOwner && !isSystem && (
                                 <>

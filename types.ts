@@ -47,7 +47,8 @@ export enum NavItem {
   ACTIVITY = 'Activity',
   PLAYLISTS = 'Playlists',
   STATS = 'Stats',
-  NEWS = 'News'
+  NEWS = 'News',
+  REQUESTS = 'Requests'
 }
 
 export interface Profile {

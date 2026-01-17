@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
+import { CommunityService } from '../lib/community';
 import { Profile } from '../types';
-import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus } from 'lucide-react';
+import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus, MessageSquarePlus, Check, X } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { HealthService, HealthStatus } from '../services/health';
 
@@ -11,10 +12,11 @@ interface MobileAdminDashboardProps {
 
 export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
+    const [adminRequests, setAdminRequests] = useState<any[]>([]);
 
     // Setting state for Toggle
     const [appSettings, setAppSettings] = useState<any>({});
@@ -36,16 +38,18 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const loadData = async () => {
         setLoading(true);
         try {
-            const [statsData, usersData, announcementsData, settingsData] = await Promise.all([
+            const [statsData, usersData, announcementsData, settingsData, requestsData] = await Promise.all([
                 SocialService.getAdminStats(),
                 SocialService.getAllUsers(),
                 SocialService.getAnnouncements(),
-                SocialService.getAppSettings()
+                SocialService.getAppSettings(),
+                CommunityService.getRequests('all')
             ]);
             setStats(statsData);
             setUsers(usersData);
             setAnnouncements(announcementsData);
             setAppSettings(settingsData);
+            setAdminRequests(requestsData);
         } catch (e) {
             console.error(e);
         } finally {
@@ -151,18 +155,19 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
             <h1 className="text-2xl font-bold text-white mb-6">Admin Panel</h1>
 
             {/* Mobile Tab Nav - Compact Icons */}
-            <div className="flex justify-between mb-6 bg-zinc-900/50 p-1.5 rounded-2xl border border-white/5">
+            <div className="flex justify-between mb-6 bg-zinc-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto gap-2">
                 {[
                     { id: 'overview', icon: LayoutDashboard },
                     { id: 'users', icon: Users },
                     { id: 'announcements', icon: Megaphone },
+                    { id: 'requests', icon: MessageSquarePlus },
                     { id: 'health', icon: Activity },
                     { id: 'settings', icon: Settings }
                 ].map(item => (
                     <button
                         key={item.id}
                         onClick={() => setActiveTab(item.id as any)}
-                        className={`flex items-center justify-center p-3 rounded-xl transition-all ${activeTab === item.id
+                        className={`flex items-center justify-center p-3 rounded-xl transition-all shrink-0 ${activeTab === item.id
                             ? 'bg-zinc-800 text-white shadow-lg'
                             : 'text-zinc-500 hover:text-zinc-300'
                             }`}
@@ -316,8 +321,8 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                     key={type.id}
                                                     onClick={() => setNewAnnouncement(prev => ({ ...prev, type: type.id as any }))}
                                                     className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border transition-all duration-300 ${newAnnouncement.type === type.id
-                                                            ? `${type.bg} ${type.border} ${type.color} ring-1 ring-inset ring-white/10`
-                                                            : 'bg-zinc-900/50 border-white/5 text-zinc-600 hover:bg-zinc-800'
+                                                        ? `${type.bg} ${type.border} ${type.color} ring-1 ring-inset ring-white/10`
+                                                        : 'bg-zinc-900/50 border-white/5 text-zinc-600 hover:bg-zinc-800'
                                                         }`}
                                                 >
                                                     <type.icon size={14} strokeWidth={2.5} />
@@ -354,8 +359,8 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                         <div className="flex justify-between items-start mb-2 pl-3">
                                             <div className="flex items-center gap-2">
                                                 <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded border ${a.type === 'warning' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
-                                                        a.type === 'success' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                                                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                    a.type === 'success' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                                        'bg-blue-500/10 text-blue-400 border-blue-500/20'
                                                     }`}>
                                                     {a.type}
                                                 </span>
@@ -388,6 +393,86 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                     </div>
                                 )}
                             </div>
+                        </div>
+                    )}
+
+                    {/* REQUESTS TAB (New Mobile) */}
+                    {activeTab === 'requests' && (
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-bold text-white">Requests</h3>
+                                <span className="text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded text-xs">
+                                    {adminRequests.length}
+                                </span>
+                            </div>
+
+                            {adminRequests.length === 0 ? (
+                                <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-2xl opacity-50">
+                                    <MessageSquarePlus size={24} className="text-zinc-600 mb-2" />
+                                    <p className="text-zinc-500 text-xs font-medium">No requests found</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {adminRequests.map(req => (
+                                        <div key={req.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                                            <div className="flex gap-3 p-3">
+                                                <div className="w-12 aspect-[2/3] bg-zinc-800 rounded overflow-hidden shrink-0">
+                                                    <img src={req.poster_path} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-sm font-bold text-white truncate">{req.title}</h4>
+                                                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 mb-1">
+                                                        <span className="uppercase">{req.media_type}</span>
+                                                        <span>•</span>
+                                                        <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${req.status === 'fulfilled' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                            }`}>
+                                                            {req.status}
+                                                        </span>
+                                                        <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+                                                            <MessageSquarePlus size={10} />
+                                                            <span>{req.reply_count}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col gap-2 justify-center ml-1">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm(`Delete request "${req.title}"?`)) return;
+                                                            try {
+                                                                await CommunityService.deleteRequest(req.id);
+                                                                setAdminRequests(prev => prev.filter(r => r.id !== req.id));
+                                                            } catch (e) {
+                                                                console.error(e);
+                                                                alert('Failed');
+                                                            }
+                                                        }}
+                                                        className="p-2 bg-zinc-800/50 hover:bg-red-500/10 hover:text-red-500 text-zinc-500 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            const newStatus = req.status === 'pending' ? 'fulfilled' : 'pending';
+                                                            try {
+                                                                await CommunityService.updateRequestStatus(req.id, newStatus);
+                                                                setAdminRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: newStatus } : r));
+                                                            } catch (e) {
+                                                                console.error(e);
+                                                            }
+                                                        }}
+                                                        className={`p-2 rounded-lg transition-colors ${req.status === 'fulfilled' ? 'text-green-500 bg-green-500/10' : 'text-zinc-500 bg-zinc-800/50 hover:text-white'}`}
+                                                    >
+                                                        {req.status === 'fulfilled' ? <Check size={16} /> : <Check size={16} className="opacity-30" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 

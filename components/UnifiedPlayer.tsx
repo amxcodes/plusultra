@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
 import { useSkipData } from './useSkipData';
-import { Settings, Check, Users } from 'lucide-react';
+import { Settings, Check, Users, Download, ExternalLink, ThumbsUp } from 'lucide-react';
+import { CommunityService, RequestReply } from '../lib/community';
 import { TmdbService } from '../services/tmdb';
 import { WatchPartyModal } from './WatchPartyModal';
 import { StatsService } from '../services/stats';
@@ -52,9 +53,40 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     autoJoinCode
 }) => {
     // ... existing state ...
+    // ... existing state ...
+
+    // ... inside component
     const [provider, setProvider] = useState<Provider>('zxcplayer');
     const [lastTime, setLastTime] = useState(0);
     const [showServers, setShowServers] = useState(false);
+    const [showCommunity, setShowCommunity] = useState(false);
+    const [communityLinks, setCommunityLinks] = useState<RequestReply[]>([]);
+
+    // ... rest state
+
+    // Fetch Community Links
+    useEffect(() => {
+        const fetchLinks = async () => {
+            try {
+                const links = await CommunityService.getLinksForMovie(tmdbId);
+                setCommunityLinks(links);
+            } catch (e) {
+                console.error("Failed to load community links", e);
+            }
+        };
+        if (tmdbId) fetchLinks();
+    }, [tmdbId, showCommunity]); // Refresh when menu opens to get latest upvotes? Or just once. Added showCommunity to refresh on open.
+
+    const handleVote = async (replyId: string, vote: 1 | -1) => {
+        try {
+            await CommunityService.voteReply(replyId, vote);
+            // Optimistic update logic could go here, or just re-fetch
+            const links = await CommunityService.getLinksForMovie(tmdbId);
+            setCommunityLinks(links);
+        } catch (e) {
+            console.error("Failed to vote", e);
+        }
+    };
     const [showWatchPartyModal, setShowWatchPartyModal] = useState(false);
     const [showVotingModal, setShowVotingModal] = useState(false);
     const [genres, setGenres] = useState<string[]>([]);
@@ -342,6 +374,79 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
             {/* Controls Overlay (Top Right) */}
             <div className="absolute top-6 right-6 z-50 flex gap-4">
+
+                {/* Community / Downloads Button */}
+                <div className="relative">
+                    <button
+                        onClick={() => setShowCommunity(!showCommunity)}
+                        className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all
+                        ${showCommunity ? 'bg-white text-black' : 'bg-black/50 text-white hover:bg-white/20'}`}
+                    >
+                        <Download size={16} />
+                        <span className="text-sm font-medium hidden md:inline">Downloads</span>
+                        {communityLinks.length > 0 && (
+                            <span className={`text-[10px] font-bold px-1.5 rounded-full ${showCommunity ? 'bg-black/10 text-black' : 'bg-white/20 text-white'}`}>
+                                {communityLinks.length}
+                            </span>
+                        )}
+                    </button>
+
+                    {showCommunity && (
+                        <div className="absolute right-0 top-full mt-2 w-80 bg-[#0f1014]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[60]">
+                            {communityLinks.length === 0 ? (
+                                <div className="text-center py-8 px-4">
+                                    <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-2 text-zinc-600">
+                                        <Download size={20} />
+                                    </div>
+                                    <p className="text-sm text-zinc-400">No community links yet.</p>
+                                    <p className="text-xs text-zinc-600 mt-1">Request this movie on the Requests page!</p>
+                                </div>
+                            ) : (
+                                communityLinks.map(link => (
+                                    <div key={link.id} className="bg-white/5 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors group">
+                                        <div className="flex items-start justify-between gap-3 mb-2">
+                                            <div className="flex flex-col gap-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <LinkTypeBadge type={link.link_type} />
+                                                    <span className="text-xs text-zinc-500">{new Date(link.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                                {link.instructions && (
+                                                    <p className="text-xs text-zinc-400 line-clamp-2 mt-1 italic">"{link.instructions}"</p>
+                                                )}
+                                            </div>
+                                            <div className="flex flex-col items-center gap-1">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleVote(link.id, 1);
+                                                    }}
+                                                    className={`p-1.5 rounded-lg hover:bg-white/10 transition-colors ${link.user_vote === 1 ? 'text-green-400 bg-green-400/10' : 'text-zinc-500'}`}
+                                                >
+                                                    <ThumbsUp size={14} />
+                                                </button>
+                                                <span className="text-[10px] font-bold text-zinc-500">{link.upvotes}</span>
+                                            </div>
+                                        </div>
+
+                                        <a
+                                            href={link.content}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white text-white hover:text-black py-2 rounded-lg text-xs font-bold transition-colors"
+                                        >
+                                            <ExternalLink size={12} />
+                                            Open Link
+                                        </a>
+                                    </div>
+                                ))
+                            )}
+                            <div className="mt-2 pt-2 border-t border-white/5 text-center">
+                                <p className="text-[10px] text-zinc-600">Links are community submitted. Use with caution.</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Watch Together Button - Synclify Redirect */}
                 <button
                     onClick={() => setShowWatchPartyModal(true)}
@@ -407,7 +512,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 </div>
             </div>
 
-            {/* Watch Party Modal */}
             {showWatchPartyModal && (
                 <WatchPartyModal isOpen={true} onClose={() => setShowWatchPartyModal(false)} />
             )}
@@ -425,8 +529,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 </button>
             )}
 
-
-
             {/* Provider Watermark (Fades out) */}
             <div className="absolute bottom-6 right-6 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] text-white/30 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                 {PROVIDERS.find(p => p.id === provider)?.name}
@@ -443,5 +545,22 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             />
 
         </div>
+    );
+};
+
+// --- Helper Icon for Badges ---
+const LinkTypeBadge: React.FC<{ type: string }> = ({ type }) => {
+    const colors: Record<string, string> = {
+        gdrive: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+        mega: 'bg-red-500/20 text-red-400 border-red-500/30',
+        magnet: 'bg-green-500/20 text-green-400 border-green-500/30',
+        stream: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+        other: 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30'
+    };
+
+    return (
+        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${colors[type] || colors.other}`}>
+            {type}
+        </span>
     );
 };

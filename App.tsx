@@ -38,7 +38,7 @@ import { WatchTogetherService } from './lib/watchTogether';
 import { PlaylistsPage } from './components/PlaylistsPage';
 import { StatsDashboard } from './components/StatsDashboard';
 import { NewsFeed } from './components/NewsFeed';
-
+import { RequestsPage } from './components/RequestsPage';
 import { supabase } from './lib/supabase';
 import { MobileNavbar } from './components/MobileNavbar';
 import { MobileMenu } from './components/MobileMenu';
@@ -689,6 +689,11 @@ function StreamApp() {
                     <MobileNewsPage onMovieSelect={handleMovieSelect} />
                   </div>
                 </>
+              )}
+
+              {/* REQUESTS VIEW */}
+              {activeTab === NavItem.REQUESTS && !viewAllCategory && (
+                <RequestsPage />
               )}
 
               {/* Add To Playlist Modal (Global generic overlay) */}

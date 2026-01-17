@@ -18,7 +18,9 @@ import {
   Activity, // Activity Log
   Heart,
   BarChart2,
-  Newspaper // News Feed
+  Newspaper, // News Feed
+  MessageSquare,
+  MessageSquarePlus
 } from 'lucide-react';
 import { SocialService } from '../lib/social';
 
@@ -43,7 +45,8 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.ANNOUNCEMENTS]: Bell,
   [NavItem.ACTIVITY]: Activity,
   [NavItem.PLAYLISTS]: ListVideo,
-  [NavItem.STATS]: BarChart2
+  [NavItem.STATS]: BarChart2,
+  [NavItem.REQUESTS]: MessageSquarePlus
 };
 import { ListVideo } from 'lucide-react';
 

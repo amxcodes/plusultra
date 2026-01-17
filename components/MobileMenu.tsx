@@ -19,7 +19,8 @@ import {
     Zap, // For You
     Drama,
     LayoutGrid,
-    Newspaper
+    Newspaper,
+    MessageSquarePlus
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -43,8 +44,8 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
         <button
             onClick={() => handleNav(tab)}
             className={`w-full flex items-center justify-between p-4 rounded-xl transition-all active:scale-95 border ${activeTab === tab
-                    ? 'bg-white text-black border-transparent shadow-lg'
-                    : 'bg-zinc-900/50 text-zinc-300 border-white/5'
+                ? 'bg-white text-black border-transparent shadow-lg'
+                : 'bg-zinc-900/50 text-zinc-300 border-white/5'
                 }`}
         >
             <div className="flex items-center gap-4">
@@ -99,6 +100,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
                         <MenuItem icon={LayoutGrid} label="Home" tab={NavItem.DASHBOARD} />
                         <MenuItem icon={Zap} label="For You" tab={NavItem.FOR_YOU} />
                         <MenuItem icon={Newspaper} label="News Feed" tab={NavItem.NEWS} />
+                        <MenuItem icon={MessageSquarePlus} label="Requests" tab={NavItem.REQUESTS} />
                     </div>
                 </div>
 

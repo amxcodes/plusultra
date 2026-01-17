@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
+import { CommunityService } from '../lib/community';
 import { Profile } from '../types';
 import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart, Wifi, WifiOff, Server } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
@@ -12,7 +13,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings' | 'health'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings' | 'reactions' | 'health' | 'requests'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -20,6 +21,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     const [featuredMovies, setFeaturedMovies] = useState<any[]>([]);
     const [appSettings, setAppSettings] = useState<any>({});
     const [loading, setLoading] = useState(true);
+    const [adminRequests, setAdminRequests] = useState<any[]>([]);
 
     // Health Check State
     const [healthChecks, setHealthChecks] = useState<HealthStatus[]>([]);
@@ -47,13 +49,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     const loadAllData = async () => {
         setLoading(true);
         try {
-            const [statsData, usersData, announcementsData, playlistsData, featuredData, settingsData] = await Promise.all([
+            const [statsData, usersData, announcementsData, playlistsData, featuredData, settingsData, requestsData] = await Promise.all([
                 SocialService.getAdminStats(),
                 SocialService.getAllUsers(),
                 SocialService.getAnnouncements(),
                 SocialService.getAllPlaylists(),
                 SocialService.getFeaturedMovies(),
-                SocialService.getAppSettings()
+                SocialService.getAppSettings(),
+                CommunityService.getRequests('all')
             ]);
             setStats(statsData);
             setUsers(usersData);
@@ -61,6 +64,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             setAllPlaylists(playlistsData);
             setFeaturedMovies(featuredData);
             setAppSettings(settingsData);
+            setAdminRequests(requestsData);
         } catch (e) {
             console.error(e);
         } finally {
@@ -200,6 +204,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     Settings
                 </button>
                 <button
+                    onClick={() => setActiveTab('requests')}
+                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'requests' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    Requests
+                </button>
+                <button
                     onClick={() => setActiveTab('health')}
                     className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'health' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
@@ -240,6 +250,93 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             ) : (
                 <div className="space-y-8">
                     {/* SYSTEM HEALTH TAB */}
+                    {/* REQUESTS TAB */}
+                    {activeTab === 'requests' && (
+                        <div className="border border-zinc-800 rounded-lg overflow-hidden">
+                            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
+                                <h3 className="font-bold text-white text-sm">Manage Requests</h3>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-zinc-900/50 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                        <tr>
+                                            <th className="px-6 py-3">Movie / Show</th>
+                                            <th className="px-6 py-3">Status</th>
+                                            <th className="px-6 py-3">Replies</th>
+                                            <th className="px-6 py-3">Date</th>
+                                            <th className="px-6 py-3 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-800/50 text-sm">
+                                        {adminRequests.map(req => (
+                                            <tr key={req.id} className="hover:bg-zinc-900/30 transition-colors group">
+                                                <td className="px-6 py-3 flex items-center gap-3">
+                                                    <div className="w-8 h-12 rounded bg-zinc-800 overflow-hidden shrink-0">
+                                                        <img
+                                                            src={req.poster_path}
+                                                            alt={req.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-white font-medium">{req.title}</div>
+                                                        <div className="text-zinc-600 text-xs uppercase">{req.media_type}</div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3">
+                                                    <button
+                                                        onClick={async () => {
+                                                            const newStatus = req.status === 'pending' ? 'fulfilled' : 'pending';
+                                                            if (!confirm(`Mark request as ${newStatus}?`)) return;
+                                                            try {
+                                                                await CommunityService.updateRequestStatus(req.id, newStatus);
+                                                                setAdminRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: newStatus } : r));
+                                                            } catch (e) {
+                                                                console.error(e);
+                                                                alert('Failed to update status');
+                                                            }
+                                                        }}
+                                                        className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-widest font-bold hover:scale-105 active:scale-95 transition-all ${req.status === 'fulfilled' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'}`}
+                                                        title="Click to toggle status"
+                                                    >
+                                                        {req.status}
+                                                    </button>
+                                                </td>
+                                                <td className="px-6 py-3 text-zinc-400">
+                                                    {req.reply_count}
+                                                </td>
+                                                <td className="px-6 py-3 text-zinc-600 text-xs font-mono">
+                                                    {new Date(req.created_at).toLocaleDateString()}
+                                                </td>
+                                                <td className="px-6 py-3 text-right">
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm(`Delete request "${req.title}"?`)) return;
+                                                            try {
+                                                                await CommunityService.deleteRequest(req.id);
+                                                                setAdminRequests(prev => prev.filter(r => r.id !== req.id));
+                                                            } catch (e) {
+                                                                console.error(e);
+                                                                alert('Failed to delete request');
+                                                            }
+                                                        }}
+                                                        className="text-zinc-500 hover:text-red-500 transition-colors p-2"
+                                                        title="Delete Request"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                {adminRequests.length === 0 && (
+                                    <div className="p-8 text-center text-zinc-500 text-sm">No requests found.</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* SYSTEM HEALTH TAB - VIBRANT & MINIMAL */}
                     {activeTab === 'health' && (
                         <div className="h-[calc(100vh-140px)] flex flex-col">
