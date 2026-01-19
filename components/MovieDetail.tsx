@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Movie } from '../types';
-import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus, Shuffle } from 'lucide-react';
+import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus, Shuffle, Lock } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { MobileAddToPlaylistModal } from './MobileAddToPlaylistModal';
 import { TmdbService } from '../services/tmdb';
+import { useAuth } from '../lib/AuthContext';
 
 interface MovieDetailProps {
     movie: Movie & { numberOfSeasons?: number; seasons?: any[] };
@@ -15,6 +16,9 @@ interface MovieDetailProps {
 }
 
 export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay, onMovieSelect }) => {
+    const { profile } = useAuth(); // NEW
+    const canStream = profile?.can_stream || profile?.role === 'admin'; // Authorization check
+
     const [isVisible, setIsVisible] = useState(false);
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
 
@@ -253,15 +257,25 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2">
-                                <button
-                                    onClick={() => onPlay(activeMovie, currentSeason, currentEpisode)}
-                                    className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-black px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold tracking-wide transition-colors whitespace-nowrap"
-                                >
-                                    <Play size={20} className="fill-black" />
-                                    <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E1` : 'Play Movie'}</span>
-                                </button>
+                                {canStream ? (
+                                    <button
+                                        onClick={() => onPlay(activeMovie, currentSeason, currentEpisode)}
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-black px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold tracking-wide transition-colors whitespace-nowrap"
+                                    >
+                                        <Play size={20} className="fill-black" />
+                                        <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E1` : 'Play Movie'}</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        disabled
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-zinc-800 text-zinc-500 px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold tracking-wide cursor-not-allowed opacity-50"
+                                    >
+                                        <Lock size={18} />
+                                        <span>{activeMovie.mediaType === 'tv' ? 'Episode 1' : 'Play Movie'}</span>
+                                    </button>
+                                )}
 
-                                {activeMovie.mediaType === 'tv' && (
+                                {activeMovie.mediaType === 'tv' && canStream && (
                                     <button
                                         onClick={handlePlayRandom}
                                         className="h-12 px-6 rounded-full border border-white/10 hover:border-white/30 hover:bg-white/5 text-white/80 hover:text-white font-medium text-sm flex items-center gap-2 transition-all group"
@@ -412,8 +426,8 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                                 .map((ep) => (
                                                     <div
                                                         key={ep.id}
-                                                        onClick={() => handleEpisodeSelect(ep.episode_number)}
-                                                        className={`group flex flex-col sm:flex-row items-center sm:items-start gap-6 cursor-pointer transition-all duration-500`}
+                                                        onClick={() => canStream ? handleEpisodeSelect(ep.episode_number) : null}
+                                                        className={`group flex flex-col sm:flex-row items-center sm:items-start gap-6 transition-all duration-500 ${canStream ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
                                                     >
                                                         {/* Episode Image - Pure Art */}
                                                         <div className="relative w-full sm:w-48 aspect-video shrink-0 overflow-hidden rounded-sm shadow-2xl bg-zinc-950">

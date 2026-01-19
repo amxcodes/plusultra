@@ -8,7 +8,11 @@ interface HeroProps {
   onAddToPlaylist?: (movie: HeroMovie) => void;
 }
 
+import { useAuth } from '../lib/AuthContext';
+
 export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) => {
+  const { profile } = useAuth();
+  const canStream = profile?.can_stream || profile?.role === 'admin';
   // Skeleton State
   if (movie.id === 0) {
     return (
@@ -78,13 +82,15 @@ export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) =>
         {/* Minimal Buttons - No glass, no bounce */}
         {/* Minimal Buttons */}
         <div className="flex items-center gap-4 pt-2">
-          <button
-            onClick={() => onPlay?.(movie)}
-            className="flex items-center gap-3 bg-white hover:bg-zinc-200 text-black px-8 py-3.5 rounded-full font-bold tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-white/10"
-          >
-            <Play size={20} className="fill-black" />
-            <span>Play</span>
-          </button>
+          {canStream && (
+            <button
+              onClick={() => onPlay?.(movie)}
+              className="flex items-center gap-3 bg-white hover:bg-zinc-200 text-black px-8 py-3.5 rounded-full font-bold tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-white/10"
+            >
+              <Play size={20} className="fill-black" />
+              <span>Play</span>
+            </button>
+          )}
 
           <button
             onClick={() => onAddToPlaylist?.(movie)}

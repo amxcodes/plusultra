@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../lib/AuthContext';
 import { HeroMovie, Movie, Playlist, NavItem } from '../types';
 import { MobileHero } from './MobileHero';
 import { MobileRow } from './MobileRow';
@@ -35,6 +36,9 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
     onAddToPlaylist,
     onViewAll
 }) => {
+    const { profile } = useAuth();
+    const canStream = profile?.can_stream || profile?.role === 'admin';
+
 
     const renderDashboard = () => (
         <>
@@ -53,7 +57,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
             />
 
             <div className="flex flex-col gap-2 pb-24">
-                {continueWatching.length > 0 && (
+                {continueWatching.length > 0 && canStream && (
                     <MobileRow
                         title="Continue Watching"
                         movies={continueWatching}

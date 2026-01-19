@@ -381,6 +381,15 @@ export const SocialService = {
         if (error) throw error;
     },
 
+    async updateStreamingPermission(userId: string, canStream: boolean) {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ can_stream: canStream })
+            .eq('id', userId);
+
+        if (error) throw error;
+    },
+
 
     async getUserWatchHistory(userId: string) {
         const { data, error } = await supabase

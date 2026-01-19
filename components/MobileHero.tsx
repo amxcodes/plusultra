@@ -8,7 +8,11 @@ interface MobileHeroProps {
     onAddToPlaylist?: (movie: HeroMovie) => void;
 }
 
+import { useAuth } from '../lib/AuthContext';
+
 export const MobileHero: React.FC<MobileHeroProps> = ({ movie, onPlay, onAddToPlaylist }) => {
+    const { profile } = useAuth();
+    const canStream = profile?.can_stream || profile?.role === 'admin';
     // Skeleton State
     if (movie.id === 0) {
         return (
@@ -71,13 +75,23 @@ export const MobileHero: React.FC<MobileHeroProps> = ({ movie, onPlay, onAddToPl
 
                 {/* Mobile Horizontal Buttons layout */}
                 <div className="flex items-center gap-3 pt-3">
-                    <button
-                        onClick={() => onPlay?.(movie)}
-                        className="flex-1 h-12 flex items-center justify-center gap-2 bg-white text-black rounded-xl font-bold text-sm tracking-wide active:scale-95 transition-transform"
-                    >
-                        <Play size={18} className="fill-black" />
-                        Play
-                    </button>
+                    {canStream ? (
+                        <button
+                            onClick={() => onPlay?.(movie)}
+                            className="flex-1 h-12 flex items-center justify-center gap-2 bg-white text-black rounded-xl font-bold text-sm tracking-wide active:scale-95 transition-transform"
+                        >
+                            <Play size={18} className="fill-black" />
+                            Play
+                        </button>
+                    ) : (
+                        <button
+                            disabled
+                            className="flex-1 h-12 flex items-center justify-center gap-2 bg-white/10 text-zinc-500 rounded-xl font-bold text-sm tracking-wide opacity-50 cursor-not-allowed"
+                        >
+                            <Play size={18} className="fill-zinc-500" />
+                            Preview Only
+                        </button>
+                    )}
 
                     <button
                         onClick={() => onAddToPlaylist?.(movie)}

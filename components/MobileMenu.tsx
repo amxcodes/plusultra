@@ -32,6 +32,8 @@ interface MobileMenuProps {
 
 export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeTab, setActiveTab }) => {
     const { user, profile, signOut } = useAuth();
+    const canStream = profile?.can_stream || profile?.role === 'admin';
+
 
     if (!isOpen) return null;
 
@@ -100,7 +102,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
                         <MenuItem icon={LayoutGrid} label="Home" tab={NavItem.DASHBOARD} />
                         <MenuItem icon={Zap} label="For You" tab={NavItem.FOR_YOU} />
                         <MenuItem icon={Newspaper} label="News Feed" tab={NavItem.NEWS} />
-                        <MenuItem icon={MessageSquarePlus} label="Requests" tab={NavItem.REQUESTS} />
+                        {canStream && <MenuItem icon={MessageSquarePlus} label="Requests" tab={NavItem.REQUESTS} />}
                     </div>
                 </div>
 

@@ -10,6 +10,7 @@ type Profile = {
     username: string
     avatar_url: string
     role: 'user' | 'admin' | 'moderator'
+    can_stream?: boolean
 }
 
 type AuthContextType = {
@@ -67,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // Fetch from database
             const { data, error } = await supabase
                 .from('profiles')
-                .select('id, username, avatar_url, role') // Only fetch needed fields
+                .select('id, username, avatar_url, role, can_stream') // Include streaming permission
                 .eq('id', userId)
                 .single()
 

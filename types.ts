@@ -57,6 +57,7 @@ export interface Profile {
   avatar_url: string;
   role: 'user' | 'admin' | 'moderator';
   recent_searches?: string[];
+  can_stream?: boolean; // Permission to access streaming features
 }
 
 export interface Playlist {

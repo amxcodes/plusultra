@@ -55,6 +55,7 @@ import { useAuth } from '../lib/AuthContext';
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick }) => {
   const { profile, user } = useAuth();
+  const canStream = profile?.can_stream || profile?.role === 'admin';
   const [unreadCounts, setUnreadCounts] = React.useState({ announcementsCount: 0, activityCount: 0 });
 
   // Fetch unread counts
@@ -138,7 +139,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           item !== NavItem.PLAYLISTS &&
           item !== NavItem.STATS &&
           item !== NavItem.NEWS && // Exclude News from generic loop if we want to place it specifically, OR format if we want it in loop. Let's keep it in loop for now, but user "latest" might be different?
-          (item !== NavItem.ADMIN || profile?.role === 'admin')
+          (item !== NavItem.ADMIN || profile?.role === 'admin') &&
+          (item !== NavItem.REQUESTS || canStream)
         ).map((item) => {
           const Icon = NAV_ICONS[item];
           const isActive = activeTab === item;

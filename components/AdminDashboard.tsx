@@ -691,6 +691,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 <th className="px-6 py-3">User</th>
                                                 <th className="px-6 py-3">Stats</th>
                                                 <th className="px-6 py-3">Role</th>
+                                                <th className="px-6 py-3">Stream</th>
                                                 <th className="px-6 py-3">Joined</th>
                                                 <th className="px-6 py-3 text-right">Actions</th>
                                             </tr>
@@ -745,6 +746,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                             <option value="moderator">Moderator</option>
                                                             <option value="user">User</option>
                                                         </select>
+
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <button
+                                                            onClick={async () => {
+                                                                const newValue = !u.can_stream;
+                                                                try {
+                                                                    await SocialService.updateStreamingPermission(u.id, newValue);
+                                                                    setUsers(prev => prev.map(user =>
+                                                                        user.id === u.id ? { ...user, can_stream: newValue } : user
+                                                                    ));
+                                                                } catch (e) {
+                                                                    console.error(e);
+                                                                    alert('Failed to update permission');
+                                                                }
+                                                            }}
+                                                            className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${u.can_stream
+                                                                ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
+                                                                : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                                                                }`}
+                                                        >
+                                                            {u.can_stream ? 'Allowed' : 'Blocked'}
+                                                        </button>
                                                     </td>
                                                     <td className="px-6 py-3 text-zinc-600 text-xs font-mono">
                                                         {new Date(u.created_at).toLocaleDateString()}
@@ -1085,7 +1109,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         </div>
                     )}
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };

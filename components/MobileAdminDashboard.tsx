@@ -268,6 +268,29 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             <option value="admin" className="bg-zinc-900 text-white">Admin</option>
                                         </select>
                                     </div>
+
+                                    {/* Streaming Permission */}
+                                    <div className="flex items-center justify-between bg-black/20 p-2 rounded-lg">
+                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Stream Content</span>
+                                        <button
+                                            onClick={async () => {
+                                                const newValue = !u.can_stream;
+                                                try {
+                                                    await SocialService.updateStreamingPermission(u.id, newValue);
+                                                    setUsers(prev => prev.map(user =>
+                                                        user.id === u.id ? { ...user, can_stream: newValue } : user
+                                                    ));
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    alert('Failed to update permission');
+                                                }
+                                            }}
+                                            className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-all ${u.can_stream ? 'bg-green-500 text-black shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                                }`}
+                                        >
+                                            {u.can_stream ? 'Allowed' : 'Blocked'}
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

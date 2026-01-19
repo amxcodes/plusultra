@@ -56,7 +56,9 @@ import { MobileWrappedPage } from './components/MobileWrappedPage';
 import { MobileViewAllPage } from './components/MobileViewAllPage';
 
 function StreamApp() {
-  const { user, loading } = useAuth();
+  const { user, loading, profile } = useAuth();
+  const canStream = profile?.can_stream || profile?.role === 'admin';
+
 
   // Session Persistence Check
   useEffect(() => {
@@ -321,6 +323,11 @@ function StreamApp() {
 
   // Render Player Page if active
   if (playerState) {
+    if (!canStream) {
+      // Security fallback
+      setPlayerState(null);
+      return null;
+    }
     return (
       <PlayerPage
         movie={playerState.movie}
@@ -464,7 +471,7 @@ function StreamApp() {
               {/* DASHBOARD VIEW (Desktop) */}
               {activeTab === NavItem.DASHBOARD && !viewAllCategory && (
                 <div className="hidden md:block">
-                  {continueWatching.length > 0 && (
+                  {continueWatching.length > 0 && canStream && (
                     <Row
                       title="Continue Watching"
                       movies={continueWatching}
@@ -692,7 +699,7 @@ function StreamApp() {
               )}
 
               {/* REQUESTS VIEW */}
-              {activeTab === NavItem.REQUESTS && !viewAllCategory && (
+              {activeTab === NavItem.REQUESTS && canStream && !viewAllCategory && (
                 <RequestsPage />
               )}
 
