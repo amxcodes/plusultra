@@ -124,7 +124,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
                     <div className="space-y-3">
                         <MenuItem icon={Bell} label="Announcements" tab={NavItem.ANNOUNCEMENTS} />
                         <MenuItem icon={Activity} label="Activity Log" tab={NavItem.ACTIVITY} />
-                        <MenuItem icon={BarChart2} label="Stats Dashboard" tab={NavItem.STATS} />
+                        {canStream && <MenuItem icon={BarChart2} label="Stats Dashboard" tab={NavItem.STATS} />}
                     </div>
                 </div>
 

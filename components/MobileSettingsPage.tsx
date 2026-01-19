@@ -16,7 +16,8 @@ interface UserStats {
 }
 
 export const MobileSettingsPage: React.FC = () => {
-    const { user, signOut } = useAuth();
+    const { user, signOut, profile } = useAuth();
+    const canStream = profile?.can_stream || profile?.role === 'admin';
     const [stats, setStats] = useState<UserStats | null>(null);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [showClearModal, setShowClearModal] = useState(false);
@@ -80,21 +81,23 @@ export const MobileSettingsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Account Stats */}
-            <div className="space-y-4 mb-8">
-                <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Account</h3>
+            {/* Account Stats - Only for streaming users */}
+            {canStream && (
+                <div className="space-y-4 mb-8">
+                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Account</h3>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                        <div className="text-xs text-zinc-500 font-bold uppercase mb-2">Watched</div>
-                        <div className="text-2xl font-black text-white">{stats?.historyCount || 0}</div>
-                    </div>
-                    <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                        <div className="text-xs text-zinc-500 font-bold uppercase mb-2">Playlists</div>
-                        <div className="text-2xl font-black text-white">{stats?.playlistsCount || 0}</div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                            <div className="text-xs text-zinc-500 font-bold uppercase mb-2">Watched</div>
+                            <div className="text-2xl font-black text-white">{stats?.historyCount || 0}</div>
+                        </div>
+                        <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
+                            <div className="text-xs text-zinc-500 font-bold uppercase mb-2">Playlists</div>
+                            <div className="text-2xl font-black text-white">{stats?.playlistsCount || 0}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Actions */}
             <div className="space-y-3">

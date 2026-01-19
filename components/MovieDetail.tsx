@@ -257,21 +257,13 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2">
-                                {canStream ? (
+                                {canStream && (
                                     <button
                                         onClick={() => onPlay(activeMovie, currentSeason, currentEpisode)}
                                         className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-black px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold tracking-wide transition-colors whitespace-nowrap"
                                     >
                                         <Play size={20} className="fill-black" />
                                         <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E1` : 'Play Movie'}</span>
-                                    </button>
-                                ) : (
-                                    <button
-                                        disabled
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-zinc-800 text-zinc-500 px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold tracking-wide cursor-not-allowed opacity-50"
-                                    >
-                                        <Lock size={18} />
-                                        <span>{activeMovie.mediaType === 'tv' ? 'Episode 1' : 'Play Movie'}</span>
                                     </button>
                                 )}
 

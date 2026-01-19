@@ -210,12 +210,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           <ListVideo size={16} strokeWidth={activeTab === NavItem.PLAYLISTS ? 2.5 : 2} />
         </button>
 
-        <button
-          onClick={() => setActiveTab(NavItem.STATS)}
-          className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.STATS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
-        >
-          <BarChart2 size={16} strokeWidth={activeTab === NavItem.STATS ? 2.5 : 2} />
-        </button>
+        {canStream && (
+          <button
+            onClick={() => setActiveTab(NavItem.STATS)}
+            className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.STATS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          >
+            <BarChart2 size={16} strokeWidth={activeTab === NavItem.STATS ? 2.5 : 2} />
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab(NavItem.SETTINGS)}
