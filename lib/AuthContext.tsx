@@ -55,6 +55,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return () => subscription.unsubscribe()
     }, [])
 
+    // 3. Realtime subscription for profile changes (e.g., admin grants streaming permission)
+    useEffect(() => {
+        if (!user?.id) return;
+
+        console.log('[Auth] Setting up realtime subscription for user:', user.id);
+
+        const channel = supabase
+            .channel(`profile-changes-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`
+                },
+                (payload) => {
+                    console.log('[Auth] Profile updated via realtime:', payload.new);
+                    // Invalidate cache and update profile
+                    cache.invalidate(CACHE_KEYS.USER_PROFILE, true);
+                    setProfile(payload.new as Profile);
+                }
+            )
+            .subscribe((status) => {
+                console.log('[Auth] Realtime subscription status:', status);
+            });
+
+        return () => {
+            console.log('[Auth] Cleaning up realtime subscription');
+            supabase.removeChannel(channel);
+        };
+    }, [user?.id]);
+
     const fetchProfile = async (userId: string) => {
         try {
             // Check cache first (sessionStorage, 5 min TTL)
