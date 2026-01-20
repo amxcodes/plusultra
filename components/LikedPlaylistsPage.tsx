@@ -59,7 +59,7 @@ export const LikedPlaylistsPage: React.FC<LikedPlaylistsPageProps> = ({ onBack, 
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
                         {playlists.map((playlist) => {
-                            const previewImages = playlist.items?.map(i => i.poster_path ? `https://image.tmdb.org/t/p/w300${i.poster_path}` : null).filter(Boolean) as string[] || [];
+                            const previewImages = playlist.items?.map(i => i.metadata?.poster_path ? `https://image.tmdb.org/t/p/w300${i.metadata.poster_path}` : null).filter(Boolean) as string[] || [];
                             return (
                                 <div key={playlist.id} onClick={() => onPlaylistSelect(playlist)} className="cursor-pointer group flex flex-col gap-3 relative transform-gpu transition-transform duration-300 hover:scale-105">
                                     <div className="aspect-[2/3] bg-zinc-900 rounded-xl overflow-hidden relative shadow-lg border border-white/5 group-hover:border-white/30">

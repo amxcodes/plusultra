@@ -6,6 +6,8 @@ import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Tras
 import { useAuth } from '../lib/AuthContext';
 import { TmdbService } from '../services/tmdb';
 import { HealthService, HealthStatus } from '../services/health';
+import { useToast } from '../lib/ToastContext';
+import { useConfirm } from '../lib/ConfirmContext';
 
 interface AdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -49,7 +51,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     const loadAllData = async () => {
         setLoading(true);
         try {
-            const [statsData, usersData, announcementsData, playlistsData, featuredData, settingsData, requestsData] = await Promise.all([
+            // Use allSettled so individual failures don't break everything
+            const results = await Promise.allSettled([
                 SocialService.getAdminStats(),
                 SocialService.getAllUsers(),
                 SocialService.getAnnouncements(),
@@ -58,13 +61,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 SocialService.getAppSettings(),
                 CommunityService.getRequests('all')
             ]);
-            setStats(statsData);
-            setUsers(usersData);
-            setAnnouncements(announcementsData);
-            setAllPlaylists(playlistsData);
-            setFeaturedMovies(featuredData);
-            setAppSettings(settingsData);
-            setAdminRequests(requestsData);
+
+            // Extract successful results, use fallbacks for failures
+            const [statsResult, usersResult, announcementsResult, playlistsResult, featuredResult, settingsResult, requestsResult] = results;
+
+            if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+            if (usersResult.status === 'fulfilled') setUsers(usersResult.value as Profile[]);
+            if (announcementsResult.status === 'fulfilled') setAnnouncements(announcementsResult.value);
+            if (playlistsResult.status === 'fulfilled') setAllPlaylists(playlistsResult.value);
+            if (featuredResult.status === 'fulfilled') setFeaturedMovies(featuredResult.value as any[]);
+            if (settingsResult.status === 'fulfilled') setAppSettings(settingsResult.value);
+            if (requestsResult.status === 'fulfilled') setAdminRequests(requestsResult.value);
+
+            // Log any failures
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    const apiNames = ['Stats', 'Users', 'Announcements', 'Playlists', 'Featured', 'Settings', 'Requests'];
+                    console.error(`[Admin] Failed to load ${apiNames[index]}:`, result.reason);
+                }
+            });
         } catch (e) {
             console.error(e);
         } finally {
@@ -72,13 +87,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         }
     };
 
+    const { success, error, info } = useToast();
+    const confirm = useConfirm();
+
     const handleSaveSetting = async (key: string, value: string) => {
         try {
             await SocialService.updateAppSetting(key, value);
-            alert('Setting saved!');
+            success('Setting saved!');
         } catch (e) {
             console.error(e);
-            alert('Failed to save setting');
+            error('Failed to save setting');
         }
     };
 
@@ -94,7 +112,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     };
 
     const handleDeleteAnnouncement = async (id: string) => {
-        if (!confirm('Delete this announcement?')) return;
+        const confirmed = await confirm({
+            title: 'Delete Announcement',
+            message: 'Are you sure you want to delete this announcement?',
+            confirmText: 'Delete',
+            variant: 'danger'
+        });
+        if (!confirmed) return;
         try {
             await SocialService.deleteAnnouncement(id);
             setAnnouncements(prev => prev.filter(a => a.id !== id));
@@ -133,12 +157,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             loadAllData(); // Refresh list to show new movie
         } catch (e) {
             console.error(e);
-            alert('Failed to add movie.');
+            error('Failed to add movie.');
         }
     };
 
     const handleRemoveFeaturedMovie = async (id: string) => {
-        if (!confirm('Remove from featured?')) return;
+        const confirmed = await confirm({
+            title: 'Remove Featured Movie',
+            message: 'Remove this movie from featured?',
+            confirmText: 'Remove',
+            variant: 'warning'
+        });
+        if (!confirmed) return;
         try {
             await SocialService.removeFeaturedMovie(id);
             setFeaturedMovies(prev => prev.filter(m => m.id !== id));
@@ -287,13 +317,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                     <button
                                                         onClick={async () => {
                                                             const newStatus = req.status === 'pending' ? 'fulfilled' : 'pending';
-                                                            if (!confirm(`Mark request as ${newStatus}?`)) return;
+                                                            const confirmed = await confirm({
+                                                                title: 'Update Status',
+                                                                message: `Mark request as ${newStatus}?`,
+                                                                confirmText: newStatus === 'fulfilled' ? 'Fulfill' : 'Reopen',
+                                                                variant: newStatus === 'fulfilled' ? 'default' : 'warning'
+                                                            });
+                                                            if (!confirmed) return;
                                                             try {
                                                                 await CommunityService.updateRequestStatus(req.id, newStatus);
                                                                 setAdminRequests(prev => prev.map(r => r.id === req.id ? { ...r, status: newStatus } : r));
                                                             } catch (e) {
                                                                 console.error(e);
-                                                                alert('Failed to update status');
+                                                                error('Failed to update status');
                                                             }
                                                         }}
                                                         className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-widest font-bold hover:scale-105 active:scale-95 transition-all ${req.status === 'fulfilled' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'}`}
@@ -311,13 +347,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 <td className="px-6 py-3 text-right">
                                                     <button
                                                         onClick={async () => {
-                                                            if (!confirm(`Delete request "${req.title}"?`)) return;
+                                                            const confirmed = await confirm({
+                                                                title: 'Delete Request',
+                                                                message: `Delete request "${req.title}"?\n\nThis action cannot be undone.`,
+                                                                confirmText: 'Delete',
+                                                                variant: 'danger'
+                                                            });
+                                                            if (!confirmed) return;
                                                             try {
                                                                 await CommunityService.deleteRequest(req.id);
                                                                 setAdminRequests(prev => prev.filter(r => r.id !== req.id));
                                                             } catch (e) {
                                                                 console.error(e);
-                                                                alert('Failed to delete request');
+                                                                error('Failed to delete request');
                                                             }
                                                         }}
                                                         className="text-zinc-500 hover:text-red-500 transition-colors p-2"
@@ -726,15 +768,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                         <select
                                                             value={u.role}
                                                             onChange={async (e) => {
-                                                                if (!confirm(`Change ${u.username}'s role to ${e.target.value}?`)) return;
+                                                                const newRole = e.target.value;
+                                                                const confirmed = await confirm({
+                                                                    title: 'Change User Role',
+                                                                    message: `Change ${u.username}'s role to ${newRole}?`,
+                                                                    confirmText: 'Change Role',
+                                                                    variant: newRole === 'admin' ? 'warning' : 'default'
+                                                                });
+                                                                if (!confirmed) return;
                                                                 try {
-                                                                    await SocialService.updateUserRole(u.id, e.target.value as any);
+                                                                    await SocialService.updateUserRole(u.id, newRole as any);
                                                                     setUsers(prev => prev.map(user =>
-                                                                        user.id === u.id ? { ...user, role: e.target.value } : user
+                                                                        user.id === u.id ? { ...user, role: newRole as Profile['role'] } : user
                                                                     ));
                                                                 } catch (e) {
                                                                     console.error(e);
-                                                                    alert('Failed to update role');
+                                                                    error('Failed to update role');
                                                                 }
                                                             }}
                                                             className={`text-[10px] px-2 py-1 rounded border uppercase tracking-wider font-bold cursor-pointer ${u.role === 'admin' ? 'bg-white text-black border-white' :
@@ -759,7 +808,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                     ));
                                                                 } catch (e) {
                                                                     console.error(e);
-                                                                    alert('Failed to update permission');
+                                                                    error('Failed to update permission');
                                                                 }
                                                             }}
                                                             className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${u.can_stream
@@ -783,12 +832,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                             </button>
                                                             <button
                                                                 onClick={async () => {
-                                                                    if (!confirm(`⚠️ DELETE ${u.username}?\n\nThis will permanently remove:\n• Profile & Stats\n• All Playlists\n• Watch Parties\n• Social connections\n\nAuth record stays for audit logs.\n\nThis action CANNOT be undone.`)) return;
+                                                                    const confirmed = await confirm({
+                                                                        title: `⚠️ Delete ${u.username}?`,
+                                                                        message: 'This will permanently remove:\n• Profile & Stats\n• All Playlists\n• Watch Parties\n• Social connections\n\nAuth record stays for audit logs.\n\nThis action CANNOT be undone.',
+                                                                        confirmText: 'Delete User',
+                                                                        variant: 'danger'
+                                                                    });
+                                                                    if (!confirmed) return;
 
-                                                                    // Double confirmation
+                                                                    // Double confirmation - type username
                                                                     const confirmText = prompt(`Type "${u.username}" to confirm deletion:`);
                                                                     if (confirmText !== u.username) {
-                                                                        alert('Deletion cancelled - username did not match');
+                                                                        info('Deletion cancelled - username did not match');
                                                                         return;
                                                                     }
 
@@ -799,11 +854,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                                                                         // Remove from local state
                                                                         setUsers(prev => prev.filter(user => user.id !== u.id));
-                                                                        alert(`Successfully deleted ${u.username} and all associated data.`);
+                                                                        success(`Successfully deleted ${u.username} and all associated data.`);
                                                                         loadAllData(); // Refresh stats
                                                                     } catch (e) {
                                                                         console.error(e);
-                                                                        alert('Failed to delete user. Check console for details.');
+                                                                        error('Failed to delete user. Check console for details.');
                                                                     } finally {
                                                                         setLoading(false);
                                                                     }

@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { cache, CACHE_KEYS } from './cache'
+import { setUserContext, clearUserContext } from './sentry'
 
 // Define the shape of our Profile
 type Profile = {
@@ -40,15 +41,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             else setLoading(false)
         })
 
-        // 2. Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session)
-            setUser(session?.user ?? null)
-            if (session?.user) {
-                fetchProfile(session.user.id)
-            } else {
-                setProfile(null)
-                setLoading(false)
+        // 2. Listen for auth changes with explicit event handling
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('[Auth] Auth state changed:', event);
+
+            switch (event) {
+                case 'SIGNED_IN':
+                    setSession(session);
+                    setUser(session?.user ?? null);
+                    if (session?.user) fetchProfile(session.user.id);
+                    break;
+
+                case 'SIGNED_OUT':
+                    // Clear all state and cache
+                    setSession(null);
+                    setUser(null);
+                    setProfile(null);
+                    cache.clearAll();
+                    clearUserContext(); // Clear Sentry user context
+                    setLoading(false);
+                    break;
+
+                case 'TOKEN_REFRESHED':
+                    // Silent update, session is still valid
+                    setSession(session);
+                    break;
+
+                case 'USER_UPDATED':
+                    setUser(session?.user ?? null);
+                    if (session?.user) {
+                        cache.invalidate(CACHE_KEYS.USER_PROFILE, true);
+                        fetchProfile(session.user.id);
+                    }
+                    break;
+
+                default:
+                    // Handle any other events generically
+                    setSession(session);
+                    setUser(session?.user ?? null);
+                    if (session?.user) {
+                        fetchProfile(session.user.id);
+                    } else {
+                        setProfile(null);
+                        setLoading(false);
+                    }
             }
         })
 
@@ -73,9 +109,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 },
                 (payload) => {
                     console.log('[Auth] Profile updated via realtime:', payload.new);
-                    // Invalidate cache and update profile
-                    cache.invalidate(CACHE_KEYS.USER_PROFILE, true);
-                    setProfile(payload.new as Profile);
+
+                    // Validate payload structure before using
+                    const newProfile = payload.new;
+                    const validRoles = ['user', 'admin', 'moderator'];
+
+                    if (
+                        newProfile &&
+                        typeof newProfile === 'object' &&
+                        typeof newProfile.id === 'string' &&
+                        typeof newProfile.username === 'string' &&
+                        typeof newProfile.role === 'string' &&
+                        validRoles.includes(newProfile.role)
+                    ) {
+                        // Sanitize optional fields
+                        const sanitizedProfile: Profile = {
+                            id: newProfile.id,
+                            username: newProfile.username,
+                            avatar_url: typeof newProfile.avatar_url === 'string' ? newProfile.avatar_url : '',
+                            role: newProfile.role as Profile['role'],
+                            can_stream: typeof newProfile.can_stream === 'boolean' ? newProfile.can_stream : false
+                        };
+
+                        // Invalidate cache and update profile
+                        cache.invalidate(CACHE_KEYS.USER_PROFILE, true);
+                        setProfile(sanitizedProfile);
+                    } else {
+                        console.warn('[Auth] Received malformed profile update, ignoring:', newProfile);
+                    }
                 }
             )
             .subscribe((status) => {
@@ -88,7 +149,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [user?.id]);
 
-    const fetchProfile = async (userId: string) => {
+    const fetchProfile = async (userId: string, retryCount = 0) => {
+        const MAX_RETRIES = 3;
+
         try {
             // Check cache first (sessionStorage, 5 min TTL)
             const cachedProfile = cache.get<Profile>(CACHE_KEYS.USER_PROFILE, true);
@@ -106,17 +169,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 .single()
 
             if (error) {
-                console.error('Error fetching profile:', error)
-            } else {
-                const profileData = data as Profile;
-                setProfile(profileData);
-                // Cache for 5 minutes in sessionStorage
-                cache.set(CACHE_KEYS.USER_PROFILE, profileData, 5, true);
+                throw error; // Trigger retry logic
             }
+
+            // Success - set profile and loading false
+            const profileData = data as Profile;
+            setProfile(profileData);
+            setUserContext(profileData.id, profileData.username); // Set Sentry user context
+            cache.set(CACHE_KEYS.USER_PROFILE, profileData, 5, true);
+            setLoading(false); // Always set loading false on success
         } catch (err) {
-            console.error('Unexpected error fetching profile:', err)
-        } finally {
-            setLoading(false)
+            console.error(`Error fetching profile (attempt ${retryCount + 1}/${MAX_RETRIES}):`, err);
+
+            // Retry with exponential backoff
+            if (retryCount < MAX_RETRIES - 1) {
+                const delay = Math.pow(2, retryCount) * 500; // 500ms, 1s, 2s
+                console.log(`[Auth] Retrying profile fetch in ${delay}ms...`);
+                setTimeout(() => fetchProfile(userId, retryCount + 1), delay);
+                return; // Don't set loading false - retry in progress
+            }
+
+            // All retries exhausted - set loading false
+            console.error('[Auth] All retry attempts failed for profile fetch');
+            setLoading(false);
         }
     }
 

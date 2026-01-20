@@ -9,7 +9,7 @@ interface CacheEntry<T> {
     ttl: number; // Time to live in milliseconds
 }
 
-class CacheManager {
+export class CacheManager {
     /**
      * Set cache with TTL
      * @param key Cache key
@@ -32,7 +32,12 @@ class CacheManager {
             console.warn(`Cache storage full for key: ${key}`);
             // Clear old entries and retry
             this.clearExpired();
-            storage.setItem(key, JSON.stringify(entry));
+            try {
+                storage.setItem(key, JSON.stringify(entry));
+            } catch (retryError) {
+                // Still failed after clearing - log and continue without caching
+                console.warn(`Cache storage still full after cleanup, skipping cache for: ${key}`);
+            }
         }
     }
 
@@ -98,11 +103,36 @@ class CacheManager {
     }
 
     /**
-     * Clear all cache (use on logout)
+     * Clear all app cache (use on logout)
+     * Only clears known cache keys, preserves other localStorage data
      */
     clearAll(): void {
-        localStorage.clear();
-        sessionStorage.clear();
+        // Clear known cache keys from both storages
+        const keysToRemove = Object.values({
+            USER_PROFILE: 'user_profile',
+            APP_SETTINGS: 'app_settings',
+            FEATURED_MOVIES: 'featured_movies',
+            FEATURED_PLAYLISTS: 'featured_playlists',
+            COMMUNITY_STATS: 'community_stats'
+        });
+
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+        });
+
+        // Also clear any pending watch history
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('amx_pending_') || key.startsWith('viewed_playlist_')) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        Object.keys(sessionStorage).forEach(key => {
+            if (key.startsWith('amx_') || key.startsWith('viewed_playlist_')) {
+                sessionStorage.removeItem(key);
+            }
+        });
     }
 }
 

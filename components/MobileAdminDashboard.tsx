@@ -5,6 +5,8 @@ import { Profile } from '../types';
 import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus, MessageSquarePlus, Check, X } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { HealthService, HealthStatus } from '../services/health';
+import { useToast } from '../lib/ToastContext';
+import { useConfirm } from '../lib/ConfirmContext';
 
 interface MobileAdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -12,7 +14,9 @@ interface MobileAdminDashboardProps {
 
 export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests'>('overview');
+    const { success, error, info } = useToast();
+    const confirm = useConfirm();
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -38,18 +42,30 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const loadData = async () => {
         setLoading(true);
         try {
-            const [statsData, usersData, announcementsData, settingsData, requestsData] = await Promise.all([
+            // Use allSettled so individual failures don't break everything
+            const results = await Promise.allSettled([
                 SocialService.getAdminStats(),
                 SocialService.getAllUsers(),
                 SocialService.getAnnouncements(),
                 SocialService.getAppSettings(),
                 CommunityService.getRequests('all')
             ]);
-            setStats(statsData);
-            setUsers(usersData);
-            setAnnouncements(announcementsData);
-            setAppSettings(settingsData);
-            setAdminRequests(requestsData);
+
+            const [statsResult, usersResult, announcementsResult, settingsResult, requestsResult] = results;
+
+            if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+            if (usersResult.status === 'fulfilled') setUsers(usersResult.value as Profile[]);
+            if (announcementsResult.status === 'fulfilled') setAnnouncements(announcementsResult.value);
+            if (settingsResult.status === 'fulfilled') setAppSettings(settingsResult.value);
+            if (requestsResult.status === 'fulfilled') setAdminRequests(requestsResult.value);
+
+            // Log any failures
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    const apiNames = ['Stats', 'Users', 'Announcements', 'Settings', 'Requests'];
+                    console.error(`[MobileAdmin] Failed to load ${apiNames[index]}:`, result.reason);
+                }
+            });
         } catch (e) {
             console.error(e);
         } finally {
@@ -67,7 +83,13 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     };
 
     const handleDeleteAnnouncement = async (id: string) => {
-        if (!confirm('Delete?')) return;
+        const confirmed = await confirm({
+            title: 'Delete Announcement',
+            message: 'Are you sure you want to delete this announcement?',
+            confirmText: 'Delete',
+            variant: 'danger'
+        });
+        if (!confirmed) return;
         try {
             await SocialService.deleteAnnouncement(id);
             setAnnouncements(prev => prev.filter(a => a.id !== id));
@@ -78,24 +100,36 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
 
     // Mobile simplified user role toggle - Replaced with direct select for parity
     const handleRoleChange = async (u: Profile, newRole: string) => {
-        if (!confirm(`Change ${u.username}'s role to ${newRole}?`)) return;
+        const confirmed = await confirm({
+            title: 'Change User Role',
+            message: `Change ${u.username}'s role to ${newRole}?`,
+            confirmText: 'Change Role',
+            variant: newRole === 'admin' ? 'warning' : 'default'
+        });
+        if (!confirmed) return;
         try {
             await SocialService.updateUserRole(u.id, newRole as any);
             setUsers(prev => prev.map(user =>
-                user.id === u.id ? { ...user, role: newRole } : user
+                user.id === u.id ? { ...user, role: newRole as Profile['role'] } : user
             ));
         } catch (e) {
             console.error(e);
-            alert('Failed');
+            error('Failed');
         }
     };
 
     const handleDeleteUser = async (u: Profile) => {
-        if (!confirm(`⚠️ DELETE ${u.username}?\n\nThis will permanently remove:\n• Profile & Stats\n• All Playlists\n• Watch Parties\n• Audit logs will remain.\n\nThis action CANNOT be undone.`)) return;
+        const confirmed = await confirm({
+            title: `⚠️ Delete ${u.username}?`,
+            message: 'This will permanently remove:\n• Profile & Stats\n• All Playlists\n• Watch Parties\n• Audit logs will remain.\n\nThis action CANNOT be undone.',
+            confirmText: 'Delete User',
+            variant: 'danger'
+        });
+        if (!confirmed) return;
 
         const confirmText = prompt(`Type "${u.username}" to confirm deletion:`);
         if (confirmText !== u.username) {
-            alert('Deletion cancelled - username did not match');
+            info('Deletion cancelled - username did not match');
             return;
         }
 
@@ -103,11 +137,11 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
             setLoading(true);
             await SocialService.deleteUserProfile(u.id);
             setUsers(prev => prev.filter(user => user.id !== u.id));
-            alert(`Successfully deleted ${u.username}.`);
+            success(`Successfully deleted ${u.username}.`);
             loadData();
         } catch (e) {
             console.error(e);
-            alert('Failed to delete user.');
+            error('Failed to delete user.');
         } finally {
             setLoading(false);
         }
@@ -282,7 +316,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                     ));
                                                 } catch (e) {
                                                     console.error(e);
-                                                    alert('Failed to update permission');
+                                                    error('Failed to update permission');
                                                 }
                                             }}
                                             className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-all ${u.can_stream ? 'bg-green-500 text-black shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-red-500/10 text-red-500 border border-red-500/20'
@@ -463,13 +497,19 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                 <div className="flex flex-col gap-2 justify-center ml-1">
                                                     <button
                                                         onClick={async () => {
-                                                            if (!confirm(`Delete request "${req.title}"?`)) return;
+                                                            const confirmed = await confirm({
+                                                                title: 'Delete Request',
+                                                                message: `Delete request "${req.title}"?\n\nThis action cannot be undone.`,
+                                                                confirmText: 'Delete',
+                                                                variant: 'danger'
+                                                            });
+                                                            if (!confirmed) return;
                                                             try {
                                                                 await CommunityService.deleteRequest(req.id);
                                                                 setAdminRequests(prev => prev.filter(r => r.id !== req.id));
                                                             } catch (e) {
                                                                 console.error(e);
-                                                                alert('Failed');
+                                                                error('Failed to delete request');
                                                             }
                                                         }}
                                                         className="p-2 bg-zinc-800/50 hover:bg-red-500/10 hover:text-red-500 text-zinc-500 rounded-lg transition-colors"

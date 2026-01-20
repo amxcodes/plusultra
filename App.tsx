@@ -9,16 +9,13 @@ import { HeroMovie, Movie, NavItem, Playlist } from './types';
 import { TmdbService, requests } from './services/tmdb';
 import { useMyList } from './hooks/useMyList';
 import { useWatchHistory } from './components/useWatchHistory';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { CategoryRow } from './components/CategoryRow';
 import { AsianDramaPage } from './components/AsianDramaPage';
 import { ForYouPage } from './components/ForYouPage';
 
-// ... lines 16-391 (implicit context, will use multiple replace chunks if tool allows, or separate calls. Since this tool call is single replace, I will do import first or usage. Wait, user wants me to fix App.tsx errors.)
 
-// Actually, I'll use multi_replace for App.tsx to handle import and usage at once.
-// For this tool call, I will stick to fixing types.ts and Navbar.tsx as defined in arguments?
-// No, the prompt allows parallel tool calls. I will use multi_replace for App.tsx in a separate tool call below.
 import { Footer } from './components/Footer';
 import { SettingsPage } from './components/SettingsPage';
 import { LibraryBig } from 'lucide-react';
@@ -28,6 +25,8 @@ import { ProfilePage } from './components/ProfilePage';
 import { PlaylistPage } from './components/PlaylistPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { SocialService } from './lib/social';
+import { ToastProvider, useToast } from './lib/ToastContext';
+import { ConfirmProvider } from './lib/ConfirmContext';
 import { PlaylistRow } from './components/PlaylistRow';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
 import { AnnouncementsPage } from './components/AnnouncementsPage';
@@ -57,6 +56,7 @@ import { MobileViewAllPage } from './components/MobileViewAllPage';
 
 function StreamApp() {
   const { user, loading, profile } = useAuth();
+  const { error } = useToast();
   const canStream = profile?.can_stream || profile?.role === 'admin';
 
 
@@ -84,6 +84,7 @@ function StreamApp() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeTab]);
+
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -149,9 +150,7 @@ function StreamApp() {
           id: parseInt(m.tmdb_id),
           mediaType: m.media_type
         })));
-        setFeaturedPlaylists(fPlaylists);
-
-        setFeaturedPlaylists(fPlaylists);
+        setFeaturedPlaylists(fPlaylists as Playlist[]);
       } catch (e) {
         console.error("Failed to load featured content", e);
       }
@@ -182,7 +181,7 @@ function StreamApp() {
 
         // Determine best image
         // prioritizing 16:9 images for continue watching cards
-        const image = item.episodeImage || item.backdropUrl || item.posterUrl || "";
+        const image = item.episodeImage || item.backdropUrl || item.posterPath || "";
 
         // Ensure imageUrl is fully qualified if it's a relative path (though usually they are full URLs or TMDB paths)
         // Note: Our history saves them as full strings usually, but if relying on TMDB paths:
@@ -193,7 +192,7 @@ function StreamApp() {
           id: parseInt(item.tmdbId),
           title: item.title || "Untitled",
           imageUrl: finalImage, // Critical fix for thumbnails
-          year: item.year || new Date().getFullYear(),
+          year: item.year, // Don't fallback to current year for historical content
           match: item.voteAverage || 0,
           mediaType: item.type,
           progress, // For ContinueWatchingCard
@@ -206,6 +205,14 @@ function StreamApp() {
 
   // Player State
   const [playerState, setPlayerState] = useState<{ movie: Movie; season?: number; episode?: number; autoJoinCode?: string } | null>(null);
+
+  // Clear player state if streaming permission is revoked mid-session
+  useEffect(() => {
+    if (playerState && !canStream) {
+      console.log('[Security] Streaming permission revoked - clearing player');
+      setPlayerState(null);
+    }
+  }, [canStream, playerState]);
 
   // Reset to Dashboard on logout so next login starts at Home
   useEffect(() => {
@@ -233,7 +240,7 @@ function StreamApp() {
           const party = await WatchTogetherService.getPartyDetails(joinCode);
           if (!party) {
             console.error('[Auto-Join] Party not found for code:', joinCode);
-            alert('Watch party not found or has expired.');
+            error('Watch party not found or has expired.');
             return;
           }
 
@@ -260,9 +267,9 @@ function StreamApp() {
 
           // Clean URL
           window.history.replaceState({}, '', window.location.pathname);
-        } catch (error) {
-          console.error('[Auto-Join] Error:', error);
-          alert('Failed to join watch party. Please try again.');
+        } catch (err) {
+          console.error('[Auto-Join] Error:', err);
+          error('Failed to join watch party. Please try again.');
         }
       };
       handleAutoJoin();
@@ -321,13 +328,8 @@ function StreamApp() {
   if (loading) return <div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white">Loading...</div>;
   if (!user) return <AuthPage />;
 
-  // Render Player Page if active
-  if (playerState) {
-    if (!canStream) {
-      // Security fallback
-      setPlayerState(null);
-      return null;
-    }
+  // Render Player Page if active AND user has streaming permission
+  if (playerState && canStream) {
     return (
       <PlayerPage
         movie={playerState.movie}
@@ -745,7 +747,13 @@ function StreamApp() {
 function App() {
   return (
     <AuthProvider>
-      <StreamApp />
+      <ToastProvider>
+        <ConfirmProvider>
+          <ErrorBoundary>
+            <StreamApp />
+          </ErrorBoundary>
+        </ConfirmProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

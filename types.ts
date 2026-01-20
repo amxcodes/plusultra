@@ -1,13 +1,14 @@
 export interface Movie {
   id: number;
   title: string;
-  year: number;
+  year?: number;
   match: number;
   imageUrl: string;
+  posterUrl?: string; // Poster image URL
   backdropUrl?: string; // New
   description?: string;
   genre?: string[];
-  duration?: string;
+  duration?: string | number; // Can be string for display or number for progress calc
   director?: string;
   cast?: string[];
   tagline?: string;
@@ -22,6 +23,10 @@ export interface Movie {
     avatarUrl?: string;
   };
   addedByUserId?: string; // ID of the user who added this
+  // Watch progress properties
+  time?: number; // Current position in seconds
+  progress?: number; // Progress percentage (0-100)
+  timeLeft?: number; // Time remaining in seconds
 }
 
 export interface HeroMovie extends Movie {
@@ -58,6 +63,13 @@ export interface Profile {
   role: 'user' | 'admin' | 'moderator';
   recent_searches?: string[];
   can_stream?: boolean; // Permission to access streaming features
+  likes_count?: number; // Total likes received
+  created_at?: string; // When user joined
+  stats?: {
+    total_movies?: number;
+    total_shows?: number;
+    watch_time?: number;
+  };
 }
 
 export interface Playlist {
@@ -74,6 +86,7 @@ export interface Playlist {
     avatar_url: string;
   };
   items?: { metadata?: { poster_path?: string } }[]; // Sneak peek items
+  items_count?: number; // Number of items in playlist
   likes_count?: number;
   analytics?: {
     total_views: number;

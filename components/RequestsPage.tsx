@@ -4,7 +4,10 @@ import { Search, Plus, ThumbsUp, MessageSquarePlus, MessageSquare, ExternalLink,
 import { TmdbService } from '../services/tmdb';
 import { Movie } from '../types';
 
+import { useToast } from '../lib/ToastContext';
+
 export const RequestsPage: React.FC = () => {
+    const { success, error } = useToast();
     const [activeTab, setActiveTab] = useState<'open' | 'fulfilled'>('open');
     const [requests, setRequests] = useState<MovieRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -316,6 +319,7 @@ const RequestCard: React.FC<{ request: MovieRequest; onReplyAdded: () => void }>
 // --- Modals ---
 
 const CreateRequestModal: React.FC<{ isOpen: boolean; onClose: () => void; onCreated: () => void }> = ({ isOpen, onClose, onCreated }) => {
+    const { error } = useToast();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<Movie[]>([]);
     const [loading, setLoading] = useState(false);
@@ -353,7 +357,7 @@ const CreateRequestModal: React.FC<{ isOpen: boolean; onClose: () => void; onCre
             onCreated();
             onClose();
         } catch (e: any) {
-            alert(e.message || "Failed to create request");
+            error(e.message || "Failed to create request");
         } finally {
             setSubmitting(null);
         }
@@ -423,6 +427,7 @@ const CreateRequestModal: React.FC<{ isOpen: boolean; onClose: () => void; onCre
 };
 
 const RequestDetailsModal: React.FC<{ isOpen: boolean; onClose: () => void; request: MovieRequest; onUpdate: () => void }> = ({ isOpen, onClose, request, onUpdate }) => {
+    const { error } = useToast();
     const [replies, setReplies] = useState<RequestReply[]>([]);
     const [loadingReplies, setLoadingReplies] = useState(true);
     const [link, setLink] = useState('');
@@ -468,7 +473,7 @@ const RequestDetailsModal: React.FC<{ isOpen: boolean; onClose: () => void; requ
             loadReplies();
             onUpdate();
         } catch (e: any) {
-            alert("Failed to submit reply");
+            error("Failed to submit reply");
         } finally {
             setSubmitting(false);
         }

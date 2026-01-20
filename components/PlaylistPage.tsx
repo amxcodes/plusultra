@@ -92,7 +92,7 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     const [showCollaboratorsModal, setShowCollaboratorsModal] = useState(false);
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
-    const [isEditingName, setIsEditingName] = useState('');
+    const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState('');
 
     // Collaborative State
@@ -141,26 +141,48 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     const handleLikeToggle = async () => {
         if (!playlist) return;
 
+        // Store previous state for rollback
+        const previousStatus = isLiked;
+        const previousCount = likeCount;
+
         // Optimistic update
         const newStatus = !isLiked;
         setIsLiked(newStatus);
         setLikeCount(prev => newStatus ? prev + 1 : Math.max(0, prev - 1));
 
-        if (newStatus) {
-            await PlaylistEngagement.likePlaylist(playlist.id);
-        } else {
-            await PlaylistEngagement.unlikePlaylist(playlist.id);
+        try {
+            if (newStatus) {
+                const result = await PlaylistEngagement.likePlaylist(playlist.id);
+                if (!result.success) throw new Error(result.error);
+            } else {
+                const result = await PlaylistEngagement.unlikePlaylist(playlist.id);
+                if (!result.success) throw new Error(result.error);
+            }
+        } catch (error) {
+            // Rollback on error
+            console.error('Failed to toggle like:', error);
+            setIsLiked(previousStatus);
+            setLikeCount(previousCount);
         }
     };
 
     const handleConfirmRemove = async () => {
         if (!removeTargetId) return;
+
+        // Store previous state
+        const previousItems = items;
+
+        // Optimistic update
+        setItems(items.filter(i => i.id.toString() !== removeTargetId));
+        setRemoveTargetId(null);
+
         try {
             await SocialService.removeFromPlaylist(playlistId, removeTargetId);
-            setItems(items.filter(i => i.id.toString() !== removeTargetId));
-            setRemoveTargetId(null);
         } catch (e) {
+            // Rollback
             console.error("Failed to remove", e);
+            setItems(previousItems);
+            // Optionally show toast error here
         }
     };
 
@@ -186,12 +208,20 @@ export const PlaylistPage: React.FC<PlaylistPageProps> = ({ playlistId, onMovieS
     const handleSaveName = async () => {
         if (!playlist || !editedName.trim()) return;
 
+        // Store previous state
+        const previousName = playlist.name;
+
+        // Optimistic update
+        setPlaylist({ ...playlist, name: editedName.trim() });
+        setIsEditingName(false);
+
         try {
             await SocialService.updatePlaylist(playlist.id, { name: editedName.trim() });
-            setPlaylist({ ...playlist, name: editedName.trim() });
-            setIsEditingName(false);
         } catch (error) {
+            // Rollback
             console.error('Error updating playlist name:', error);
+            setPlaylist({ ...playlist, name: previousName });
+            setIsEditingName(true); // Re-open edit mode
         }
     };
 

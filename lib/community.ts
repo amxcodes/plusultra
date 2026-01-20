@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { rateLimiter, RATE_LIMITS } from './rateLimiter';
 
 export interface MovieRequest {
     id: string;
@@ -60,21 +61,14 @@ export const CommunityService = {
         title: string,
         posterPath: string
     ) {
-        // Prevent duplicates for same media type + ID
-        const { data: existing } = await supabase
-            .from('movie_requests')
-            .select('id')
-            .eq('tmdb_id', tmdbId)
-            .eq('media_type', mediaType)
-            .maybeSingle();
-
-        if (existing) {
-            throw new Error('This movie has already been requested!');
-        }
+        // Rate limit check
+        rateLimiter.check('createRequest', RATE_LIMITS.CREATE_REQUEST.cooldownMs, RATE_LIMITS.CREATE_REQUEST.maxBurst);
 
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Must be logged in to request');
 
+        // Atomic insert - if duplicate exists, Supabase will return error
+        // This prevents race conditions where two users submit simultaneously
         const { data, error } = await supabase
             .from('movie_requests')
             .insert({
@@ -87,7 +81,14 @@ export const CommunityService = {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            // Check if it's a unique constraint violation (duplicate)
+            if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
+                throw new Error('This movie has already been requested!');
+            }
+            throw error;
+        }
+
         return data as MovieRequest;
     },
 
@@ -135,19 +136,43 @@ export const CommunityService = {
     },
 
     async submitReply(requestId: string, tmdbId: string, content: string, instructions?: string) {
+        // Rate limit check
+        rateLimiter.check('submitReply', RATE_LIMITS.SUBMIT_REPLY.cooldownMs, RATE_LIMITS.SUBMIT_REPLY.maxBurst);
+
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Must be logged in to reply');
 
-        const linkType = this.detectLinkType(content);
+        // Validate and sanitize input
+        const trimmedContent = content.trim();
+        const trimmedInstructions = instructions?.trim();
+
+        // Basic URL validation (allow magnet links and http/https URLs)
+        const isValidUrl = trimmedContent.startsWith('magnet:') ||
+            trimmedContent.startsWith('http://') ||
+            trimmedContent.startsWith('https://');
+
+        if (!isValidUrl) {
+            throw new Error('Invalid link format. Must be a URL or magnet link.');
+        }
+
+        // Length checks to prevent abuse
+        if (trimmedContent.length > 2000) {
+            throw new Error('Link is too long (max 2000 characters).');
+        }
+        if (trimmedInstructions && trimmedInstructions.length > 500) {
+            throw new Error('Instructions are too long (max 500 characters).');
+        }
+
+        const linkType = this.detectLinkType(trimmedContent);
 
         const { data, error } = await supabase
             .from('request_replies')
             .insert({
                 request_id: requestId,
-                tmdb_id: tmdbId.toString(), // Store specifically for player lookups
-                content,
+                tmdb_id: tmdbId.toString(),
+                content: trimmedContent,
                 link_type: linkType,
-                instructions,
+                instructions: trimmedInstructions,
                 created_by: user.id
             })
             .select()
@@ -167,6 +192,9 @@ export const CommunityService = {
     // --- Voting ---
 
     async voteReply(replyId: string, vote: 1 | -1) {
+        // Rate limit check
+        rateLimiter.check('voteReply', RATE_LIMITS.VOTE_REPLY.cooldownMs, RATE_LIMITS.VOTE_REPLY.maxBurst);
+
         const { data, error } = await supabase.rpc('handle_reply_vote', {
             p_reply_id: replyId,
             p_vote: vote

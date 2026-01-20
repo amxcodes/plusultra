@@ -155,7 +155,7 @@ export const MobileViewAllPage: React.FC<MobileViewAllPageProps> = ({
                                     </div>
 
                                     {/* Progress Bar for Resume */}
-                                    {movie.time > 0 && movie.duration > 0 && (
+                                    {typeof movie.time === 'number' && movie.time > 0 && typeof movie.duration === 'number' && movie.duration > 0 && (
                                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-zinc-800">
                                             <div
                                                 className="h-full bg-red-600"

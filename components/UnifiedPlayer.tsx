@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
-import { useSkipData } from './useSkipData';
 import { Settings, Check, Users, Download, ExternalLink, ThumbsUp, X } from 'lucide-react';
 import { CommunityService, RequestReply } from '../lib/community';
 import { TmdbService } from '../services/tmdb';
@@ -129,7 +128,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     }, [tmdbId, mediaType, season, episode]);
 
     const { updateProgress } = useWatchHistory();
-    const { skipData } = useSkipData(title, season, episode);
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
     // Fetch specific episode image (screenshot) if TV
@@ -258,7 +256,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                             lastUpdated: Date.now(),
                             provider: 'vidora',
                             title,
-                            posterUrl,
+                            posterPath: posterUrl,
                             voteAverage,
 
                             backdropUrl: currentMovieBackdrop || backdropUrl,
@@ -326,7 +324,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     lastUpdated: Date.now(),
                     provider,
                     title,
-                    posterUrl,
+                    posterPath: posterUrl,
                     voteAverage,
                     year: new Date().getFullYear(),
 
@@ -348,9 +346,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         };
     }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
 
-
-    const showSkipIntro = skipData?.intro?.start && skipData?.intro?.end &&
-        lastTime >= skipData.intro.start && lastTime < skipData.intro.end;
 
 
     return (
@@ -536,19 +531,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
             {showWatchPartyModal && (
                 <WatchPartyModal isOpen={true} onClose={() => setShowWatchPartyModal(false)} />
-            )}
-
-            {/* Skip Intro Button */}
-            {showSkipIntro && (
-                <button
-                    className="absolute bottom-20 right-4 md:bottom-24 md:right-8 px-4 py-2 md:px-6 md:py-2 bg-white text-black text-sm md:text-base font-bold rounded-full shadow-lg 
-                            hover:bg-gray-200 transition-transform hover:scale-105 z-50 animate-in fade-in slide-in-from-bottom-4"
-                    onClick={() => {
-                        console.log("Skip clicked");
-                    }}
-                >
-                    Skip Intro
-                </button>
             )}
 
             {/* Provider Watermark (Fades out) */}

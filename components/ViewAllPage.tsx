@@ -143,7 +143,7 @@ export const ViewAllPage: React.FC<ViewAllPageProps> = ({
                             className="cursor-pointer transform transition-transform hover:scale-105"
                         >
                             <MovieCard movie={movie} />
-                            {movie.time > 0 && movie.duration > 0 && (
+                            {typeof movie.time === 'number' && movie.time > 0 && typeof movie.duration === 'number' && movie.duration > 0 && (
                                 <div className="h-1 bg-zinc-800 mt-2 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-red-600"

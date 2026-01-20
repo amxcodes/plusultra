@@ -97,16 +97,21 @@ export class HealthService {
         const lastChecked = startTime;
 
         try {
-            // Check if the function exists
-            const { data, error } = await supabase.rpc('update_watch_history', {
-                p_user_id: '00000000-0000-0000-0000-000000000000', // Fake UUID
-                p_tmdb_id: 'test',
-                p_data: { type: 'movie', title: 'Test' }
+            // Use null UUID to avoid polluting any user's actual watch history
+            // The RPC will reject this gracefully, but confirms the function exists
+            const testUserId = '00000000-0000-0000-0000-000000000000';
+
+            // Check if the function exists by calling with minimal test data
+            // The function will fail due to RLS, but we confirm it's callable
+            const { error } = await supabase.rpc('update_watch_history', {
+                p_user_id: testUserId,
+                p_tmdb_id: '_health_check_',
+                p_data: { type: 'movie', title: 'Health Check', tmdbId: '_health_check_' }
             });
 
             const responseTime = Date.now() - startTime;
 
-            // Even if it "fails" due to fake data, if we don't get a 404, the function exists
+            // If function doesn't exist, we get a specific error
             if (error && error.message.includes('undefined_function')) {
                 return {
                     service: 'RPC Functions',
@@ -117,6 +122,7 @@ export class HealthService {
                 };
             }
 
+            // Any other error is OK (function exists and was called)
             return {
                 service: 'RPC Functions',
                 status: responseTime < 300 ? 'healthy' : 'degraded',

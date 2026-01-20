@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
+import { generateIdempotencyKey } from '../lib/idempotency';
+import { APP_CONSTANTS } from '../lib/constants';
 
 export interface WatchProgress {
   tmdbId: string;
@@ -11,12 +13,14 @@ export interface WatchProgress {
   duration: number;   // Total duration in seconds
   lastUpdated: number; // Timestamp
   provider: string;   // Which provider was used
+  title?: string;
+  year?: number;
+  progress?: number;
 
   // Metadata for UI (to avoid re-fetching)
-  title?: string;
-  posterUrl?: string;
+  posterPath?: string;
+  seasonCount?: number;
   voteAverage?: number;
-  year?: number;
   backdropUrl?: string; // New: For movie cards
   episodeImage?: string; // New: For TV cards
   genres?: string[]; // Genre names for stats tracking
@@ -26,6 +30,9 @@ export const useWatchHistory = () => {
   const { user } = useAuth();
   const [history, setHistory] = useState<Record<string, WatchProgress>>({});
   const [isLoading, setIsLoading] = useState(true);
+
+  // Ref to track current user for debounced callbacks (prevents stale closure)
+  const userRef = useRef(user);
 
   // Load history from Supabase (Profile JSONB - Netflix-style)
   useEffect(() => {
@@ -97,18 +104,29 @@ export const useWatchHistory = () => {
   // Keep track of latest data for the timeout callback
   const latestDataRef = useRef<WatchProgress | null>(null);
 
+  // Keep userRef updated
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   // Sync to Supabase with retry logic (quieter logging)
-  const syncToSupabase = async (data: WatchProgress, retries = 2): Promise<boolean> => {
-    if (!user) return false;
+  const syncToSupabase = async (data: WatchProgress, idempotencyKey?: string, retries = 2): Promise<boolean> => {
+    const currentUser = userRef.current;
+    if (!currentUser) return false;
+
+    // Generate key if not provided
+    const key = idempotencyKey || generateIdempotencyKey('watch_history', currentUser.id, data.tmdbId.toString());
 
     let lastError: any = null;
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
-        const { error } = await supabase.rpc('update_watch_history', {
-          p_user_id: user.id,
+        // Use v2 function to avoid schema cache issues with v1
+        const { error } = await supabase.rpc('update_watch_history_v2', {
+          p_user_id: currentUser.id,
           p_tmdb_id: data.tmdbId.toString(),
-          p_data: data
+          p_data: data,
+          p_idempotency_key: key
         });
 
         if (!error) {
@@ -135,11 +153,11 @@ export const useWatchHistory = () => {
     // Only log once after all retries failed
     if (lastError?.message?.includes('AbortError')) {
       // Silent fail for abort errors (common during navigation)
-      const pendingKey = `amx_pending_watch_history_${user.id}`;
+      const pendingKey = `amx_pending_watch_history_${currentUser.id}`;
       localStorage.setItem(pendingKey, JSON.stringify(data));
     } else {
       console.warn('[Sync] Failed to save progress, using local backup.');
-      const pendingKey = `amx_pending_watch_history_${user.id}`;
+      const pendingKey = `amx_pending_watch_history_${currentUser.id}`;
       localStorage.setItem(pendingKey, JSON.stringify(data));
     }
     return false;
@@ -167,8 +185,10 @@ export const useWatchHistory = () => {
     saveTimeoutRef.current = setTimeout(async () => {
       const currentData = latestDataRef.current;
       if (!currentData) return;
-      await syncToSupabase(currentData);
-    }, 5000); // 5 second debounce window
+      // Generate idempotency key for this debounced batch
+      const key = generateIdempotencyKey('watch_history', user.id, currentData.tmdbId.toString());
+      await syncToSupabase(currentData, key);
+    }, APP_CONSTANTS.DEBOUNCE_DELAY); // 5 second debounce window
   };
 
   // Cleanup on unmount - save to localStorage only (prevents infinite loop)
@@ -195,16 +215,42 @@ export const useWatchHistory = () => {
   };
 
   const getContinueWatching = useCallback((): WatchProgress[] => {
-    const threshold = 10;
+    const minTimeThreshold = 10; // Must have watched at least 10 seconds
+    const maxAgeMs = 30 * 24 * 60 * 60 * 1000; // 30 days max age
+    const now = Date.now();
     const items = Object.values(history) as WatchProgress[];
 
     return items
       .filter(item => {
-        const progress = item.duration > 0 ? (item.time / item.duration) : 0;
-        return item.time > threshold && progress < 0.95;
+        // Must have watched at least threshold seconds
+        if (item.time < minTimeThreshold) return false;
+
+        // Don't show items older than 30 days
+        if (now - item.lastUpdated > maxAgeMs) return false;
+
+        // If we have duration data, filter out completed items (>95%)
+        if (item.duration > 0) {
+          const progress = item.time / item.duration;
+          if (progress >= 0.95) return false;
+        }
+
+        // Include item (duration unknown = assume not completed)
+        return true;
       })
       .sort((a, b) => b.lastUpdated - a.lastUpdated);
   }, [history]);
 
-  return { history, updateProgress, getProgress, getContinueWatching, isLoading };
+  // Force flush pending progress immediately (for logout scenarios)
+  const flushNow = useCallback(async () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    const currentData = latestDataRef.current;
+    if (currentData && userRef.current) {
+      await syncToSupabase(currentData);
+    }
+  }, []);
+
+  return { history, updateProgress, getProgress, getContinueWatching, isLoading, flushNow };
 };

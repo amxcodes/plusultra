@@ -1,3 +1,7 @@
+// Sentry must be initialized first to catch all errors
+import { initSentry } from './lib/sentry';
+initSentry();
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
