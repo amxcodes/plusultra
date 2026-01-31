@@ -402,7 +402,7 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                                     <div key={idx} className="group relative">
                                         <div className="aspect-[2/3] rounded-lg overflow-hidden bg-zinc-900 border border-white/5 shadow-lg">
                                             <img
-                                                src={item.posterUrl?.startsWith('/') ? `https://image.tmdb.org/t/p/w200${item.posterUrl}` : item.posterUrl}
+                                                src={(item.posterPath || item.posterUrl)?.startsWith('/') ? `https://image.tmdb.org/t/p/w200${item.posterPath || item.posterUrl}` : (item.posterPath || item.posterUrl)}
                                                 className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                                                 loading="lazy"
                                             />

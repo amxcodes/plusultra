@@ -586,9 +586,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                                 tmdbId: item.tmdbId,
                                 title: item.title || 'Unknown Title',
                                 description: '',
-                                imageUrl: item.posterUrl?.startsWith('/')
-                                    ? `https://image.tmdb.org/t/p/w500${item.posterUrl}`
-                                    : item.posterUrl || '',
+                                imageUrl: (item.posterPath || item.posterUrl)?.startsWith('/')
+                                    ? `https://image.tmdb.org/t/p/w500${item.posterPath || item.posterUrl}`
+                                    : (item.posterPath || item.posterUrl) || '',
                                 backdropUrl: item.backdropUrl,
                                 year: new Date().getFullYear(), // Fallback
                                 match: item.voteAverage || 0,
