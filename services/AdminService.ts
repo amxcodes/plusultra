@@ -113,6 +113,8 @@ export const AdminService = {
             .update({ is_featured: isFeatured })
             .eq('id', id);
         if (error) throw error;
+
+        cache.invalidate(CACHE_KEYS.FEATURED_PLAYLISTS);
     },
 
     async getFeaturedMovies() {
@@ -149,6 +151,8 @@ export const AdminService = {
                 metadata: movie
             });
         if (error) throw error;
+
+        cache.invalidate(CACHE_KEYS.FEATURED_MOVIES);
     },
 
     async removeFeaturedMovie(id: string) {
@@ -157,6 +161,8 @@ export const AdminService = {
             .delete()
             .eq('id', id);
         if (error) throw error;
+
+        cache.invalidate(CACHE_KEYS.FEATURED_MOVIES);
     },
 
     async getFeaturedPlaylists() {
