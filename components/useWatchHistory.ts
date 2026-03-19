@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { generateIdempotencyKey } from '../lib/idempotency';
 import { APP_CONSTANTS } from '../lib/constants';
+import { buildWrappedProgressPayload } from '../lib/wrappedProgress';
 
 export interface WatchProgress {
   tmdbId: string;
@@ -113,6 +114,7 @@ export const useWatchHistory = () => {
   const syncToSupabase = async (data: WatchProgress, idempotencyKey?: string, retries = 2): Promise<boolean> => {
     const currentUser = userRef.current;
     if (!currentUser) return false;
+    const payload = buildWrappedProgressPayload(data);
 
     // Generate key if not provided
     const key = idempotencyKey || generateIdempotencyKey('watch_history', currentUser.id, data.tmdbId.toString());
@@ -125,7 +127,7 @@ export const useWatchHistory = () => {
         const { error } = await supabase.rpc('update_watch_history_v2', {
           p_user_id: currentUser.id,
           p_tmdb_id: data.tmdbId.toString(),
-          p_data: data,
+          p_data: payload,
           p_idempotency_key: key
         });
 

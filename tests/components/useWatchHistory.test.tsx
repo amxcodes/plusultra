@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useWatchHistory } from '../../components/useWatchHistory';
 import { supabase } from '../../lib/supabase';
 
@@ -35,6 +35,12 @@ vi.mock('../../lib/idempotency', () => ({
 }));
 
 describe('useWatchHistory', () => {
+    const flushInitialLoad = async () => {
+        await act(async () => {
+            await Promise.resolve();
+        });
+    };
+
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
@@ -46,13 +52,15 @@ describe('useWatchHistory', () => {
         vi.useRealTimers();
     });
 
-    it('should initialize with empty history', () => {
+    it('should initialize with empty history', async () => {
         const { result } = renderHook(() => useWatchHistory());
+        await flushInitialLoad();
         expect(result.current.history).toEqual({});
     });
 
     it('should optimistic update history immediately', async () => {
         const { result } = renderHook(() => useWatchHistory());
+        await flushInitialLoad();
         const movie = {
             tmdbId: '101',
             type: 'movie' as const,
@@ -74,6 +82,7 @@ describe('useWatchHistory', () => {
 
     it('should debounce sync to supabase', async () => {
         const { result } = renderHook(() => useWatchHistory());
+        await flushInitialLoad();
         const movie = {
             tmdbId: '102',
             type: 'movie' as const,
@@ -116,16 +125,22 @@ describe('useWatchHistory', () => {
         });
 
         expect(supabase.rpc).toHaveBeenCalledTimes(1);
-        expect(supabase.rpc).toHaveBeenCalledWith('update_watch_history', {
+        expect(supabase.rpc).toHaveBeenCalledWith('update_watch_history_v2', {
             p_user_id: 'u1',
             p_tmdb_id: '102',
-            p_data: expect.objectContaining({ progress: 20 }),
+            p_data: expect.objectContaining({
+                progress: 20,
+                wrappedTitleKey: 'movie:102',
+                wrappedUnitKey: 'movie:102',
+                wrappedQualified: false
+            }),
             p_idempotency_key: 'mock-key' // From mocked generator
         });
     });
 
     it('should save to localStorage on failure', async () => {
         const { result } = renderHook(() => useWatchHistory());
+        await flushInitialLoad();
         const movie = {
             tmdbId: '103',
             type: 'movie' as const,
@@ -147,13 +162,7 @@ describe('useWatchHistory', () => {
 
         // Wait for debounce and async execution
         await act(async () => {
-            vi.runAllTimers();
-        });
-
-        // Need to allow microtasks to run for the async function inside setTimeout
-        // Wait a tick
-        await act(async () => {
-            await new Promise(resolve => setTimeout(resolve, 0));
+            await vi.runAllTimersAsync();
         });
 
         // RPC called
@@ -167,6 +176,7 @@ describe('useWatchHistory', () => {
 
     it('should flush pending updates effectively', async () => {
         const { result } = renderHook(() => useWatchHistory());
+        await flushInitialLoad();
         const movie = {
             tmdbId: '104',
             type: 'movie' as const,
