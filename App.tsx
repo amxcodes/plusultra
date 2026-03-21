@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { MovieDetail } from './components/MovieDetail';
@@ -54,6 +54,43 @@ import { MobileAddToPlaylistModal } from './components/MobileAddToPlaylistModal'
 import { MobileWrappedPage } from './components/MobileWrappedPage';
 import { MobileViewAllPage } from './components/MobileViewAllPage';
 
+type ViewAllCategoryState = {
+  title: string;
+  fetchUrl?: string;
+  movies?: Movie[];
+  forcedMediaType?: 'movie' | 'tv';
+};
+
+type PlayerState = {
+  movie: Movie;
+  season?: number;
+  episode?: number;
+  autoJoinCode?: string;
+};
+
+type NavigationSnapshot = {
+  activeTab: NavItem;
+  isSearchOpen: boolean;
+  isMobileMenuOpen: boolean;
+  selectedMovie: Movie | null;
+  selectedProfileId?: string;
+  selectedPlaylistId?: string;
+  playlistModalMovie: Movie | null;
+  viewAllCategory: ViewAllCategoryState | null;
+  playerState: PlayerState | null;
+};
+
+type AppHistoryState = {
+  __streamNav: true;
+  index: number;
+  snapshot: NavigationSnapshot;
+};
+
+const isAppHistoryState = (state: unknown): state is AppHistoryState => {
+  if (!state || typeof state !== 'object') return false;
+  return '__streamNav' in state && (state as AppHistoryState).__streamNav === true;
+};
+
 function StreamApp() {
   const { user, loading, profile } = useAuth();
   const { error } = useToast();
@@ -92,7 +129,7 @@ function StreamApp() {
   const [selectedProfileId, setSelectedProfileId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | undefined>(undefined);
   const [playlistModalMovie, setPlaylistModalMovie] = useState<Movie | null>(null);
-  const [viewAllCategory, setViewAllCategory] = useState<{ title: string; fetchUrl?: string; movies?: Movie[]; forcedMediaType?: 'movie' | 'tv' } | null>(null);
+  const [viewAllCategory, setViewAllCategory] = useState<ViewAllCategoryState | null>(null);
 
   // Data State
   const [heroMovie, setHeroMovie] = useState<HeroMovie | null>(null);
@@ -204,7 +241,132 @@ function StreamApp() {
   }, [getContinueWatching, activeTab]);
 
   // Player State
-  const [playerState, setPlayerState] = useState<{ movie: Movie; season?: number; episode?: number; autoJoinCode?: string } | null>(null);
+  const [playerState, setPlayerState] = useState<PlayerState | null>(null);
+  const historyIndexRef = useRef(0);
+  const isRestoringHistoryRef = useRef(false);
+  const basePathRef = useRef(
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/playlist/')
+      ? '/'
+      : (typeof window !== 'undefined' && window.location.pathname) || '/'
+  );
+
+  const buildSnapshot = (overrides: Partial<NavigationSnapshot> = {}): NavigationSnapshot => ({
+    activeTab,
+    isSearchOpen,
+    isMobileMenuOpen,
+    selectedMovie,
+    selectedProfileId,
+    selectedPlaylistId,
+    playlistModalMovie,
+    viewAllCategory,
+    playerState,
+    ...overrides,
+  });
+
+  const applySnapshot = (snapshot: NavigationSnapshot) => {
+    setActiveTab(snapshot.activeTab);
+    setIsSearchOpen(snapshot.isSearchOpen);
+    setIsMobileMenuOpen(snapshot.isMobileMenuOpen);
+    setSelectedMovie(snapshot.selectedMovie);
+    setSelectedProfileId(snapshot.selectedProfileId);
+    setSelectedPlaylistId(snapshot.selectedPlaylistId);
+    setPlaylistModalMovie(snapshot.playlistModalMovie);
+    setViewAllCategory(snapshot.viewAllCategory);
+    setPlayerState(snapshot.playerState);
+  };
+
+  const getSnapshotUrl = (snapshot: NavigationSnapshot) => (
+    snapshot.selectedPlaylistId ? `/playlist/${snapshot.selectedPlaylistId}` : basePathRef.current
+  );
+
+  const snapshotsMatch = (left: NavigationSnapshot, right: NavigationSnapshot) => (
+    left.activeTab === right.activeTab &&
+    left.isSearchOpen === right.isSearchOpen &&
+    left.isMobileMenuOpen === right.isMobileMenuOpen &&
+    left.selectedMovie === right.selectedMovie &&
+    left.selectedProfileId === right.selectedProfileId &&
+    left.selectedPlaylistId === right.selectedPlaylistId &&
+    left.playlistModalMovie === right.playlistModalMovie &&
+    left.viewAllCategory === right.viewAllCategory &&
+    left.playerState === right.playerState
+  );
+
+  const commitSnapshot = (snapshot: NavigationSnapshot, mode: 'push' | 'replace' = 'push', options?: { scrollToTop?: boolean }) => {
+    const currentSnapshot = buildSnapshot();
+    if (mode === 'push' && snapshotsMatch(snapshot, currentSnapshot)) {
+      return;
+    }
+
+    const nextIndex = mode === 'push' ? historyIndexRef.current + 1 : historyIndexRef.current;
+    historyIndexRef.current = nextIndex;
+
+    const historyState: AppHistoryState = {
+      __streamNav: true,
+      index: nextIndex,
+      snapshot,
+    };
+
+    if (mode === 'push') {
+      window.history.pushState(historyState, '', getSnapshotUrl(snapshot));
+    } else {
+      window.history.replaceState(historyState, '', getSnapshotUrl(snapshot));
+    }
+
+    applySnapshot(snapshot);
+
+    if (options?.scrollToTop ?? true) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
+  const navigateBack = (fallbackSnapshot: NavigationSnapshot, options?: { scrollToTop?: boolean }) => {
+    if (isAppHistoryState(window.history.state) && historyIndexRef.current > 0) {
+      window.history.back();
+      return;
+    }
+
+    commitSnapshot(fallbackSnapshot, 'replace', options);
+  };
+
+  const openSearch = () => {
+    commitSnapshot(buildSnapshot({
+      isSearchOpen: true,
+      isMobileMenuOpen: false,
+      selectedMovie: null,
+    }), 'push', { scrollToTop: false });
+  };
+
+  const closeSearch = () => {
+    navigateBack(buildSnapshot({ isSearchOpen: false }), { scrollToTop: false });
+  };
+
+  const openMobileMenu = () => {
+    commitSnapshot(buildSnapshot({ isMobileMenuOpen: true }), 'push', { scrollToTop: false });
+  };
+
+  const closeMobileMenu = () => {
+    navigateBack(buildSnapshot({ isMobileMenuOpen: false }), { scrollToTop: false });
+  };
+
+  const openViewAll = (category: ViewAllCategoryState) => {
+    commitSnapshot(buildSnapshot({
+      viewAllCategory: category,
+      isSearchOpen: false,
+      isMobileMenuOpen: false,
+    }));
+  };
+
+  const closeViewAll = () => {
+    navigateBack(buildSnapshot({ viewAllCategory: null }));
+  };
+
+  const openPlaylistModal = (movie: Movie) => {
+    commitSnapshot(buildSnapshot({ playlistModalMovie: movie }), 'push', { scrollToTop: false });
+  };
+
+  const closePlaylistModal = () => {
+    navigateBack(buildSnapshot({ playlistModalMovie: null }), { scrollToTop: false });
+  };
 
   // Clear player state if streaming permission is revoked mid-session
   useEffect(() => {
@@ -213,6 +375,58 @@ function StreamApp() {
       setPlayerState(null);
     }
   }, [canStream, playerState]);
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (!isAppHistoryState(event.state)) return;
+
+      historyIndexRef.current = event.state.index;
+      isRestoringHistoryRef.current = true;
+      applySnapshot(event.state.snapshot);
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    };
+
+    if (isAppHistoryState(window.history.state)) {
+      historyIndexRef.current = window.history.state.index;
+      applySnapshot(window.history.state.snapshot);
+    } else {
+      const initialSnapshot = buildSnapshot();
+      window.history.replaceState({
+        __streamNav: true,
+        index: 0,
+        snapshot: initialSnapshot,
+      } satisfies AppHistoryState, '', getSnapshotUrl(initialSnapshot));
+    }
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const snapshot = buildSnapshot();
+    window.history.replaceState({
+      __streamNav: true,
+      index: historyIndexRef.current,
+      snapshot,
+    } satisfies AppHistoryState, '', getSnapshotUrl(snapshot));
+
+    if (isRestoringHistoryRef.current) {
+      isRestoringHistoryRef.current = false;
+    }
+  }, [
+    activeTab,
+    isSearchOpen,
+    isMobileMenuOpen,
+    selectedMovie,
+    selectedProfileId,
+    selectedPlaylistId,
+    playlistModalMovie,
+    viewAllCategory,
+    playerState,
+  ]);
 
   // Reset to Dashboard on logout so next login starts at Home
   useEffect(() => {
@@ -258,15 +472,14 @@ function StreamApp() {
 
           console.log('[Auto-Join] Starting player with movie:', details.title);
 
-          setPlayerState({
-            movie: movieReq as Movie,
-            season: party.season,
-            episode: party.episode,
-            autoJoinCode: joinCode
-          });
-
-          // Clean URL
-          window.history.replaceState({}, '', window.location.pathname);
+          commitSnapshot(buildSnapshot({
+            playerState: {
+              movie: movieReq as Movie,
+              season: party.season,
+              episode: party.episode,
+              autoJoinCode: joinCode
+            }
+          }), 'replace');
         } catch (err) {
           console.error('[Auto-Join] Error:', err);
           error('Failed to join watch party. Please try again.');
@@ -287,42 +500,65 @@ function StreamApp() {
 
 
   const handleMovieSelect = (movie: Movie) => {
-    setSelectedMovie(movie);
+    commitSnapshot(buildSnapshot({
+      selectedMovie: movie,
+      isMobileMenuOpen: false,
+    }), 'push', { scrollToTop: false });
   };
 
   const handlePlay = (movie: Movie, season?: number, episode?: number) => {
-    setPlayerState({ movie, season, episode });
+    commitSnapshot(buildSnapshot({
+      playerState: { movie, season, episode },
+      isMobileMenuOpen: false,
+    }), 'push', { scrollToTop: false });
   };
 
   const handlePlaylistSelect = (playlist: Playlist) => {
-    setSelectedPlaylistId(playlist.id);
+    commitSnapshot(buildSnapshot({
+      selectedPlaylistId: playlist.id,
+      isSearchOpen: false,
+      isMobileMenuOpen: false,
+    }));
   };
 
   const handleCloseDetail = () => {
-    setSelectedMovie(null);
+    navigateBack(buildSnapshot({ selectedMovie: null }), { scrollToTop: false });
   };
 
   const handleTabChange = (tab: NavItem, params?: any) => {
-    if (tab !== NavItem.PROFILE) setSelectedProfileId(undefined);
-    if (tab !== activeTab) setSelectedPlaylistId(undefined);
-    setViewAllCategory(null);
-    setSelectedMovie(null); // Close movie detail when navigating
-    setPlayerState(null); // Close player on tab change
-    setActiveTab(tab);
-    setIsSearchOpen(false);
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    commitSnapshot(buildSnapshot({
+      activeTab: tab,
+      selectedProfileId: tab === NavItem.PROFILE ? params?.id : undefined,
+      selectedPlaylistId: undefined,
+      viewAllCategory: null,
+      selectedMovie: null,
+      playerState: null,
+      playlistModalMovie: null,
+      isSearchOpen: false,
+      isMobileMenuOpen: false,
+    }));
   };
 
   const handleNavigate = (page: string, params?: any) => {
     if (page === 'profile') {
-      setSelectedProfileId(params?.id);
-      setActiveTab(NavItem.PROFILE);
-      setIsSearchOpen(false);
+      commitSnapshot(buildSnapshot({
+        activeTab: NavItem.PROFILE,
+        selectedProfileId: params?.id,
+        selectedPlaylistId: undefined,
+        viewAllCategory: null,
+        selectedMovie: null,
+        playerState: null,
+        isSearchOpen: false,
+        isMobileMenuOpen: false,
+      }));
     } else if (page === 'playlist') {
-      setSelectedPlaylistId(params?.id);
-      setIsSearchOpen(false);
+      commitSnapshot(buildSnapshot({
+        selectedPlaylistId: params?.id,
+        selectedMovie: null,
+        isSearchOpen: false,
+        isMobileMenuOpen: false,
+      }));
     }
-    window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
   if (loading) return <div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white">Loading...</div>;
@@ -335,7 +571,7 @@ function StreamApp() {
         movie={playerState.movie}
         season={playerState.season}
         episode={playerState.episode}
-        onBack={() => setPlayerState(null)}
+        onBack={() => navigateBack(buildSnapshot({ playerState: null }), { scrollToTop: false })}
         autoJoinCode={playerState.autoJoinCode}
       />
     );
@@ -347,10 +583,7 @@ function StreamApp() {
         <Navbar
           activeTab={activeTab}
           setActiveTab={handleTabChange}
-          onSearchClick={() => {
-            setIsSearchOpen(true);
-            setSelectedMovie(null);
-          }}
+          onSearchClick={openSearch}
         />
       </div>
 
@@ -358,15 +591,12 @@ function StreamApp() {
         <MobileNavbar
           activeTab={activeTab}
           setActiveTab={handleTabChange}
-          onSearchClick={() => {
-            setIsSearchOpen(true);
-            setSelectedMovie(null);
-          }}
-          onMenuClick={() => setIsMobileMenuOpen(true)}
+          onSearchClick={openSearch}
+          onMenuClick={openMobileMenu}
         />
         <MobileMenu
           isOpen={isMobileMenuOpen}
-          onClose={() => setIsMobileMenuOpen(false)}
+          onClose={closeMobileMenu}
           activeTab={activeTab}
           setActiveTab={handleTabChange}
         />
@@ -396,7 +626,7 @@ function StreamApp() {
               <MobileSearchPage
                 onMovieSelect={handleMovieSelect}
                 onNavigate={handleNavigate}
-                onClose={() => setIsSearchOpen(false)}
+                onClose={closeSearch}
               />
             </div>
           </div>
@@ -415,7 +645,7 @@ function StreamApp() {
                     description: ""
                   }}
                   onPlay={(m) => handlePlay(m as Movie)}
-                  onAddToPlaylist={(m) => setPlaylistModalMovie(m as Movie)}
+                  onAddToPlaylist={(m) => openPlaylistModal(m as Movie)}
                 />
               </div>
             )}
@@ -438,8 +668,8 @@ function StreamApp() {
                     onPlay={(m) => handlePlay(m)}
                     onMovieSelect={handleMovieSelect}
                     onPlaylistSelect={handlePlaylistSelect}
-                    onAddToPlaylist={(m) => setPlaylistModalMovie(m)}
-                    onViewAll={setViewAllCategory}
+                    onAddToPlaylist={(m) => openPlaylistModal(m)}
+                    onViewAll={openViewAll}
                   />
                 </div>
               )}
@@ -453,7 +683,7 @@ function StreamApp() {
                       fetchUrl={viewAllCategory.fetchUrl}
                       initialMovies={viewAllCategory.movies}
                       forcedMediaType={viewAllCategory.forcedMediaType}
-                      onBack={() => setViewAllCategory(null)}
+                      onBack={closeViewAll}
                       onMovieSelect={handleMovieSelect}
                     />
                   </div>
@@ -463,7 +693,7 @@ function StreamApp() {
                       fetchUrl={viewAllCategory.fetchUrl}
                       initialMovies={viewAllCategory.movies}
                       forcedMediaType={viewAllCategory.forcedMediaType}
-                      onBack={() => setViewAllCategory(null)}
+                      onBack={closeViewAll}
                       onMovieSelect={handleMovieSelect}
                     />
                   </div>
@@ -479,7 +709,7 @@ function StreamApp() {
                       movies={continueWatching}
                       onMovieSelect={handleMovieSelect}
                       variant="continue-watching"
-                      onViewAll={() => setViewAllCategory({ title: "Continue Watching", movies: continueWatching })}
+                      onViewAll={() => openViewAll({ title: "Continue Watching", movies: continueWatching })}
                     />
                   )}
 
@@ -489,7 +719,7 @@ function StreamApp() {
                       title="Featured Movies"
                       movies={featuredMovies}
                       onMovieSelect={handleMovieSelect}
-                      onViewAll={() => setViewAllCategory({ title: "Featured Movies", movies: featuredMovies })}
+                      onViewAll={() => openViewAll({ title: "Featured Movies", movies: featuredMovies })}
                     />
                   )}
 
@@ -508,13 +738,13 @@ function StreamApp() {
 
 
 
-                  <Row title="Trending Now" fetchUrl={requests.fetchTrending} onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending Now", fetchUrl: requests.fetchTrending })} />
-                  <Row title="Top Rated" fetchUrl={requests.fetchTopRated} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated", fetchUrl: requests.fetchTopRated })} />
-                  <Row title="Action Blockbusters" fetchUrl={requests.fetchActionMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action Blockbusters", fetchUrl: requests.fetchActionMovies })} />
-                  <Row title="Comedy Hits" fetchUrl={requests.fetchComedyMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Comedy Hits", fetchUrl: requests.fetchComedyMovies })} />
-                  <Row title="Scary Movies" fetchUrl={requests.fetchHorrorMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Scary Movies", fetchUrl: requests.fetchHorrorMovies })} />
-                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Romance", fetchUrl: requests.fetchRomanceMovies })} />
-                  <Row title="Documentaries" fetchUrl={requests.fetchDocumentaries} onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Documentaries", fetchUrl: requests.fetchDocumentaries })} />
+                  <Row title="Trending Now" fetchUrl={requests.fetchTrending} onMovieSelect={handleMovieSelect} isLarge onViewAll={() => openViewAll({ title: "Trending Now", fetchUrl: requests.fetchTrending })} />
+                  <Row title="Top Rated" fetchUrl={requests.fetchTopRated} onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Top Rated", fetchUrl: requests.fetchTopRated })} />
+                  <Row title="Action Blockbusters" fetchUrl={requests.fetchActionMovies} onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Action Blockbusters", fetchUrl: requests.fetchActionMovies })} />
+                  <Row title="Comedy Hits" fetchUrl={requests.fetchComedyMovies} onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Comedy Hits", fetchUrl: requests.fetchComedyMovies })} />
+                  <Row title="Scary Movies" fetchUrl={requests.fetchHorrorMovies} onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Scary Movies", fetchUrl: requests.fetchHorrorMovies })} />
+                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Romance", fetchUrl: requests.fetchRomanceMovies })} />
+                  <Row title="Documentaries" fetchUrl={requests.fetchDocumentaries} onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Documentaries", fetchUrl: requests.fetchDocumentaries })} />
                 </div>
               )}
 
@@ -522,8 +752,8 @@ function StreamApp() {
               {/* MOVIES ONLY VIEW (Desktop) */}
               {activeTab === NavItem.MOVIES && !viewAllCategory && (
                 <div className="hidden md:block">
-                  <Row title="Trending Movies" fetchUrl={requests.fetchTrending} forcedMediaType='movie' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending Movies", fetchUrl: requests.fetchTrending, forcedMediaType: 'movie' })} />
-                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Romance", fetchUrl: requests.fetchRomanceMovies, forcedMediaType: 'movie' })} />
+                  <Row title="Trending Movies" fetchUrl={requests.fetchTrending} forcedMediaType='movie' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => openViewAll({ title: "Trending Movies", fetchUrl: requests.fetchTrending, forcedMediaType: 'movie' })} />
+                  <Row title="Romance" fetchUrl={requests.fetchRomanceMovies} forcedMediaType='movie' onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Romance", fetchUrl: requests.fetchRomanceMovies, forcedMediaType: 'movie' })} />
                 </div>
               )}
 
@@ -531,11 +761,11 @@ function StreamApp() {
               {/* TV SERIES ONLY VIEW (Desktop) */}
               {activeTab === NavItem.SERIES && !viewAllCategory && (
                 <div className="hidden md:block">
-                  <Row title="Trending TV" fetchUrl={requests.fetchNetflixOriginals} forcedMediaType='tv' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => setViewAllCategory({ title: "Trending TV", fetchUrl: requests.fetchNetflixOriginals, forcedMediaType: 'tv' })} />
-                  <Row title="Top Rated TV" fetchUrl={requests.fetchTopRated} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Top Rated TV", fetchUrl: requests.fetchTopRated, forcedMediaType: 'tv' })} />
-                  <Row title="Action & Adventure" fetchUrl={requests.fetchActionMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Action & Adventure", fetchUrl: requests.fetchActionMovies, forcedMediaType: 'tv' })} />
-                  <Row title="Comedy Series" fetchUrl={requests.fetchComedyMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Comedy Series", fetchUrl: requests.fetchComedyMovies, forcedMediaType: 'tv' })} />
-                  <Row title="Documentary Series" fetchUrl={requests.fetchDocumentaries} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => setViewAllCategory({ title: "Documentary Series", fetchUrl: requests.fetchDocumentaries, forcedMediaType: 'tv' })} />
+                  <Row title="Trending TV" fetchUrl={requests.fetchNetflixOriginals} forcedMediaType='tv' onMovieSelect={handleMovieSelect} isLarge onViewAll={() => openViewAll({ title: "Trending TV", fetchUrl: requests.fetchNetflixOriginals, forcedMediaType: 'tv' })} />
+                  <Row title="Top Rated TV" fetchUrl={requests.fetchTopRated} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Top Rated TV", fetchUrl: requests.fetchTopRated, forcedMediaType: 'tv' })} />
+                  <Row title="Action & Adventure" fetchUrl={requests.fetchActionMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Action & Adventure", fetchUrl: requests.fetchActionMovies, forcedMediaType: 'tv' })} />
+                  <Row title="Comedy Series" fetchUrl={requests.fetchComedyMovies} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Comedy Series", fetchUrl: requests.fetchComedyMovies, forcedMediaType: 'tv' })} />
+                  <Row title="Documentary Series" fetchUrl={requests.fetchDocumentaries} forcedMediaType='tv' onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Documentary Series", fetchUrl: requests.fetchDocumentaries, forcedMediaType: 'tv' })} />
                 </div>
               )}
 
@@ -543,7 +773,7 @@ function StreamApp() {
               {activeTab === NavItem.ANIME && !viewAllCategory && (
                 <AnimePage
                   onMovieSelect={handleMovieSelect}
-                  onViewAll={setViewAllCategory}
+                  onViewAll={openViewAll}
                 />
               )}
 
@@ -551,7 +781,7 @@ function StreamApp() {
               {activeTab === NavItem.ASIAN_DRAMA && !viewAllCategory && (
                 <AsianDramaPage
                   onMovieSelect={handleMovieSelect}
-                  onViewAll={setViewAllCategory}
+                  onViewAll={openViewAll}
                 />
               )}
 
@@ -593,7 +823,7 @@ function StreamApp() {
                     <MobileViewAllPage
                       title="My List"
                       initialMovies={myList}
-                      onBack={() => setActiveTab(NavItem.DASHBOARD)}
+                      onBack={() => navigateBack(buildSnapshot({ activeTab: NavItem.DASHBOARD }))}
                       onMovieSelect={handleMovieSelect}
                     />
                   </div>
@@ -671,7 +901,7 @@ function StreamApp() {
               {/* PLAYLISTS VIEW */}
               {activeTab === NavItem.PLAYLISTS && !selectedPlaylistId && (
                 <PlaylistsPage
-                  onBack={() => setActiveTab(NavItem.DASHBOARD)}
+                  onBack={() => navigateBack(buildSnapshot({ activeTab: NavItem.DASHBOARD }))}
                   onPlaylistSelect={handlePlaylistSelect}
                 />
               )}
@@ -711,13 +941,13 @@ function StreamApp() {
                   <div className="hidden md:flex fixed inset-0 z-[60] items-center justify-center">
                     <AddToPlaylistModal
                       movie={playlistModalMovie}
-                      onClose={() => setPlaylistModalMovie(null)}
+                      onClose={closePlaylistModal}
                     />
                   </div>
                   <div className="md:hidden">
                     <MobileAddToPlaylistModal
                       movie={playlistModalMovie}
-                      onClose={() => setPlaylistModalMovie(null)}
+                      onClose={closePlaylistModal}
                     />
                   </div>
                 </>
@@ -730,7 +960,7 @@ function StreamApp() {
                   <PlaylistPage
                     playlistId={selectedPlaylistId}
                     onMovieSelect={handleMovieSelect}
-                    onBack={() => setSelectedPlaylistId(undefined)}
+                    onBack={() => navigateBack(buildSnapshot({ selectedPlaylistId: undefined }))}
                   />
                 </div>
               )}

@@ -760,7 +760,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
         <div className="fixed inset-0 z-[200] bg-black text-white">
 
             {/* Progress Bar (Centered & Minimal) */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-sm flex gap-2 z-50 px-4">
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-sm flex gap-2 z-50 px-4 pointer-events-none">
                 {slides.map((_, idx) => (
                     <div key={idx} className="h-1 flex-1 bg-zinc-900 rounded-full overflow-hidden">
                         <div
@@ -781,13 +781,23 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
             </button>
 
             {/* Tap Navigation Zones */}
-            <div className="absolute inset-0 z-10 flex">
-                <div className="w-1/3 h-full" onClick={prevSlide} />
-                <div className="w-2/3 h-full" onClick={nextSlide} />
+            <div className="absolute inset-0 z-30 flex">
+                <button
+                    type="button"
+                    aria-label="Previous slide"
+                    className="w-1/3 h-full cursor-w-resize bg-transparent"
+                    onClick={prevSlide}
+                />
+                <button
+                    type="button"
+                    aria-label="Next slide"
+                    className="w-2/3 h-full cursor-e-resize bg-transparent"
+                    onClick={nextSlide}
+                />
             </div>
 
             {/* Current Slide (Full Screen) */}
-            <div className="w-full h-full animate-in fade-in duration-500">
+            <div className="relative z-20 w-full h-full animate-in fade-in duration-500 pointer-events-none">
                 {slides[currentSlide]}
             </div>
 

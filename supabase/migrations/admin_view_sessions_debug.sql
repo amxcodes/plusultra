@@ -38,8 +38,8 @@ DECLARE
 BEGIN
   SELECT role
   INTO requester_role
-  FROM public.profiles
-  WHERE id = auth.uid();
+  FROM public.profiles profile_row
+  WHERE profile_row.id = auth.uid();
 
   IF requester_role IS DISTINCT FROM 'admin' THEN
     RAISE EXCEPTION 'Admin access required';

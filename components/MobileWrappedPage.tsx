@@ -237,26 +237,26 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
 
     const slides = [
         // Slide 1: Intro (Mobile)
-        <div key="intro" className="h-full flex flex-col justify-center items-center p-8 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-black to-black animate-pulse-slow" />
-            <h1 className="text-8xl font-black tracking-tighter text-center flex flex-col items-center z-10 leading-none">
+        <div key="intro" className="h-full flex flex-col justify-center items-center px-6 py-16 bg-black text-white relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-indigo-900/30 via-black to-black animate-pulse-slow" />
+            <h1 className="text-[22vw] font-black tracking-tighter text-center flex flex-col items-center z-10 leading-[0.88]">
                 <span className="animate-slide-up-fade delay-300">{currentYear}</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 animate-slide-up-fade delay-700">WRAPPED</span>
             </h1>
-            <p className="mt-8 text-xs text-white/50 font-mono tracking-[0.4em] uppercase z-10 animate-fade-in delay-1000">
+            <p className="mt-6 text-[11px] text-white/50 font-mono tracking-[0.28em] uppercase z-10 text-center animate-fade-in delay-1000">
                 Your Year in Cinema
             </p>
         </div>,
 
         // Slide 2: The Volume
-        <div key="volume" className="h-full flex flex-col justify-center items-start p-8 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-bl from-emerald-900/20 via-black to-black" />
-            <Film className="absolute -bottom-10 -right-10 w-64 h-64 text-emerald-900/10 rotate-12" />
+        <div key="volume" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-black text-white relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-bl from-emerald-900/20 via-black to-black" />
+            <Film className="absolute -bottom-10 -right-10 w-56 h-56 text-emerald-900/10 rotate-12 pointer-events-none" />
 
             <h2 className="text-emerald-500/80 text-[10px] font-bold tracking-[0.3em] uppercase mb-8 z-10">The Volume</h2>
 
             <div className="relative z-10 w-full">
-                <span className="block text-[25vw] leading-[0.8] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-emerald-600/50 pb-2">
+                <span className="block text-[23vw] leading-[0.82] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-emerald-600/50 pb-2">
                     {totalContent}
                 </span>
                 <span className="block text-2xl font-light text-zinc-400 tracking-tight mt-2">
@@ -280,8 +280,8 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         </div>,
 
         // Slide 3: The Vibe
-        <div key="vibe" className="h-full flex flex-col justify-center items-start p-8 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-pink-900/20 via-black to-black" />
+        <div key="vibe" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-black text-white relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-pink-900/20 via-black to-black" />
             <h2 className="text-pink-500/80 text-[10px] font-bold tracking-[0.3em] uppercase mb-12 z-10">The Vibe</h2>
 
             <div className="flex flex-col gap-4 relative z-10 w-full">
@@ -292,7 +292,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                         const isTop = index === 0;
                         return (
                             <div key={genre} className={`flex items-baseline justify-between ${isTop ? 'mb-4' : ''}`}>
-                                <span className={`font-black tracking-tighter uppercase ${isTop ? 'text-5xl text-white pl-3 border-l-4 border-pink-500' : 'text-2xl text-zinc-600'}`}>
+                                <span className={`font-black tracking-tighter uppercase break-words ${isTop ? 'text-[14vw] text-white pl-3 border-l-4 border-pink-500' : 'text-xl text-zinc-600'}`}>
                                     {genre}
                                 </span>
                                 {isTop && <span className="text-xl font-mono text-pink-400">{count}</span>}
@@ -303,13 +303,13 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         </div>,
 
         // Slide 4: Habits
-        <div key="habits" className="h-full flex flex-col justify-center items-start p-8 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-900/10 via-black to-blue-900/10" />
+        <div key="habits" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-black text-white relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-orange-900/10 via-black to-blue-900/10" />
             <h2 className="text-zinc-500/80 text-[10px] font-bold tracking-[0.3em] uppercase mb-16 z-10">Habits</h2>
 
             <div className="flex flex-col gap-12 relative z-10 w-full">
                 <div>
-                    <span className="block text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-200 to-orange-600/50 mb-2">
+                    <span className="block text-[15vw] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-200 to-orange-600/50 mb-2">
                         {stats.max_streak} DAYS
                     </span>
                     <div className="flex items-center gap-2 text-zinc-500">
@@ -319,7 +319,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                 </div>
 
                 <div>
-                    <span className="block text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-blue-600/50 mb-2">
+                    <span className="block text-[15vw] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-blue-600/50 mb-2">
                         {stats.rewatch_count} TITLES
                     </span>
                     <div className="flex items-center gap-2 text-zinc-500">
@@ -332,8 +332,8 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
 
         // Slide 5: Predictive Insights (Mobile)
         ...(predictions ? [
-            <div key="predictions" className="h-full flex flex-col justify-center items-start p-8 bg-zinc-950 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
+            <div key="predictions" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-zinc-950 text-white relative overflow-hidden">
+                <div className="absolute inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
                 <div className="absolute top-10 right-0 opacity-10 font-black text-9xl text-white rotate-90 origin-top-right">{nextYear}</div>
 
                 <div className="relative z-10 w-full h-full flex flex-col justify-center gap-12">
@@ -345,7 +345,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                     <div className="grid gap-8">
                         <div className="bg-zinc-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm">
                             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-1">Projected Total</span>
-                            <span className="text-6xl font-black text-white">{predictions.projected_2027_total}</span>
+                            <span className="text-[15vw] font-black text-white leading-none">{predictions.projected_2027_total}</span>
                             <div className="mt-2 flex items-center gap-2">
                                 <TrendingUp size={14} className={predictions.growth_rate > 0 ? 'text-green-500' : 'text-red-500'} />
                                 <span className="text-xs text-zinc-400 font-bold">{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% Session Growth</span>
@@ -355,7 +355,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                         {predictions.next_milestone && (
                             <div className="bg-zinc-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm">
                                 <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-1">Next Milestone</span>
-                                <span className="text-5xl font-black text-white">{predictions.next_milestone.target}</span>
+                                <span className="text-[13vw] font-black text-white leading-none">{predictions.next_milestone.target}</span>
                                 <span className="text-xs text-zinc-400 block mt-2">{predictions.next_milestone.remaining} sessions away</span>
                             </div>
                         )}
@@ -365,13 +365,13 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         ] : []),
 
         // Slide 6: Summary (Mobile)
-        <div key="summary" className="h-full flex flex-col justify-between p-8 pt-16 pb-12 bg-zinc-950 text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
+        <div key="summary" className="h-full flex flex-col justify-between px-6 pt-16 pb-10 bg-zinc-950 text-white relative overflow-hidden">
+            <div className="absolute inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
 
             {/* Header */}
             <div className="relative z-10 text-center">
                 <h2 className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em] mb-2">StreamWrapp</h2>
-                <h1 className="text-4xl font-black tracking-tighter text-white uppercase">{`${currentYear} Recap`}</h1>
+                <h1 className="text-3xl font-black tracking-tighter text-white uppercase">{`${currentYear} Recap`}</h1>
             </div>
 
             {/* Stats Grid */}
@@ -386,20 +386,20 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                 </div>
                 <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-2xl col-span-2">
                     <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Top Vibe</span>
-                    <span className="text-3xl font-black text-white uppercase leading-none break-all">
+                    <span className="text-2xl font-black text-white uppercase leading-tight break-words text-center">
                         {Object.entries(stats.genre_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0] || '-'}
                     </span>
                 </div>
                 <div className="flex flex-col items-center text-center p-4 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl col-span-2 border border-white/10">
                     <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest mb-1">Archetype</span>
-                    <span className="text-3xl font-black text-white uppercase">{viewingStyle}</span>
+                    <span className="text-2xl font-black text-white uppercase text-center break-words">{viewingStyle}</span>
                 </div>
             </div>
 
             {/* Close Action */}
             <button
                 onClick={onClose}
-                className="relative z-20 w-full py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-zinc-200 transition-colors"
+                className="relative z-20 w-full py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-zinc-200 transition-colors pointer-events-auto"
             >
                 Close Wrapped
             </button>
@@ -410,13 +410,13 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
     ];
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black text-white touch-none">
+        <div className="fixed inset-0 z-[200] bg-black text-white overscroll-contain">
 
             {/* Safe Area Top Spacing */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-black z-[60]" />
 
             {/* Progress Bar */}
-            <div className="absolute top-4 left-4 right-4 z-50 flex gap-1.5 pt-safe">
+            <div className="absolute top-4 left-4 right-4 z-50 flex gap-1.5 pt-safe pointer-events-none">
                 {slides.map((_, idx) => (
                     <div key={idx} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
                         <div
@@ -435,13 +435,23 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             </button>
 
             {/* Navigation Zones */}
-            <div className="absolute inset-0 z-10 flex">
-                <div className="w-1/3 h-full active:bg-white/5 transition-colors" onClick={prevSlide} />
-                <div className="w-2/3 h-full active:bg-white/5 transition-colors" onClick={nextSlide} />
+            <div className="absolute inset-0 z-30 flex">
+                <button
+                    type="button"
+                    aria-label="Previous slide"
+                    className="w-1/3 h-full active:bg-white/5 transition-colors bg-transparent"
+                    onClick={prevSlide}
+                />
+                <button
+                    type="button"
+                    aria-label="Next slide"
+                    className="w-2/3 h-full active:bg-white/5 transition-colors bg-transparent"
+                    onClick={nextSlide}
+                />
             </div>
 
             {/* Content */}
-            <div className="w-full h-full animate-in fade-in duration-300">
+            <div className="relative z-20 w-full h-full animate-in fade-in duration-300 pointer-events-none">
                 {slides[currentSlide]}
             </div>
         </div>
