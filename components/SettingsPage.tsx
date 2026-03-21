@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
     Download,
-
-    Database,
     History,
     LogOut,
     Bookmark,
@@ -15,10 +13,10 @@ import {
     Tv,
     ShieldCheck
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { WrappedPage } from './WrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
+import { isWrappedUnlocked } from '../lib/wrappedSettings';
 
 interface UserStats {
     historyCount: number;
@@ -43,41 +41,7 @@ export const SettingsPage: React.FC = () => {
     }, [user]);
 
     const checkWrappedStatus = async () => {
-        // 1. Check Date Logic (Auto Unlock on Jan 1st of next year)
-        const currentYear = new Date().getFullYear(); // e.g., 2026
-        // Note: Logic assumes we are tracking for 'currentYear'. Wrapped displays for that year.
-        // It unlocks when we hit the NEXT year.
-        // For testing/dev, we can use the admin override.
-
-        // Example: If today is Jan 2027, we unlock 2026 Wrapped.
-        // Since we are in 2026, it stays locked unless admin overrides.
-        // The user asked specifically: "automatic all year after 2027 first motnh this data gets clears this wrap only data on jan 1 2027"
-
-        // Check Admin Override
-        try {
-            const { data } = await supabase
-                .from('app_settings')
-                .select('value')
-                .eq('key', 'wrapped_enabled')
-                .single();
-
-            if (data?.value === 'true') {
-                setWrappedUnlocked(true);
-                return;
-            }
-        } catch (e) {
-            console.error("Failed to check wrapped admin status", e);
-        }
-
-        // Check Date
-        const today = new Date();
-        const month = today.getMonth(); // 0-11
-        const date = today.getDate();
-
-        // Unlock only during the "Wrapped Season" (Dec 20th - Dec 31st)
-        if (month === 11 && date >= 20) {
-            setWrappedUnlocked(true);
-        }
+        setWrappedUnlocked(await isWrappedUnlocked());
     };
 
     const loadStats = async () => {
@@ -135,7 +99,7 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <h3 className="text-lg font-bold text-white mb-2">Clear Watch History?</h3>
                     <p className="text-zinc-500 text-sm mb-6">
-                        This action cannot be undone. All your progress will be lost.
+                        This action cannot be undone. Your recent history and wrapped session stats will be cleared.
                     </p>
 
                     <div className="flex gap-3">
@@ -235,8 +199,8 @@ export const SettingsPage: React.FC = () => {
                                 </div>
                                 <p className={`text-sm mb-8 max-w-[90%] font-medium ${wrappedUnlocked ? 'text-zinc-500' : 'text-zinc-800'}`}>
                                     {wrappedUnlocked
-                                        ? "Your 2026 Wrapped is here."
-                                        : `Unlocks automatically on Dec 20th, ${new Date().getFullYear()}.`}
+                                        ? "Your 2026 Wrapped is ready from this year's qualified sessions."
+                                        : `Unlocks automatically on Dec 20th, ${new Date().getFullYear()}, unless an admin override is enabled.`}
                                 </p>
 
                                 {/* Unlocked Action / Locked status */}
@@ -251,7 +215,7 @@ export const SettingsPage: React.FC = () => {
                                             <div className="h-full bg-zinc-700 w-[70%]" />
                                         </div>
                                         <span className="text-[10px] font-bold uppercase text-zinc-600">
-                                            Collecting Data...
+                                            Collecting Session Data...
                                         </span>
                                     </div>
                                 )}
@@ -274,7 +238,7 @@ export const SettingsPage: React.FC = () => {
                                             <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">History</div>
                                         </div>
                                         <div className="text-4xl font-black text-white">{stats?.historyCount || 0}</div>
-                                        <p className="text-xs text-zinc-600">Titles in history</p>
+                                        <p className="text-xs text-zinc-600">Recent history entries</p>
                                     </div>
 
                                     <div className="space-y-4">
@@ -342,6 +306,7 @@ export const SettingsPage: React.FC = () => {
                                 <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Privacy & Security</div>
                                 <div className="text-lg font-bold text-white tracking-tight">End-to-End Synced</div>
                                 <p className="text-xs text-zinc-600 mt-1">Your data belongs to you. You can export it or clear it at any time.</p>
+                                <p className="text-[10px] text-zinc-700 mt-2">Wrapped and stats are based on recent activity plus qualified viewing sessions, not exact embedded-player telemetry.</p>
                             </div>
                         </div>
 

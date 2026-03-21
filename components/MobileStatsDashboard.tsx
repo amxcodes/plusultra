@@ -34,7 +34,7 @@ export const MobileStatsDashboard = () => {
             </div>
             <h2 className="text-xl font-light text-white mb-2">No Data Available</h2>
             <p className="text-zinc-500 text-sm font-light">
-                Start watching to track your stats.
+                Start a few qualified sessions to track your stats.
             </p>
         </div>
     );
@@ -57,6 +57,9 @@ export const MobileStatsDashboard = () => {
                 <h1 className="text-3xl font-light text-white tracking-tighter">
                     Your Stats
                 </h1>
+                <p className="mt-2 text-xs text-zinc-500">
+                    Movies count after sustained active viewing. TV counts per qualified episode session.
+                </p>
             </div>
 
             {/* Stats Cards - Vertical Stack */}
@@ -86,7 +89,7 @@ export const MobileStatsDashboard = () => {
                             <Film size={16} className="text-blue-500" />
                         </div>
                         <div className="text-2xl font-bold text-white">{stats.total_movies}</div>
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Movies</div>
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Movie Sessions</div>
                     </div>
 
                     {/* TV Shows */}
@@ -95,7 +98,7 @@ export const MobileStatsDashboard = () => {
                             <Tv size={16} className="text-purple-500" />
                         </div>
                         <div className="text-2xl font-bold text-white">{stats.total_shows}</div>
-                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Episodes</div>
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">Episode Sessions</div>
                     </div>
                 </div>
 

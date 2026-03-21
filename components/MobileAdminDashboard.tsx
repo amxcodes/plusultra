@@ -265,7 +265,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                 <div className="flex flex-col text-[10px] text-zinc-500 mt-0.5">
                                                     <span>Joined {new Date(u.created_at).toLocaleDateString()}</span>
                                                     <span className="text-zinc-400">
-                                                        {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} watched • {users.filter(user => user.id === u.id).length} playlists
+                                                        {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} qualified sessions • {users.filter(user => user.id === u.id).length} playlists
                                                     </span>
                                                 </div>
                                             </div>

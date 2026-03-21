@@ -1,12 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-    Download, Database, History, LogOut, Bookmark, Film, Cpu, Trash2, Lock, Trophy, Play, Tv, ShieldCheck
+    Download, LogOut, Trash2, Trophy, Play, ShieldCheck
 } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 import { WrappedPage } from './WrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
+import { isWrappedUnlocked } from '../lib/wrappedSettings';
 
 interface UserStats {
     historyCount: number;
@@ -26,13 +26,7 @@ export const MobileSettingsPage: React.FC = () => {
 
     useEffect(() => {
         const checkWrappedStatus = async () => {
-            // Logic match desktop
-            try {
-                const { data } = await supabase.from('app_settings').select('value').eq('key', 'wrapped_enabled').single();
-                if (data?.value === 'true') { setWrappedUnlocked(true); return; }
-            } catch (e) { }
-            const today = new Date();
-            if (today.getMonth() === 11 && today.getDate() >= 20) setWrappedUnlocked(true);
+            setWrappedUnlocked(await isWrappedUnlocked());
         };
         const loadStats = async () => {
             if (!user) return;
@@ -72,7 +66,7 @@ export const MobileSettingsPage: React.FC = () => {
                 <div className="relative z-10 flex flex-col items-center text-center">
                     <Trophy size={24} className={`mb-3 ${wrappedUnlocked ? 'text-yellow-500' : 'text-zinc-600'}`} />
                     <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">{new Date().getFullYear()} Wrapped</h2>
-                    <p className="text-xs text-zinc-500 font-medium mb-4">{wrappedUnlocked ? 'Your year in review is ready.' : 'Unlocks Dec 20th'}</p>
+                    <p className="text-xs text-zinc-500 font-medium mb-4">{wrappedUnlocked ? 'Built from this year\'s qualified sessions.' : 'Unlocks Dec 20th unless forced on by admin'}</p>
                     {wrappedUnlocked && (
                         <div className="px-4 py-2 bg-white text-black text-xs font-bold rounded-full uppercase tracking-wider flex items-center gap-2">
                             <Play size={10} fill="currentColor" /> Play
@@ -88,8 +82,9 @@ export const MobileSettingsPage: React.FC = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                            <div className="text-xs text-zinc-500 font-bold uppercase mb-2">Watched</div>
+                            <div className="text-xs text-zinc-500 font-bold uppercase mb-2">History</div>
                             <div className="text-2xl font-black text-white">{stats?.historyCount || 0}</div>
+                            <div className="text-[10px] text-zinc-500">Recent entries</div>
                         </div>
                         <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
                             <div className="text-xs text-zinc-500 font-bold uppercase mb-2">Playlists</div>
@@ -127,7 +122,7 @@ export const MobileSettingsPage: React.FC = () => {
             <div className="mt-8 p-4 bg-blue-500/5 rounded-xl border border-blue-500/10 flex gap-3">
                 <ShieldCheck size={16} className="text-blue-500 mt-0.5" />
                 <p className="text-[10px] text-zinc-400 leading-relaxed">
-                    Your data is secure and end-to-end synced. You have full control over your privacy settings.
+                    Your data is secure and synced. Wrapped and stats are built from recent activity plus qualified viewing sessions.
                 </p>
             </div>
 
@@ -139,7 +134,7 @@ export const MobileSettingsPage: React.FC = () => {
                             <Trash2 size={24} className="text-red-500" />
                         </div>
                         <h3 className="text-lg font-bold text-white mb-2">Clear History?</h3>
-                        <p className="text-zinc-500 text-sm mb-6">This action cannot be undone.</p>
+                        <p className="text-zinc-500 text-sm mb-6">This clears recent history and wrapped session stats.</p>
                         <div className="flex gap-3">
                             <button onClick={() => setShowClearModal(false)} className="flex-1 py-3 bg-zinc-800 rounded-xl text-sm font-bold text-zinc-300">Cancel</button>
                             <button onClick={handleClearHistory} className="flex-1 py-3 bg-red-500 rounded-xl text-sm font-bold text-white">Clear</button>

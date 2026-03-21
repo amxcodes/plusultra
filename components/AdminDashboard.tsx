@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
 import { CommunityService } from '../lib/community';
 import { Profile } from '../types';
-import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart, Wifi, WifiOff, Server } from 'lucide-react';
+import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart, Wifi, WifiOff, Server, Trophy } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { TmdbService } from '../services/tmdb';
 import { HealthService, HealthStatus } from '../services/health';
 import { useToast } from '../lib/ToastContext';
 import { useConfirm } from '../lib/ConfirmContext';
+import { WRAPPED_SETTING_KEY } from '../lib/wrappedSettings';
 
 interface AdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -638,6 +639,42 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 }`} />
                                         </button>
                                     </div>
+
+                                    <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
+                                        <div>
+                                            <h4 className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">
+                                                <Trophy size={14} /> Wrapped Override
+                                            </h4>
+                                            <p className="text-zinc-600 text-xs">
+                                                {appSettings[WRAPPED_SETTING_KEY] === 'true'
+                                                    ? 'Wrapped is forced on for everyone.'
+                                                    : 'Wrapped follows the normal seasonal unlock rules.'}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={async () => {
+                                                const previousValue = appSettings[WRAPPED_SETTING_KEY] || 'false';
+                                                const newValue = previousValue === 'true' ? 'false' : 'true';
+                                                setAppSettings((prev: any) => ({ ...prev, [WRAPPED_SETTING_KEY]: newValue }));
+                                                try {
+                                                    await SocialService.updateAppSetting(WRAPPED_SETTING_KEY, newValue);
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    setAppSettings((prev: any) => ({ ...prev, [WRAPPED_SETTING_KEY]: previousValue }));
+                                                }
+                                            }}
+                                            className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${appSettings[WRAPPED_SETTING_KEY] === 'true'
+                                                ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                                                : 'bg-transparent border-zinc-700 hover:border-zinc-600'
+                                                }`}
+                                        >
+                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${appSettings[WRAPPED_SETTING_KEY] === 'true'
+                                                ? 'translate-x-[22px] bg-black'
+                                                : 'translate-x-[2px] bg-zinc-600'
+                                                }`} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -756,7 +793,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                     <td className="px-6 py-3">
                                                         <div className="flex gap-2 text-xs">
                                                             <span className="text-zinc-500">
-                                                                {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} watched
+                                                                {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} qualified sessions
                                                             </span>
                                                             <span className="text-zinc-700">•</span>
                                                             <span className="text-zinc-500">

@@ -46,7 +46,7 @@ export const ForYouPage: React.FC<ForYouPageProps> = ({ onMovieSelect }) => {
             {!isLoading && recommendations.map(item => (
                 <CategoryRow
                     key={item.tmdbId}
-                    title={`Because you watched ${item.title}`}
+                    title={`Because you recently opened ${item.title}`}
                     fetcher={() => TmdbService.getRecommendations(item.tmdbId, item.type)}
                     onMovieSelect={onMovieSelect}
                 />

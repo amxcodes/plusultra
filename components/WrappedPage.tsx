@@ -234,7 +234,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
 
             <div className="flex flex-col items-center gap-2">
                 <span className="text-white text-lg font-mono tracking-widest uppercase animate-pulse">
-                    We are preparing your 2026 wrapped
+                    We are preparing your 2026 session recap
                 </span>
                 <div className="flex gap-1">
                     <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
@@ -294,18 +294,21 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                     {totalContent}
                 </span>
                 <span className="block text-4xl md:text-5xl font-light text-zinc-500 tracking-tight mt-4">
-                    Titles Watched
+                    Qualified Sessions
                 </span>
+                <p className="mt-3 max-w-xl text-xs text-zinc-600 uppercase tracking-[0.2em]">
+                    Movies plus qualified TV episode sessions
+                </p>
             </div>
 
             <div className="mt-24 flex gap-16 relative z-10">
                 <div>
                     <span className="block text-5xl font-bold text-white mb-2">{stats.total_movies}</span>
-                    <span className="text-xs text-zinc-600 uppercase tracking-[0.2em] font-medium">Movies</span>
+                    <span className="text-xs text-zinc-600 uppercase tracking-[0.2em] font-medium">Movie Sessions</span>
                 </div>
                 <div>
                     <span className="block text-5xl font-bold text-white mb-2">{stats.total_shows}</span>
-                    <span className="text-xs text-zinc-600 uppercase tracking-[0.2em] font-medium">Shows</span>
+                    <span className="text-xs text-zinc-600 uppercase tracking-[0.2em] font-medium">Episode Sessions</span>
                 </div>
             </div>
         </div>,
@@ -363,7 +366,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                     </span>
                     <div className="flex items-center gap-4 text-zinc-500 group-hover:text-blue-400 transition-colors">
                         <RotateCcw className="w-5 h-5" />
-                        <span className="text-xs font-mono uppercase tracking-[0.2em]">Rewatched</span>
+                        <span className="text-xs font-mono uppercase tracking-[0.2em]">Repeat Qualified Sessions</span>
                     </div>
                 </div>
             </div>
@@ -375,7 +378,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                 <div className="absolute inset-0 bg-gradient-to-tl from-cyan-900/10 via-black to-black" />
                 <Calendar className="absolute top-20 right-20 w-64 h-64 text-cyan-900/5 rotate-12" />
 
-                <h2 className="text-cyan-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-16 relative z-10 ml-1">First Watch of 2026</h2>
+                <h2 className="text-cyan-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-16 relative z-10 ml-1">First Qualified Watch of 2026</h2>
 
                 <div className="relative z-10">
                     <span className="block text-[8vw] leading-[0.9] font-black tracking-tighter mb-8 max-w-4xl">
@@ -400,7 +403,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                 <div className="absolute inset-0 bg-gradient-to-tr from-violet-900/10 via-black to-black" />
                 <div className="absolute bottom-0 left-0 w-full h-[30vh] bg-gradient-to-t from-violet-900/20 to-transparent" />
 
-                <h2 className="text-violet-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-12 relative z-10 ml-1">Most Rewatched</h2>
+                <h2 className="text-violet-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-12 relative z-10 ml-1">Most Repeated Session</h2>
 
                 <div className="relative z-10">
                     <span className="block text-[8vw] leading-[0.9] font-black tracking-tighter mb-12 max-w-5xl">
@@ -413,7 +416,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                         </span>
                         <div className="flex flex-col justify-center h-full pt-4">
                             <span className="text-xl font-bold text-white uppercase tracking-widest">Times</span>
-                            <span className="text-sm text-zinc-500 uppercase tracking-[0.2em]">Rewatched</span>
+                            <span className="text-sm text-zinc-500 uppercase tracking-[0.2em]">Repeat Sessions</span>
                         </div>
                     </div>
                 </div>
@@ -435,7 +438,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                     <div className="flex items-center gap-6 pl-4 border-l-4 border-amber-500">
                         <span className="text-6xl font-black text-amber-500">{peakMonthCount}</span>
                         <span className="text-sm text-zinc-400 uppercase tracking-widest max-w-[100px] leading-relaxed">
-                            Titles Watched
+                            Qualified Sessions
                         </span>
                     </div>
                 </div>
@@ -471,7 +474,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                             <span className="text-6xl md:text-7xl font-black text-white leading-[0.8]">
                                 {predictions.projected_2027_total}
                             </span>
-                            <span className="text-sm font-bold text-zinc-600 mt-2">Titles Forecasted</span>
+                            <span className="text-sm font-bold text-zinc-600 mt-2">Qualified Sessions Forecasted</span>
                         </div>
 
                         {/* Stat 2: Trajectory */}
@@ -690,7 +693,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                         <span className="text-6xl md:text-7xl font-black text-white leading-[0.8]">
                             {stats.total_movies + stats.total_shows}
                         </span>
-                        <span className="text-sm font-bold text-zinc-600 mt-2">Titles Watched</span>
+                        <span className="text-sm font-bold text-zinc-600 mt-2">Qualified Sessions</span>
                     </div>
 
                     {/* Stat 2: Time */}
@@ -742,6 +745,9 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                 <div className="absolute bottom-8 w-full text-center">
                     <p className="font-mono text-[9px] uppercase tracking-[0.5em] opacity-30 text-zinc-500">
                         StreamWrapp • Generated {new Date().toLocaleDateString()}
+                    </p>
+                    <p className="mt-2 text-[9px] uppercase tracking-[0.25em] opacity-30 text-zinc-600">
+                        Based on sustained active sessions, not exact embedded-player playback
                     </p>
                 </div>
             </div>

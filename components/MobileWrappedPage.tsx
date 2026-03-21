@@ -215,7 +215,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             </div>
             <div className="flex flex-col items-center gap-2">
                 <span className="text-white text-base font-mono tracking-widest uppercase animate-pulse">
-                    Loading 2026 Wrapped...
+                    Loading 2026 session recap...
                 </span>
             </div>
         </div>
@@ -258,17 +258,20 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                     {totalContent}
                 </span>
                 <span className="block text-2xl font-light text-zinc-400 tracking-tight mt-2">
-                    Titles Watched
+                    Qualified Sessions
                 </span>
+                <p className="mt-3 text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+                    Movies plus qualified TV episode sessions
+                </p>
             </div>
 
             <div className="mt-16 flex flex-col gap-6 relative z-10 w-full">
                 <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                    <span className="text-sm text-zinc-500 uppercase tracking-widest">Movies</span>
+                    <span className="text-sm text-zinc-500 uppercase tracking-widest">Movie Sessions</span>
                     <span className="text-3xl font-bold text-white">{stats.total_movies}</span>
                 </div>
                 <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                    <span className="text-sm text-zinc-500 uppercase tracking-widest">Shows</span>
+                    <span className="text-sm text-zinc-500 uppercase tracking-widest">Episode Sessions</span>
                     <span className="text-3xl font-bold text-white">{stats.total_shows}</span>
                 </div>
             </div>
@@ -319,7 +322,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                     </span>
                     <div className="flex items-center gap-2 text-zinc-500">
                         <RotateCcw size={16} className="text-blue-500" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest">Rewatched</span>
+                        <span className="text-[10px] font-mono uppercase tracking-widest">Repeat Sessions</span>
                     </div>
                 </div>
             </div>
@@ -343,7 +346,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                             <span className="text-6xl font-black text-white">{predictions.projected_2027_total}</span>
                             <div className="mt-2 flex items-center gap-2">
                                 <TrendingUp size={14} className={predictions.growth_rate > 0 ? 'text-green-500' : 'text-red-500'} />
-                                <span className="text-xs text-zinc-400 font-bold">{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% Growth</span>
+                                <span className="text-xs text-zinc-400 font-bold">{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% Session Growth</span>
                             </div>
                         </div>
 
@@ -351,7 +354,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                             <div className="bg-zinc-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm">
                                 <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-1">Next Milestone</span>
                                 <span className="text-5xl font-black text-white">{predictions.next_milestone.target}</span>
-                                <span className="text-xs text-zinc-400 block mt-2">{predictions.next_milestone.remaining} titles away</span>
+                                <span className="text-xs text-zinc-400 block mt-2">{predictions.next_milestone.remaining} sessions away</span>
                             </div>
                         )}
                     </div>
@@ -398,6 +401,9 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             >
                 Close Wrapped
             </button>
+            <p className="relative z-20 mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+                Based on qualified sessions, not exact embedded-player playback
+            </p>
         </div>
     ];
 

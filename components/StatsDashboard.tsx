@@ -84,7 +84,7 @@ export const StatsDashboard = () => {
             </div>
             <h2 className="text-3xl font-light text-white mb-2 tracking-tight">No Data Available</h2>
             <p className="text-zinc-500 max-w-md font-light">
-                Your analytics dashboard will light up once you start watching content.
+                Your analytics dashboard will light up once you log a few qualified viewing sessions.
             </p>
         </div>
     );
@@ -109,6 +109,9 @@ export const StatsDashboard = () => {
                     <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tighter">
                         Overview
                     </h1>
+                    <p className="mt-3 max-w-xl text-xs text-zinc-500">
+                        Stats are based on qualified sessions: movies count after sustained active viewing, and TV counts per qualified episode session.
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -169,7 +172,7 @@ export const StatsDashboard = () => {
                             <div className="text-5xl font-thin tracking-tighter text-white/90 group-hover:text-white transition-colors cursor-default group-hover:scale-105 origin-left duration-500">
                                 {stats.total_movies}
                             </div>
-                            <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Films Watched</p>
+                            <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Qualified movie sessions</p>
                         </div>
                     </div>
                 </div>
@@ -182,7 +185,7 @@ export const StatsDashboard = () => {
 
                     <div className="relative z-10 h-full p-6 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
-                            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">TV Shows</span>
+                            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">TV Episodes</span>
                             <Tv size={16} className="text-purple-500/50" />
                         </div>
 
@@ -190,7 +193,7 @@ export const StatsDashboard = () => {
                             <div className="text-5xl font-thin tracking-tighter text-white/90 group-hover:text-white transition-colors cursor-default group-hover:scale-105 origin-left duration-500">
                                 {stats.total_shows}
                             </div>
-                            <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Episodes Watched</p>
+                            <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Qualified episode sessions</p>
                         </div>
                     </div>
                 </div>
@@ -238,7 +241,7 @@ export const StatsDashboard = () => {
 
                         {sortedGenres.length === 0 && (
                             <div className="col-span-2 flex flex-col items-center justify-center py-8 text-zinc-700">
-                                <p className="text-xs font-light">Watching data will appear here</p>
+                                <p className="text-xs font-light">Qualified session data will appear here</p>
                             </div>
                         )}
                     </div>
