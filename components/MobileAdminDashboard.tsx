@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
 import { CommunityService } from '../lib/community';
 import { Profile } from '../types';
-import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus, MessageSquarePlus, Check, X } from 'lucide-react';
+import type { AdminViewSession } from '../services/AdminService';
+import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus, MessageSquarePlus, Check, X, Trophy, RefreshCw } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { HealthService, HealthStatus } from '../services/health';
 import { useToast } from '../lib/ToastContext';
 import { useConfirm } from '../lib/ConfirmContext';
+import { WRAPPED_SETTING_KEY } from '../lib/wrappedSettings';
 
 interface MobileAdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -16,11 +18,15 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const { isAdmin } = useAuth();
     const { success, error, info } = useToast();
     const confirm = useConfirm();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
     const [adminRequests, setAdminRequests] = useState<any[]>([]);
+    const [allPlaylists, setAllPlaylists] = useState<any[]>([]);
+    const [viewSessions, setViewSessions] = useState<AdminViewSession[]>([]);
+    const [isLoadingViewSessions, setIsLoadingViewSessions] = useState(false);
+    const [onlyPendingSessions, setOnlyPendingSessions] = useState(false);
 
     // Setting state for Toggle
     const [appSettings, setAppSettings] = useState<any>({});
@@ -39,6 +45,11 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         loadData();
     }, [isAdmin]);
 
+    useEffect(() => {
+        if (!isAdmin || activeTab !== 'sessions') return;
+        loadViewSessions();
+    }, [isAdmin, activeTab, onlyPendingSessions]);
+
     const loadData = async () => {
         setLoading(true);
         try {
@@ -47,22 +58,24 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                 SocialService.getAdminStats(),
                 SocialService.getAllUsers(),
                 SocialService.getAnnouncements(),
+                SocialService.getAllPlaylists(),
                 SocialService.getAppSettings(),
                 CommunityService.getRequests('all')
             ]);
 
-            const [statsResult, usersResult, announcementsResult, settingsResult, requestsResult] = results;
+            const [statsResult, usersResult, announcementsResult, playlistsResult, settingsResult, requestsResult] = results;
 
             if (statsResult.status === 'fulfilled') setStats(statsResult.value);
             if (usersResult.status === 'fulfilled') setUsers(usersResult.value as Profile[]);
             if (announcementsResult.status === 'fulfilled') setAnnouncements(announcementsResult.value);
+            if (playlistsResult.status === 'fulfilled') setAllPlaylists(playlistsResult.value as any[]);
             if (settingsResult.status === 'fulfilled') setAppSettings(settingsResult.value);
             if (requestsResult.status === 'fulfilled') setAdminRequests(requestsResult.value);
 
             // Log any failures
             results.forEach((result, index) => {
                 if (result.status === 'rejected') {
-                    const apiNames = ['Stats', 'Users', 'Announcements', 'Settings', 'Requests'];
+                    const apiNames = ['Stats', 'Users', 'Announcements', 'Playlists', 'Settings', 'Requests'];
                     console.error(`[MobileAdmin] Failed to load ${apiNames[index]}:`, result.reason);
                 }
             });
@@ -173,6 +186,22 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         }
     };
 
+    const loadViewSessions = async () => {
+        setIsLoadingViewSessions(true);
+        try {
+            const data = await SocialService.getRecentViewSessions({
+                limit: 50,
+                onlyUnqualified: onlyPendingSessions
+            });
+            setViewSessions(data);
+        } catch (e) {
+            console.error(e);
+            error('Failed to load sessions');
+        } finally {
+            setIsLoadingViewSessions(false);
+        }
+    };
+
     const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
     const toggleUserExpand = (id: string) => {
@@ -180,6 +209,13 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         if (newSet.has(id)) newSet.delete(id);
         else newSet.add(id);
         setExpandedUsers(newSet);
+    };
+
+    const formatDuration = (seconds: number) => {
+        const safeSeconds = Math.max(seconds || 0, 0);
+        const minutes = Math.floor(safeSeconds / 60);
+        const remainder = safeSeconds % 60;
+        return `${minutes}m ${remainder.toString().padStart(2, '0')}s`;
     };
 
     if (!isAdmin) return <div className="p-10 text-center text-red-500">Access Denied</div>;
@@ -195,6 +231,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     { id: 'users', icon: Users },
                     { id: 'announcements', icon: Megaphone },
                     { id: 'requests', icon: MessageSquarePlus },
+                    { id: 'sessions', icon: Database },
                     { id: 'health', icon: Activity },
                     { id: 'settings', icon: Settings }
                 ].map(item => (
@@ -264,8 +301,11 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                 </div>
                                                 <div className="flex flex-col text-[10px] text-zinc-500 mt-0.5">
                                                     <span>Joined {new Date(u.created_at).toLocaleDateString()}</span>
-                                                    <span className="text-zinc-400">
+                                                    <span className="hidden text-zinc-400">
                                                         {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} qualified sessions • {users.filter(user => user.id === u.id).length} playlists
+                                                    </span>
+                                                    <span className="text-zinc-400">
+                                                        {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} qualified sessions • {allPlaylists.filter(playlist => playlist.user_id === u.id).length} playlists
                                                     </span>
                                                 </div>
                                             </div>
@@ -557,7 +597,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="text-white font-bold text-sm">Clear History</div>
-                                    <div className="text-zinc-500 text-[10px]">User privacy</div>
+                                    <div className="text-zinc-500 text-[10px]">History and wrapped reset</div>
                                 </div>
                                 <div
                                     onClick={() => handleToggleSetting('clear_history_enabled', appSettings.clear_history_enabled)}
@@ -566,7 +606,104 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                     <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${appSettings.clear_history_enabled === 'true' ? 'translate-x-4' : ''}`} />
                                 </div>
                             </div>
-                            <p className="text-xs text-zinc-600 pt-4 text-center">Visit desktop for full settings.</p>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="text-white font-bold text-sm flex items-center gap-2">
+                                        <Trophy size={14} className="text-zinc-400" />
+                                        Wrapped Override
+                                    </div>
+                                    <div className="text-zinc-500 text-[10px]">Force wrapped on for everyone</div>
+                                </div>
+                                <div
+                                    onClick={() => handleToggleSetting(WRAPPED_SETTING_KEY, appSettings[WRAPPED_SETTING_KEY] || 'false')}
+                                    className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'bg-white' : 'bg-zinc-800'}`}
+                                >
+                                    <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'translate-x-4' : ''}`} />
+                                </div>
+                            </div>
+                            <p className="text-xs text-zinc-600 pt-4 text-center">These controls now map directly to the session-based wrapped backend.</p>
+                        </div>
+                    )}
+
+                    {activeTab === 'sessions' && (
+                        <div className="space-y-4">
+                            <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-white">Recent View Sessions</h2>
+                                        <p className="text-[11px] text-zinc-500 mt-1">
+                                            Inspect recent heartbeats and see why a session has or has not qualified yet.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={loadViewSessions}
+                                        disabled={isLoadingViewSessions}
+                                        className="p-2 bg-zinc-800 rounded-lg text-white border border-zinc-700 disabled:opacity-50"
+                                    >
+                                        <RefreshCw size={16} className={isLoadingViewSessions ? 'animate-spin' : ''} />
+                                    </button>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-between bg-black/20 p-3 rounded-xl">
+                                    <div>
+                                        <div className="text-white font-bold text-sm">Pending Only</div>
+                                        <div className="text-zinc-500 text-[10px]">Show sessions still below the qualification threshold</div>
+                                    </div>
+                                    <div
+                                        onClick={() => setOnlyPendingSessions(prev => !prev)}
+                                        className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${onlyPendingSessions ? 'bg-white' : 'bg-zinc-800'}`}
+                                    >
+                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${onlyPendingSessions ? 'translate-x-4' : ''}`} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {viewSessions.map(session => {
+                                    const sessionState = session.qualification_state === 'qualified'
+                                        ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                                        : session.qualification_state === 'close'
+                                            ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20'
+                                            : 'text-zinc-300 bg-zinc-800 border-zinc-700';
+
+                                    return (
+                                        <div key={session.id} className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div className="text-white font-bold text-sm">{session.title || `TMDB ${session.tmdb_id}`}</div>
+                                                    <div className="text-[10px] text-zinc-500 mt-1">
+                                                        {(session.username || 'Unknown user')} • {session.media_type === 'movie'
+                                                            ? 'Movie session'
+                                                            : `Episode session${session.season && session.episode ? ` • S${session.season}E${session.episode}` : ''}`}
+                                                    </div>
+                                                </div>
+                                                <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-1 rounded-full border ${sessionState}`}>
+                                                    {session.qualification_state === 'in_progress' ? 'In Progress' : session.qualification_state}
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 mt-4 text-[10px]">
+                                                <div className="bg-black/20 rounded-xl p-3">
+                                                    <div className="text-zinc-500 uppercase tracking-wider mb-1">Active Time</div>
+                                                    <div className="text-white font-bold">{formatDuration(session.active_seconds)}</div>
+                                                    <div className="text-zinc-600 mt-1">Threshold {formatDuration(session.threshold_seconds)}</div>
+                                                </div>
+                                                <div className="bg-black/20 rounded-xl p-3">
+                                                    <div className="text-zinc-500 uppercase tracking-wider mb-1">Remaining</div>
+                                                    <div className="text-white font-bold">{session.is_qualified ? 'Qualified' : formatDuration(session.remaining_seconds)}</div>
+                                                    <div className="text-zinc-600 mt-1">{new Date(session.last_heartbeat_at).toLocaleTimeString()}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {!isLoadingViewSessions && viewSessions.length === 0 && (
+                                    <div className="bg-zinc-900/60 p-8 rounded-2xl border border-dashed border-zinc-800 text-center text-zinc-500 text-sm">
+                                        No sessions match the current filters.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 

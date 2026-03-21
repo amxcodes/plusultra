@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
 import { CommunityService } from '../lib/community';
 import { Profile } from '../types';
-import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart, Wifi, WifiOff, Server, Trophy } from 'lucide-react';
+import type { AdminViewSession } from '../services/AdminService';
+import { Users, FileText, Activity, AlertTriangle, CheckCircle, Info, Plus, Trash2, Power, Search, Film, Star, Settings, Globe, Heart, Wifi, WifiOff, Server, Trophy, RefreshCw } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { TmdbService } from '../services/tmdb';
 import { HealthService, HealthStatus } from '../services/health';
@@ -16,7 +17,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings' | 'reactions' | 'health' | 'requests'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings' | 'reactions' | 'health' | 'requests' | 'sessions'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -25,6 +26,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     const [appSettings, setAppSettings] = useState<any>({});
     const [loading, setLoading] = useState(true);
     const [adminRequests, setAdminRequests] = useState<any[]>([]);
+    const [viewSessions, setViewSessions] = useState<AdminViewSession[]>([]);
+    const [isLoadingViewSessions, setIsLoadingViewSessions] = useState(false);
+    const [viewSessionsSearch, setViewSessionsSearch] = useState('');
+    const [onlyPendingSessions, setOnlyPendingSessions] = useState(false);
+    const [lastViewSessionsRefresh, setLastViewSessionsRefresh] = useState<number | null>(null);
 
     // Health Check State
     const [healthChecks, setHealthChecks] = useState<HealthStatus[]>([]);
@@ -48,6 +54,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         if (!isAdmin) return;
         loadAllData();
     }, [isAdmin]);
+
+    useEffect(() => {
+        if (!isAdmin || activeTab !== 'sessions') return;
+        loadViewSessions();
+    }, [isAdmin, activeTab, onlyPendingSessions]);
 
     const loadAllData = async () => {
         setLoading(true);
@@ -90,6 +101,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
     const { success, error, info } = useToast();
     const confirm = useConfirm();
+
+    const loadViewSessions = async () => {
+        setIsLoadingViewSessions(true);
+        try {
+            const data = await SocialService.getRecentViewSessions({
+                limit: 100,
+                onlyUnqualified: onlyPendingSessions
+            });
+            setViewSessions(data);
+            setLastViewSessionsRefresh(Date.now());
+        } catch (e) {
+            console.error(e);
+            error('Failed to load recent sessions');
+        } finally {
+            setIsLoadingViewSessions(false);
+        }
+    };
 
     const handleSaveSetting = async (key: string, value: string) => {
         try {
@@ -189,6 +217,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         return matchesSearch && matchesRole;
     });
 
+    const filteredViewSessions = viewSessions.filter(session => {
+        const search = viewSessionsSearch.trim().toLowerCase();
+        if (!search) return true;
+
+        const haystack = [
+            session.username || '',
+            session.title || '',
+            session.tmdb_id,
+            session.session_id,
+            session.provider_id || '',
+            session.media_type,
+            session.season?.toString() || '',
+            session.episode?.toString() || ''
+        ].join(' ').toLowerCase();
+
+        return haystack.includes(search);
+    });
+
+    const formatDuration = (seconds: number) => {
+        const safeSeconds = Math.max(seconds || 0, 0);
+        const minutes = Math.floor(safeSeconds / 60);
+        const remainder = safeSeconds % 60;
+
+        if (minutes >= 60) {
+            const hours = Math.floor(minutes / 60);
+            return `${hours}h ${minutes % 60}m`;
+        }
+
+        return `${minutes}m ${remainder.toString().padStart(2, '0')}s`;
+    };
+
+    const getSessionLabel = (session: AdminViewSession) => {
+        if (session.media_type === 'movie') {
+            return 'Movie session';
+        }
+
+        if (session.season && session.episode) {
+            return `Episode session • S${session.season}E${session.episode}`;
+        }
+
+        return 'Episode session';
+    };
+
     if (!isAdmin) return <div className="p-20 text-center text-red-500">Access Denied</div>;
 
     return (
@@ -239,6 +310,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'requests' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
                     Requests
+                </button>
+                <button
+                    onClick={() => setActiveTab('sessions')}
+                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'sessions' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    View Sessions
                 </button>
                 <button
                     onClick={() => setActiveTab('health')}
@@ -376,6 +453,140 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 {adminRequests.length === 0 && (
                                     <div className="p-8 text-center text-zinc-500 text-sm">No requests found.</div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'sessions' && (
+                        <div className="space-y-5">
+                            <div className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-900/20">
+                                <div className="p-5 border-b border-zinc-800/80 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                    <div>
+                                        <h3 className="font-bold text-white text-base">Recent View Sessions</h3>
+                                        <p className="text-zinc-500 text-sm">
+                                            Inspect recent heartbeat sessions, qualification thresholds, and why a movie or episode session did or did not count yet.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                                        <label className="flex items-center gap-3 text-xs text-zinc-400 uppercase tracking-wider">
+                                            <span>Pending only</span>
+                                            <button
+                                                onClick={() => setOnlyPendingSessions(prev => !prev)}
+                                                className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${onlyPendingSessions
+                                                    ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                                                    : 'bg-transparent border-zinc-700 hover:border-zinc-600'
+                                                    }`}
+                                            >
+                                                <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${onlyPendingSessions
+                                                    ? 'translate-x-[22px] bg-black'
+                                                    : 'translate-x-[2px] bg-zinc-600'
+                                                    }`} />
+                                            </button>
+                                        </label>
+                                        <button
+                                            onClick={loadViewSessions}
+                                            disabled={isLoadingViewSessions}
+                                            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 bg-black/40 text-white text-sm font-medium hover:border-zinc-500 transition-colors disabled:opacity-50"
+                                        >
+                                            <RefreshCw size={14} className={isLoadingViewSessions ? 'animate-spin' : ''} />
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="p-5 border-b border-zinc-800/80 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    <div className="relative max-w-md w-full">
+                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search by user, title, TMDB id, or session id"
+                                            value={viewSessionsSearch}
+                                            onChange={(e) => setViewSessionsSearch(e.target.value)}
+                                            className="w-full bg-black/50 text-sm text-white pl-9 pr-4 py-2.5 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none placeholder:text-zinc-600"
+                                        />
+                                    </div>
+                                    <div className="text-xs text-zinc-500">
+                                        {lastViewSessionsRefresh
+                                            ? `Last refresh ${new Date(lastViewSessionsRefresh).toLocaleTimeString()}`
+                                            : 'No refresh yet'}
+                                    </div>
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-zinc-900/40 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                            <tr>
+                                                <th className="px-6 py-3">Session</th>
+                                                <th className="px-6 py-3">Status</th>
+                                                <th className="px-6 py-3">Active Time</th>
+                                                <th className="px-6 py-3">Heartbeat</th>
+                                                <th className="px-6 py-3">Started</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-zinc-800/60 text-sm">
+                                            {filteredViewSessions.map(session => {
+                                                const stateClasses = session.qualification_state === 'qualified'
+                                                    ? 'border-green-500/30 bg-green-500/10 text-green-300'
+                                                    : session.qualification_state === 'close'
+                                                        ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-300'
+                                                        : 'border-zinc-700 bg-zinc-800/60 text-zinc-300';
+
+                                                return (
+                                                    <tr key={session.id} className="hover:bg-zinc-900/30 transition-colors align-top">
+                                                        <td className="px-6 py-4">
+                                                            <div className="space-y-1.5">
+                                                                <div className="text-white font-medium">
+                                                                    {session.title || `TMDB ${session.tmdb_id}`}
+                                                                </div>
+                                                                <div className="text-zinc-500 text-xs">
+                                                                    {(session.username || 'Unknown user')} • {getSessionLabel(session)}
+                                                                </div>
+                                                                <div className="text-zinc-600 text-[11px] font-mono">
+                                                                    {session.tmdb_id} • {session.session_id.slice(0, 12)}
+                                                                    {session.provider_id ? ` • ${session.provider_id}` : ''}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="space-y-2">
+                                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${stateClasses}`}>
+                                                                    {session.qualification_state === 'in_progress' ? 'In Progress' : session.qualification_state}
+                                                                </span>
+                                                                <div className="text-xs text-zinc-500">
+                                                                    {session.is_qualified
+                                                                        ? `Qualified ${session.qualified_at ? new Date(session.qualified_at).toLocaleString() : 'recently'}`
+                                                                        : `${formatDuration(session.remaining_seconds)} remaining`}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-white font-medium">{formatDuration(session.active_seconds)}</div>
+                                                            <div className="text-zinc-500 text-xs">
+                                                                Threshold {formatDuration(session.threshold_seconds)}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-zinc-400 text-xs">
+                                                            {new Date(session.last_heartbeat_at).toLocaleString()}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-zinc-500 text-xs">
+                                                            {new Date(session.started_at).toLocaleString()}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {!isLoadingViewSessions && filteredViewSessions.length === 0 && (
+                                        <div className="p-10 text-center text-zinc-500 text-sm">
+                                            No session rows match the current filters.
+                                        </div>
+                                    )}
+                                    {isLoadingViewSessions && (
+                                        <div className="p-10 text-center text-zinc-500 text-sm">
+                                            Loading recent sessions...
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}

@@ -67,6 +67,8 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
     const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
     const [predictions, setPredictions] = useState<PredictiveInsights | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
 
     useEffect(() => {
         fetchWrappedStats();
@@ -234,7 +236,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
 
             <div className="flex flex-col items-center gap-2">
                 <span className="text-white text-lg font-mono tracking-widest uppercase animate-pulse">
-                    We are preparing your 2026 session recap
+                    {`We are preparing your ${currentYear} session recap`}
                 </span>
                 <div className="flex gap-1">
                     <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
@@ -273,7 +275,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-black to-black animate-pulse-slow" />
             <div className="absolute top-0 right-0 w-[80vw] h-[80vw] bg-violet-600/10 rounded-full blur-[150px] mix-blend-screen" />
             <h1 className="text-[12vw] leading-[0.8] font-black tracking-tighter mix-blend-difference z-10 select-none text-center flex flex-col items-center">
-                <span className="block animate-slide-up-fade delay-500">2026</span>
+                <span className="block animate-slide-up-fade delay-500">{currentYear}</span>
                 <span className="block animate-slide-up-fade delay-1000">WRAP</span>
                 <span className="block animate-slide-up-fade delay-[1500ms]">PED.</span>
             </h1>
@@ -378,7 +380,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                 <div className="absolute inset-0 bg-gradient-to-tl from-cyan-900/10 via-black to-black" />
                 <Calendar className="absolute top-20 right-20 w-64 h-64 text-cyan-900/5 rotate-12" />
 
-                <h2 className="text-cyan-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-16 relative z-10 ml-1">First Qualified Watch of 2026</h2>
+                <h2 className="text-cyan-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-16 relative z-10 ml-1">{`First Qualified Watch of ${currentYear}`}</h2>
 
                 <div className="relative z-10">
                     <span className="block text-[8vw] leading-[0.9] font-black tracking-tighter mb-8 max-w-4xl">
@@ -445,7 +447,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
             </div>
         ] : []),
 
-        // Slide 7.5: Predictive Insights (2027 Projection) - Minimalist Maximalism
+        // Slide 7.5: Predictive Insights (Next-Year Projection) - Minimalist Maximalism
         ...(predictions ? [
             <div key="predictions" className="h-full flex flex-col justify-center items-center p-8 bg-zinc-950 text-white relative overflow-hidden">
                 {/* Background Texture */}
@@ -454,7 +456,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                 {/* Massive Background Year - The "Maximalist" Element */}
                 <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none overflow-hidden">
                     <span className="text-[35vw] font-black tracking-tighter text-zinc-900/50 scale-150 transform rotate-[5deg] mix-blend-color-dodge blur-sm">
-                        2027
+                        {nextYear}
                     </span>
                 </div>
 
@@ -610,7 +612,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
 
             {/* Massive Archetype Header */}
             <div className="relative z-10 text-center mb-20">
-                <span className="block text-xs font-mono text-indigo-400 uppercase tracking-[0.4em] mb-4">Your 2026 Archetype</span>
+                <span className="block text-xs font-mono text-indigo-400 uppercase tracking-[0.4em] mb-4">{`Your ${currentYear} Archetype`}</span>
                 <span className="block text-[15vw] leading-[0.9] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 via-purple-300 to-pink-300 pb-8 transition-transform duration-700 hover:scale-[1.02]">
                     {viewingStyle}
                 </span>
@@ -660,7 +662,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
             </div>
 
             <p className="absolute bottom-12 font-mono text-[10px] uppercase tracking-[0.3em] opacity-40">
-                StreamWrapp • 2026 Edition
+                {`StreamWrapp • ${currentYear} Edition`}
             </p>
         </div>,
 
@@ -672,7 +674,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
             {/* Massive Background Year - The "Maximalist" Element */}
             <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none overflow-hidden">
                 <span className="text-[35vw] font-black tracking-tighter text-zinc-900/50 scale-150 transform rotate-[-5deg] mix-blend-color-dodge blur-sm">
-                    2026
+                    {currentYear}
                 </span>
             </div>
 
@@ -732,7 +734,7 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
                         className="group relative px-16 py-6 border border-zinc-700 hover:border-white bg-black hover:bg-zinc-900 transition-all duration-500 cursor-pointer pointer-events-auto"
                     >
                         <span className="relative z-10 text-xs font-black uppercase tracking-[0.4em] text-white group-hover:text-white transition-colors">
-                            Close Wrapped 2026
+                            {`Close Wrapped ${currentYear}`}
                         </span>
                         {/* Minimal corners */}
                         <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-white opacity-0 group-hover:opacity-100 transition-opacity" />

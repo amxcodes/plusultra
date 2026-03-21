@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Download, LogOut, Trash2, Trophy, Play, ShieldCheck
 } from 'lucide-react';
-import { WrappedPage } from './WrappedPage';
+import { MobileWrappedPage } from './MobileWrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { isWrappedUnlocked } from '../lib/wrappedSettings';
@@ -23,6 +23,7 @@ export const MobileSettingsPage: React.FC = () => {
     const [showClearModal, setShowClearModal] = useState(false);
     const [wrappedUnlocked, setWrappedUnlocked] = useState(false);
     const [showWrapped, setShowWrapped] = useState(false);
+    const currentYear = new Date().getFullYear();
 
     useEffect(() => {
         const checkWrappedStatus = async () => {
@@ -46,9 +47,39 @@ export const MobileSettingsPage: React.FC = () => {
         } catch (e: any) { setStatusMessage('Failed.'); setTimeout(() => setStatusMessage(null), 3000); }
     };
 
+    const handleExport = async () => {
+        if (!user) return;
+        try {
+            const history = await SocialService.getFullWatchHistory(user.id);
+            const exportData = {
+                version: 2,
+                source: 'Cloud',
+                timestamp: new Date().toISOString(),
+                userId: user.id,
+                watchHistory: history
+            };
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            setStatusMessage('Data export started.');
+            setTimeout(() => setStatusMessage(null), 3000);
+        } catch (e) {
+            console.error('Export failed', e);
+            setStatusMessage('Export failed.');
+            setTimeout(() => setStatusMessage(null), 3000);
+        }
+    };
+
     return (
         <div className="w-full min-h-screen bg-[#0f1014] pb-24 pt-6 px-4 animate-in fade-in duration-500">
-            {showWrapped && <WrappedPage onClose={() => setShowWrapped(false)} />}
+            {showWrapped && <MobileWrappedPage onClose={() => setShowWrapped(false)} />}
 
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
@@ -65,8 +96,12 @@ export const MobileSettingsPage: React.FC = () => {
             >
                 <div className="relative z-10 flex flex-col items-center text-center">
                     <Trophy size={24} className={`mb-3 ${wrappedUnlocked ? 'text-yellow-500' : 'text-zinc-600'}`} />
-                    <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">{new Date().getFullYear()} Wrapped</h2>
-                    <p className="text-xs text-zinc-500 font-medium mb-4">{wrappedUnlocked ? 'Built from this year\'s qualified sessions.' : 'Unlocks Dec 20th unless forced on by admin'}</p>
+                    <h2 className="text-xl font-black text-white uppercase tracking-tight mb-1">{currentYear} Wrapped</h2>
+                    <p className="text-xs text-zinc-500 font-medium mb-4">
+                        {wrappedUnlocked
+                            ? `Built from ${currentYear}'s qualified sessions.`
+                            : `Unlocks on Dec 20, ${currentYear}, unless an admin override is enabled.`}
+                    </p>
                     {wrappedUnlocked && (
                         <div className="px-4 py-2 bg-white text-black text-xs font-bold rounded-full uppercase tracking-wider flex items-center gap-2">
                             <Play size={10} fill="currentColor" /> Play
@@ -98,7 +133,7 @@ export const MobileSettingsPage: React.FC = () => {
             <div className="space-y-3">
                 <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider ml-1">Actions</h3>
 
-                <button className="w-full p-4 bg-zinc-900/50 rounded-xl border border-white/5 flex items-center gap-4 active:bg-zinc-800 transition-colors">
+                <button onClick={handleExport} className="w-full p-4 bg-zinc-900/50 rounded-xl border border-white/5 flex items-center gap-4 active:bg-zinc-800 transition-colors">
                     <Download size={20} className="text-zinc-400" />
                     <div className="text-left">
                         <div className="text-sm font-bold text-white">Export Data</div>

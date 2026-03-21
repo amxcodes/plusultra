@@ -68,6 +68,8 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
     const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
     const [predictions, setPredictions] = useState<PredictiveInsights | null>(null);
     const [currentSlide, setCurrentSlide] = useState(0);
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
 
     useEffect(() => {
         fetchWrappedStats();
@@ -215,7 +217,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             </div>
             <div className="flex flex-col items-center gap-2">
                 <span className="text-white text-base font-mono tracking-widest uppercase animate-pulse">
-                    Loading 2026 session recap...
+                    {`Loading ${currentYear} session recap...`}
                 </span>
             </div>
         </div>
@@ -238,7 +240,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         <div key="intro" className="h-full flex flex-col justify-center items-center p-8 bg-black text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-black to-black animate-pulse-slow" />
             <h1 className="text-8xl font-black tracking-tighter text-center flex flex-col items-center z-10 leading-none">
-                <span className="animate-slide-up-fade delay-300">2026</span>
+                <span className="animate-slide-up-fade delay-300">{currentYear}</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 animate-slide-up-fade delay-700">WRAPPED</span>
             </h1>
             <p className="mt-8 text-xs text-white/50 font-mono tracking-[0.4em] uppercase z-10 animate-fade-in delay-1000">
@@ -332,7 +334,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         ...(predictions ? [
             <div key="predictions" className="h-full flex flex-col justify-center items-start p-8 bg-zinc-950 text-white relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
-                <div className="absolute top-10 right-0 opacity-10 font-black text-9xl text-white rotate-90 origin-top-right">2027</div>
+                <div className="absolute top-10 right-0 opacity-10 font-black text-9xl text-white rotate-90 origin-top-right">{nextYear}</div>
 
                 <div className="relative z-10 w-full h-full flex flex-col justify-center gap-12">
                     <div>
@@ -369,7 +371,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             {/* Header */}
             <div className="relative z-10 text-center">
                 <h2 className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em] mb-2">StreamWrapp</h2>
-                <h1 className="text-4xl font-black tracking-tighter text-white uppercase">2026 Recap</h1>
+                <h1 className="text-4xl font-black tracking-tighter text-white uppercase">{`${currentYear} Recap`}</h1>
             </div>
 
             {/* Stats Grid */}

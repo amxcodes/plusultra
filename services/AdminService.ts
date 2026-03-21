@@ -1,6 +1,29 @@
 import { supabase } from '../lib/supabase';
 import { cache, CACHE_KEYS } from '../lib/cache';
 
+export interface AdminViewSession {
+    id: string;
+    user_id: string;
+    username: string | null;
+    session_id: string;
+    tmdb_id: string;
+    title: string | null;
+    media_type: 'movie' | 'tv';
+    season: number | null;
+    episode: number | null;
+    provider_id: string | null;
+    active_seconds: number;
+    threshold_seconds: number;
+    remaining_seconds: number;
+    is_qualified: boolean;
+    qualification_state: 'qualified' | 'close' | 'in_progress';
+    qualified_at: string | null;
+    session_date: string;
+    started_at: string;
+    last_heartbeat_at: string;
+    updated_at: string;
+}
+
 export const AdminService = {
     async getAdminStats() {
         // Parallel fetch for overview stats
@@ -193,4 +216,20 @@ export const AdminService = {
         cache.set(CACHE_KEYS.FEATURED_PLAYLISTS, playlists, 60); // Cache for 1 hour
         return playlists;
     },
+
+    async getRecentViewSessions(options?: {
+        limit?: number;
+        userId?: string | null;
+        onlyUnqualified?: boolean;
+    }) {
+        const { data, error } = await supabase
+            .rpc('admin_get_recent_view_sessions', {
+                p_limit: options?.limit ?? 75,
+                p_user_id: options?.userId ?? null,
+                p_only_unqualified: options?.onlyUnqualified ?? false
+            });
+
+        if (error) throw error;
+        return (data || []) as AdminViewSession[];
+    }
 };

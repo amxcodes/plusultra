@@ -33,6 +33,7 @@ export const SettingsPage: React.FC = () => {
     const [showClearModal, setShowClearModal] = useState(false);
     const [wrappedUnlocked, setWrappedUnlocked] = useState(false);
     const [showWrapped, setShowWrapped] = useState(false);
+    const currentYear = new Date().getFullYear();
 
     useEffect(() => {
         checkWrappedStatus();
@@ -171,7 +172,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="col-span-12 space-y-8">
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* 2026 Wrapped Card */}
+                        {/* Wrapped Card */}
                         <section
                             onClick={() => {
                                 if (wrappedUnlocked) {
@@ -191,7 +192,7 @@ export const SettingsPage: React.FC = () => {
                             <div className="relative z-10">
                                 <div className="flex items-baseline gap-2 mb-2">
                                     <span className={`text-6xl font-black tracking-tighter ${wrappedUnlocked ? 'text-white' : 'text-zinc-700'}`}>
-                                        {new Date().getFullYear()}
+                                        {currentYear}
                                     </span>
                                 </div>
                                 <div className={`text-2xl font-bold mb-4 font-mono uppercase tracking-widest ${wrappedUnlocked ? 'text-zinc-400' : 'text-zinc-800'}`}>
@@ -199,8 +200,8 @@ export const SettingsPage: React.FC = () => {
                                 </div>
                                 <p className={`text-sm mb-8 max-w-[90%] font-medium ${wrappedUnlocked ? 'text-zinc-500' : 'text-zinc-800'}`}>
                                     {wrappedUnlocked
-                                        ? "Your 2026 Wrapped is ready from this year's qualified sessions."
-                                        : `Unlocks automatically on Dec 20th, ${new Date().getFullYear()}, unless an admin override is enabled.`}
+                                        ? `Your ${currentYear} Wrapped is ready from this year's qualified sessions.`
+                                        : `Unlocks automatically on Dec 20, ${currentYear}, unless an admin override is enabled.`}
                                 </p>
 
                                 {/* Unlocked Action / Locked status */}
