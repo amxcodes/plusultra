@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { VIEW_SESSION_HEARTBEAT_SECONDS } from '../lib/sessionTracking';
 
 // Types
 export interface ServerVote {
@@ -12,6 +13,17 @@ export interface UserStats {
     streak_days: number;
     last_watched: string | null;
     genre_counts: Record<string, number>;
+}
+
+export interface ViewSessionHeartbeatInput {
+    sessionId: string;
+    tmdbId: string;
+    mediaType: 'movie' | 'tv';
+    season?: number;
+    episode?: number;
+    providerId?: string;
+    title?: string;
+    genres?: string[];
 }
 
 export const StatsService = {
@@ -60,29 +72,21 @@ export const StatsService = {
         }
     },
 
-    /**
-     * Update user stats (run this when video progress > 80% or something)
-     * This uses the new RPC that updates BOTH granular history and aggregate stats
-     */
-    async updateWatchStats(
-        userId: string,
-        tmdbId: string,
-        mediaType: 'movie' | 'tv',
-        durationMinutes: number,
-        genres: string[],
-        metaData: any
-    ) {
-        const { error } = await supabase.rpc('update_watch_history_with_stats', {
-            p_user_id: userId,
-            p_tmdb_id: tmdbId,
-            p_media_type: mediaType,
-            p_duration: durationMinutes,
-            p_genres: genres,
-            p_data: metaData
+    async trackViewSession(input: ViewSessionHeartbeatInput) {
+        const { error } = await supabase.rpc('heartbeat_view_session', {
+            p_session_id: input.sessionId,
+            p_tmdb_id: input.tmdbId,
+            p_media_type: input.mediaType,
+            p_season: input.mediaType === 'tv' ? (input.season || 1) : null,
+            p_episode: input.mediaType === 'tv' ? (input.episode || 1) : null,
+            p_provider_id: input.providerId || null,
+            p_title: input.title || null,
+            p_genres: input.genres && input.genres.length > 0 ? input.genres : null,
+            p_heartbeat_seconds: VIEW_SESSION_HEARTBEAT_SECONDS
         });
 
         if (error) {
-            console.error('[StatsService] Failed to update stats:', error);
+            console.error('[StatsService] Failed to track session heartbeat:', error);
         }
     },
 

@@ -14,7 +14,18 @@ ALTER FUNCTION public.user_can_edit_playlist(p_playlist_id UUID) RESET search_pa
 ALTER FUNCTION public.is_playlist_collaborator(p_playlist_id UUID, p_user_id UUID) RESET search_path;
 ALTER FUNCTION public.is_playlist_owner(p_playlist_id UUID, p_user_id UUID) RESET search_path;
 
-ALTER FUNCTION public.update_watch_history_with_stats(uuid, text, text, int, text[], jsonb) RESET search_path;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_proc
+    WHERE proname = 'update_watch_history_with_stats'
+      AND pg_function_is_visible(oid)
+  ) THEN
+    EXECUTE 'ALTER FUNCTION public.update_watch_history_with_stats(uuid, text, text, int, text[], jsonb) RESET search_path';
+  END IF;
+END $$;
+
 ALTER FUNCTION public.update_watch_history_v2(uuid, text, jsonb, text) RESET search_path;
 ALTER FUNCTION public.prune_watch_history() RESET search_path;
 ALTER FUNCTION public.clear_my_watch_history() RESET search_path;
@@ -72,6 +83,8 @@ DROP POLICY IF EXISTS "notifications_select" ON public.notifications;
 CREATE POLICY "notifications_select" ON public.notifications FOR SELECT USING (user_id = auth.uid());
 DROP POLICY IF EXISTS "notifications_update" ON public.notifications;
 CREATE POLICY "notifications_update" ON public.notifications FOR UPDATE USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "notifications_insert" ON public.notifications;
+CREATE POLICY "notifications_insert" ON public.notifications FOR INSERT WITH CHECK (true);
 
 -- Watch History
 DROP POLICY IF EXISTS "watch_history_select" ON public.watch_history;

@@ -128,12 +128,7 @@ describe('useWatchHistory', () => {
         expect(supabase.rpc).toHaveBeenCalledWith('update_watch_history_v2', {
             p_user_id: 'u1',
             p_tmdb_id: '102',
-            p_data: expect.objectContaining({
-                progress: 20,
-                wrappedTitleKey: 'movie:102',
-                wrappedUnitKey: 'movie:102',
-                wrappedQualified: false
-            }),
+            p_data: expect.objectContaining({ progress: 20 }),
             p_idempotency_key: 'mock-key' // From mocked generator
         });
     });

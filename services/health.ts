@@ -90,23 +90,21 @@ export class HealthService {
     }
 
     /**
-     * Check RPC functions (update_watch_history)
+     * Check critical RPC functions used for viewing/session tracking.
      */
     static async checkRPC(): Promise<HealthStatus> {
         const startTime = Date.now();
         const lastChecked = startTime;
 
         try {
-            // Use null UUID to avoid polluting any user's actual watch history
-            // The RPC will reject this gracefully, but confirms the function exists
-            const testUserId = '00000000-0000-0000-0000-000000000000';
-
-            // Check if the function exists by calling with minimal test data
-            // The function will fail due to RLS, but we confirm it's callable
-            const { error } = await supabase.rpc('update_watch_history', {
-                p_user_id: testUserId,
+            const { error } = await supabase.rpc('heartbeat_view_session', {
+                p_session_id: '_health_check_',
                 p_tmdb_id: '_health_check_',
-                p_data: { type: 'movie', title: 'Health Check', tmdbId: '_health_check_' }
+                p_media_type: 'movie',
+                p_provider_id: 'health',
+                p_title: 'Health Check',
+                p_genres: [],
+                p_heartbeat_seconds: 30
             });
 
             const responseTime = Date.now() - startTime;
@@ -117,7 +115,7 @@ export class HealthService {
                     service: 'RPC Functions',
                     status: 'down',
                     responseTime,
-                    error: 'update_watch_history function not found',
+                    error: 'heartbeat_view_session function not found',
                     lastChecked
                 };
             }

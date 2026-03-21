@@ -6,6 +6,7 @@ import { TmdbService } from '../services/tmdb';
 import { WatchPartyModal } from './WatchPartyModal';
 import { StatsService } from '../services/stats';
 import { ServerVotingModal } from './ServerVotingModal';
+import { VIEW_SESSION_HEARTBEAT_SECONDS } from '../lib/sessionTracking';
 
 type MediaType = 'movie' | 'tv';
 
@@ -89,6 +90,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [showWatchPartyModal, setShowWatchPartyModal] = useState(false);
     const [showVotingModal, setShowVotingModal] = useState(false);
     const [genres, setGenres] = useState<string[]>([]);
+    const sessionIdRef = useRef<string>('');
 
     // Fetch genres from TMDB for stats tracking
     useEffect(() => {
@@ -155,6 +157,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 }
             });
         }
+    }, [tmdbId, mediaType, season, episode]);
+
+    useEffect(() => {
+        sessionIdRef.current = crypto.randomUUID();
     }, [tmdbId, mediaType, season, episode]);
 
 
@@ -345,6 +351,31 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             // Progress will be auto-saved to localStorage by useWatchHistory cleanup
         };
     }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
+
+    useEffect(() => {
+        const heartbeat = () => {
+            if (document.hidden || !document.hasFocus()) {
+                return;
+            }
+
+            void StatsService.trackViewSession({
+                sessionId: sessionIdRef.current,
+                tmdbId,
+                mediaType,
+                season,
+                episode,
+                providerId: provider,
+                title,
+                genres: genres.length > 0 ? genres : undefined,
+            });
+        };
+
+        const interval = setInterval(heartbeat, VIEW_SESSION_HEARTBEAT_SECONDS * 1000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [tmdbId, mediaType, season, episode, provider, title, genres]);
 
 
 
