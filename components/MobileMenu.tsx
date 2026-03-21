@@ -39,7 +39,6 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
 
     const handleNav = (tab: NavItem) => {
         setActiveTab(tab);
-        onClose();
     };
 
     const MenuItem = ({ icon: Icon, label, tab, badge }: { icon: any, label: string, tab: NavItem, badge?: string }) => (
