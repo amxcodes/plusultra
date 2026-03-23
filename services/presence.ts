@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { isLikelyNetworkError, isNavigatorOnline } from '../lib/network';
 
 export const APP_PRESENCE_HEARTBEAT_SECONDS = 60;
 const APP_PRESENCE_SESSION_STORAGE_KEY = 'AMX_APP_PRESENCE_SESSION_ID';
@@ -18,6 +19,10 @@ export const clearPresenceSessionId = () => {
 
 export const PresenceService = {
     async trackHeartbeat() {
+        if (!isNavigatorOnline()) {
+            return;
+        }
+
         const { error } = await supabase.rpc('heartbeat_app_presence', {
             p_session_id: getPresenceSessionId(),
             p_path: `${window.location.pathname}${window.location.search}`,
@@ -26,7 +31,9 @@ export const PresenceService = {
         });
 
         if (error) {
-            console.error('[PresenceService] Failed to track platform heartbeat:', error);
+            if (!isLikelyNetworkError(error)) {
+                console.error('[PresenceService] Failed to track platform heartbeat:', error);
+            }
         }
     },
 
@@ -34,12 +41,19 @@ export const PresenceService = {
         const sessionId = sessionStorage.getItem(APP_PRESENCE_SESSION_STORAGE_KEY);
         if (!sessionId) return;
 
+        if (!isNavigatorOnline()) {
+            clearPresenceSessionId();
+            return;
+        }
+
         const { error } = await supabase.rpc('end_app_presence_session', {
             p_session_id: sessionId,
         });
 
         if (error) {
-            console.error('[PresenceService] Failed to end platform session:', error);
+            if (!isLikelyNetworkError(error)) {
+                console.error('[PresenceService] Failed to end platform session:', error);
+            }
         }
 
         clearPresenceSessionId();

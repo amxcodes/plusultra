@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { generateIdempotencyKey } from '../lib/idempotency';
 import { APP_CONSTANTS } from '../lib/constants';
+import { isLikelyNetworkError, isNavigatorOnline } from '../lib/network';
 
 export interface WatchProgress {
   tmdbId: string;
@@ -42,7 +43,12 @@ export const useWatchHistory = () => {
       return;
     }
 
-        const loadHistory = async () => {
+    const loadHistory = async () => {
+      if (!isNavigatorOnline()) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         // Single row fetch - extremely fast!
         const { data, error } = await supabase
@@ -51,7 +57,9 @@ export const useWatchHistory = () => {
           });
 
         if (error) {
-          console.error('Failed to load watch history:', error);
+          if (!isLikelyNetworkError(error)) {
+            console.error('Failed to load watch history:', error);
+          }
           return;
         }
 
@@ -60,7 +68,9 @@ export const useWatchHistory = () => {
           setHistory(data as Record<string, WatchProgress>);
         }
       } catch (e) {
-        console.error('Error loading history:', e);
+        if (!isLikelyNetworkError(e)) {
+          console.error('Error loading history:', e);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -120,6 +130,10 @@ export const useWatchHistory = () => {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
+        if (!isNavigatorOnline()) {
+          break;
+        }
+
         // Use v2 function to avoid schema cache issues with v1
         const { error } = await supabase.rpc('update_watch_history_v2', {
           p_user_id: currentUser.id,
@@ -144,13 +158,13 @@ export const useWatchHistory = () => {
       }
 
       // Exponential backoff before retry
-      if (attempt < retries - 1) {
+      if (attempt < retries - 1 && isNavigatorOnline()) {
         await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt)));
       }
     }
 
     // Only log once after all retries failed
-    if (lastError?.message?.includes('AbortError')) {
+    if (lastError?.message?.includes('AbortError') || isLikelyNetworkError(lastError) || !isNavigatorOnline()) {
       // Silent fail for abort errors (common during navigation)
       const pendingKey = `amx_pending_watch_history_${currentUser.id}`;
       localStorage.setItem(pendingKey, JSON.stringify(data));

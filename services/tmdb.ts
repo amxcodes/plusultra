@@ -1,4 +1,5 @@
 import { Movie, HeroMovie } from '../types';
+import { isLikelyNetworkError } from '../lib/network';
 
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const BASE_URL = 'https://api.themoviedb.org/3';
@@ -63,7 +64,9 @@ export const TmdbService = {
             const data = await res.json();
             return data.results.map((i: any) => mapTmdbToMovie(i));
         } catch (e) {
-            console.error("TMDB Fetch Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("TMDB Fetch Error", e);
+            }
             return [];
         }
     },
@@ -140,7 +143,9 @@ export const TmdbService = {
 
             return results.map((i: any) => mapTmdbToMovie(i, forcedType));
         } catch (e) {
-            console.error("TMDB Fetch Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("TMDB Fetch Error", e);
+            }
             return [];
         }
     },
@@ -194,7 +199,9 @@ export const TmdbService = {
                 seasons: seasons // Return sorted list
             };
         } catch (e) {
-            console.error("Details Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("Details Error", e);
+            }
             return {};
         }
     },
@@ -218,7 +225,9 @@ export const TmdbService = {
                 }))
             };
         } catch (e) {
-            console.error("Season Details Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("Season Details Error", e);
+            }
             return null;
         }
     },
@@ -234,7 +243,9 @@ export const TmdbService = {
                 overview: data.overview
             };
         } catch (e) {
-            console.error("Episode Details Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("Episode Details Error", e);
+            }
             return null;
         }
     },
@@ -246,7 +257,9 @@ export const TmdbService = {
             const data = await res.json();
             return data.results.map((i: any) => mapTmdbToMovie(i, type));
         } catch (e) {
-            console.error("Similar Fetch Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("Similar Fetch Error", e);
+            }
             return [];
         }
     },
@@ -258,7 +271,9 @@ export const TmdbService = {
             const data = await res.json();
             return data.results.map((i: any) => mapTmdbToMovie(i, type));
         } catch (e) {
-            console.error("Recommendations Fetch Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("Recommendations Fetch Error", e);
+            }
             return [];
         }
     },
@@ -310,7 +325,9 @@ export const TmdbService = {
 
             return results.map((i: any) => mapTmdbToMovie(i, type === 'multi' ? undefined : (type as 'movie' | 'tv')));
         } catch (e) {
-            console.error("Search Fetch Error", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("Search Fetch Error", e);
+            }
             return [];
         }
     },
@@ -433,7 +450,9 @@ export const TmdbService = {
             }
             return null;
         } catch (e) {
-            console.error("Error resolving TMDB ID", e);
+            if (!isLikelyNetworkError(e)) {
+                console.error("Error resolving TMDB ID", e);
+            }
             return null;
         }
     }

@@ -5,6 +5,7 @@ import { supabase } from './supabase'
 import { cache, CACHE_KEYS } from './cache'
 import { setUserContext, clearUserContext } from './sentry'
 import { APP_PRESENCE_HEARTBEAT_SECONDS, PresenceService, clearPresenceSessionId } from '../services/presence'
+import { isLikelyNetworkError, isNavigatorOnline } from './network'
 
 // Define the shape of our Profile
 type Profile = {
@@ -33,6 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
     const isEndingPresenceRef = useRef(false)
+    const realtimeErrorCountRef = useRef(0)
+    const realtimeDisabledRef = useRef(false)
 
     useEffect(() => {
         // 1. Get initial session
@@ -96,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 3. Realtime subscription for profile changes (e.g., admin grants streaming permission)
     useEffect(() => {
-        if (!user?.id) return;
+        if (!user?.id || !isNavigatorOnline() || realtimeDisabledRef.current) return;
 
         console.log('[Auth] Setting up realtime subscription for user:', user.id);
 
@@ -143,6 +146,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
             )
             .subscribe((status) => {
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    realtimeErrorCountRef.current += 1;
+
+                    if (realtimeErrorCountRef.current <= 1 && isNavigatorOnline()) {
+                        console.warn('[Auth] Realtime subscription status:', status);
+                    }
+
+                    realtimeDisabledRef.current = true;
+                    supabase.removeChannel(channel);
+                    return;
+                }
+
+                realtimeErrorCountRef.current = 0;
                 console.log('[Auth] Realtime subscription status:', status);
             });
 
@@ -153,10 +169,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [user?.id]);
 
     useEffect(() => {
+        const handleOnline = () => {
+            realtimeDisabledRef.current = false;
+        };
+
+        window.addEventListener('online', handleOnline);
+        return () => window.removeEventListener('online', handleOnline);
+    }, []);
+
+    useEffect(() => {
         if (!user?.id) return;
 
         const sendHeartbeat = () => {
-            if (document.visibilityState !== 'visible' || !navigator.onLine) {
+            if (document.visibilityState !== 'visible' || !isNavigatorOnline()) {
                 return;
             }
 
@@ -221,6 +246,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             cache.set(CACHE_KEYS.USER_PROFILE, profileData, 5, true);
             setLoading(false); // Always set loading false on success
         } catch (err) {
+            if (isLikelyNetworkError(err) || !isNavigatorOnline()) {
+                if (retryCount === 0) {
+                    console.warn('[Auth] Profile fetch skipped because the client appears offline');
+                }
+                setLoading(false);
+                return;
+            }
+
             console.error(`Error fetching profile (attempt ${retryCount + 1}/${MAX_RETRIES}):`, err);
 
             // Retry with exponential backoff
