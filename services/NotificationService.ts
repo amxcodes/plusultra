@@ -33,7 +33,7 @@ export const NotificationService = {
         // Count new follows
         const { count: followsCount } = await supabase
             .from('follows')
-            .select('id', { count: 'exact' })
+            .select('follower_id', { count: 'exact' })
             .eq('following_id', userId)
             .gt('created_at', profile.last_seen_activity || '1970-01-01')
             .limit(1);
@@ -49,7 +49,7 @@ export const NotificationService = {
             const playlistIds = userPlaylists.map(p => p.id);
             const { count } = await supabase
                 .from('playlist_likes')
-                .select('id', { count: 'exact' })
+                .select('playlist_id', { count: 'exact' })
                 .in('playlist_id', playlistIds)
                 .gt('created_at', profile.last_seen_activity || '1970-01-01')
                 .limit(1);
