@@ -5,6 +5,11 @@ import { VIEW_SESSION_HEARTBEAT_SECONDS } from '../lib/sessionTracking';
 export interface ServerVote {
     provider_id: string;
     vote_count: number;
+    attempt_count?: number;
+    success_count?: number;
+    failure_count?: number;
+    quick_exit_count?: number;
+    total_score?: number;
 }
 
 export interface UserStats {
@@ -26,21 +31,29 @@ export interface ViewSessionHeartbeatInput {
     genres?: string[];
 }
 
+export interface ProviderAttemptInput {
+    attemptId: string;
+    sessionId: string;
+    tmdbId: string;
+    mediaType: 'movie' | 'tv';
+    season?: number;
+    episode?: number;
+    providerId: string;
+}
+
 export const StatsService = {
     /**
      * Get the best server for a specific movie/episode
      */
     async getBestServer(tmdbId: string, mediaType: 'movie' | 'tv', season = 1, episode = 1) {
         const { data, error } = await supabase
-            .from('server_votes')
-            .select('provider_id, vote_count')
-            .eq('tmdb_id', tmdbId)
-            .eq('media_type', mediaType)
-            .eq('season', season)
-            .eq('episode', episode)
-            .order('vote_count', { ascending: false })
-            .limit(1)
-            .maybeSingle(); // Use maybeSingle() to avoid error on no results
+            .rpc('get_best_provider_for_content', {
+                p_tmdb_id: tmdbId,
+                p_media_type: mediaType,
+                p_season: season,
+                p_episode: episode
+            })
+            .maybeSingle();
 
         if (error) {
             console.error('[StatsService] Failed to fetch best server:', error);
@@ -87,6 +100,55 @@ export const StatsService = {
 
         if (error) {
             console.error('[StatsService] Failed to track session heartbeat:', error);
+        }
+    },
+
+    async startProviderAttempt(input: ProviderAttemptInput) {
+        const { error } = await supabase.rpc('start_provider_attempt', {
+            p_attempt_id: input.attemptId,
+            p_session_id: input.sessionId,
+            p_tmdb_id: input.tmdbId,
+            p_media_type: input.mediaType,
+            p_season: input.mediaType === 'tv' ? (input.season || 1) : null,
+            p_episode: input.mediaType === 'tv' ? (input.episode || 1) : null,
+            p_provider_id: input.providerId
+        });
+
+        if (error) {
+            console.error('[StatsService] Failed to start provider attempt:', error);
+        }
+    },
+
+    async markProviderAttemptReady(attemptId: string) {
+        const { error } = await supabase.rpc('mark_provider_attempt_ready', {
+            p_attempt_id: attemptId
+        });
+
+        if (error) {
+            console.error('[StatsService] Failed to mark provider attempt ready:', error);
+        }
+    },
+
+    async heartbeatProviderAttempt(attemptId: string, progressSeconds?: number, activeIncrement = 15) {
+        const { error } = await supabase.rpc('heartbeat_provider_attempt', {
+            p_attempt_id: attemptId,
+            p_progress_seconds: typeof progressSeconds === 'number' ? Math.floor(progressSeconds) : null,
+            p_active_increment: activeIncrement
+        });
+
+        if (error) {
+            console.error('[StatsService] Failed to heartbeat provider attempt:', error);
+        }
+    },
+
+    async finishProviderAttempt(attemptId: string, reason?: string) {
+        const { error } = await supabase.rpc('finish_provider_attempt', {
+            p_attempt_id: attemptId,
+            p_reason: reason || null
+        });
+
+        if (error) {
+            console.error('[StatsService] Failed to finish provider attempt:', error);
         }
     },
 

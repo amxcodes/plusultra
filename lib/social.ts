@@ -2,6 +2,7 @@ import { ProfileService } from '../services/ProfileService';
 import { PlaylistService } from '../services/PlaylistService';
 import { AdminService } from '../services/AdminService';
 import { NotificationService } from '../services/NotificationService';
+import { PlayerProviderService } from '../services/PlayerProviderService';
 
 /**
  * SocialService Facade
@@ -13,5 +14,6 @@ export const SocialService = {
     ...ProfileService,
     ...PlaylistService,
     ...AdminService,
-    ...NotificationService
+    ...NotificationService,
+    ...PlayerProviderService
 };

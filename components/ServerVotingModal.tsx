@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Trophy, Check } from 'lucide-react';
-import { PROVIDERS, Provider } from './UnifiedPlayer';
+import { PlayerProviderAdapter, Provider } from '../lib/playerProviders';
 import { StatsService } from '../services/stats';
 
 interface ServerVotingModalProps {
@@ -11,6 +11,7 @@ interface ServerVotingModalProps {
     season?: number;
     episode?: number;
     currentProvider: Provider;
+    providers: PlayerProviderAdapter[];
 }
 
 export const ServerVotingModal: React.FC<ServerVotingModalProps> = ({
@@ -20,7 +21,8 @@ export const ServerVotingModal: React.FC<ServerVotingModalProps> = ({
     mediaType,
     season = 1,
     episode = 1,
-    currentProvider
+    currentProvider,
+    providers
 }) => {
     const [voted, setVoted] = useState(false);
     const [bestServer, setBestServer] = useState<string | null>(null);
@@ -66,7 +68,7 @@ export const ServerVotingModal: React.FC<ServerVotingModalProps> = ({
                         {/* Scrollable List - Contained properly */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar px-3 max-h-[300px]">
                             <div className="flex flex-col gap-1.5 pb-2">
-                                {PROVIDERS.map(p => {
+                                {providers.map(p => {
                                     const isCurrent = p.id === currentProvider;
                                     const isBest = p.id === bestServer;
 

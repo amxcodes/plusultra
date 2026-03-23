@@ -9,6 +9,7 @@ import { HealthService, HealthStatus } from '../services/health';
 import { useToast } from '../lib/ToastContext';
 import { useConfirm } from '../lib/ConfirmContext';
 import { WRAPPED_SETTING_KEY } from '../lib/wrappedSettings';
+import { ProviderManagementPanel } from './ProviderManagementPanel';
 
 interface MobileAdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -18,7 +19,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const { isAdmin } = useAuth();
     const { success, error, info } = useToast();
     const confirm = useConfirm();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions' | 'presence'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions' | 'presence' | 'providers'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -269,6 +270,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     { id: 'requests', icon: MessageSquarePlus },
                     { id: 'sessions', icon: Database },
                     { id: 'presence', icon: Wifi },
+                    { id: 'providers', icon: Plus },
                     { id: 'health', icon: Activity },
                     { id: 'settings', icon: Settings }
                 ].map(item => (
@@ -851,6 +853,10 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                 )}
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'providers' && (
+                        <ProviderManagementPanel compact />
                     )}
 
                     {/* HEALTH TAB (New) */}

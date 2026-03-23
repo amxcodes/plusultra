@@ -10,6 +10,7 @@ import { HealthService, HealthStatus } from '../services/health';
 import { useToast } from '../lib/ToastContext';
 import { useConfirm } from '../lib/ConfirmContext';
 import { WRAPPED_SETTING_KEY } from '../lib/wrappedSettings';
+import { ProviderManagementPanel } from './ProviderManagementPanel';
 
 interface AdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -17,7 +18,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'settings' | 'reactions' | 'health' | 'requests' | 'sessions' | 'presence'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'providers' | 'settings' | 'reactions' | 'health' | 'requests' | 'sessions' | 'presence'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -349,6 +350,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'featured' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
                     Featured Movies
+                </button>
+                <button
+                    onClick={() => setActiveTab('providers')}
+                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'providers' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    Providers
                 </button>
                 <button
                     onClick={() => setActiveTab('settings')}
@@ -820,6 +827,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'providers' && (
+                        <ProviderManagementPanel />
                     )}
 
                     {/* SYSTEM HEALTH TAB - VIBRANT & MINIMAL */}

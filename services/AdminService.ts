@@ -40,6 +40,27 @@ export interface AdminPresenceUser {
     last_path: string | null;
 }
 
+export interface AdminProviderAnalytics {
+    provider_id: string;
+    provider_name: string;
+    enabled: boolean;
+    render_mode: 'embed' | 'direct';
+    risk_level: 'low' | 'medium' | 'high';
+    sort_order: number;
+    manual_votes: number;
+    total_attempts: number;
+    success_count: number;
+    failure_count: number;
+    quick_exit_count: number;
+    no_ready_timeout_count: number;
+    switched_early_count: number;
+    retry_attempt_count: number;
+    avg_active_seconds: number;
+    success_rate: number;
+    automatic_score: number;
+    last_attempt_at: string | null;
+}
+
 export const AdminService = {
     async getAdminStats() {
         // Parallel fetch for overview stats
@@ -263,5 +284,15 @@ export const AdminService = {
 
         if (error) throw error;
         return (data || []) as AdminPresenceUser[];
+    },
+
+    async getProviderAnalytics(days = 30) {
+        const { data, error } = await supabase
+            .rpc('admin_get_provider_analytics', {
+                p_days: days
+            });
+
+        if (error) throw error;
+        return (data || []) as AdminProviderAnalytics[];
     }
 };

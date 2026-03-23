@@ -7,12 +7,13 @@ import { WatchPartyModal } from './WatchPartyModal';
 import { StatsService } from '../services/stats';
 import { ServerVotingModal } from './ServerVotingModal';
 import { VIEW_SESSION_HEARTBEAT_SECONDS } from '../lib/sessionTracking';
-
-type MediaType = 'movie' | 'tv';
+import { DirectMediaPlayer } from './DirectMediaPlayer';
+import { getProviderAdapter, PLAYER_PROVIDER_DEFAULTS, Provider, ProviderContext } from '../lib/playerProviders';
+import { usePlayerProviders } from '../hooks/usePlayerProviders';
 
 interface UnifiedPlayerProps {
     tmdbId: string;
-    mediaType: MediaType;
+    mediaType: 'movie' | 'tv';
     season?: number;
     episode?: number;
     title?: string;
@@ -23,22 +24,8 @@ interface UnifiedPlayerProps {
     autoJoinCode?: string;
 }
 
-export type Provider = 'zxcplayer' | 'zxcembed' | 'cinemaos' | 'cinezo' | 'rive' | 'vidora' | 'aeon';
-
-export const PROVIDERS: { id: Provider; name: string; hasEvents: boolean; tags?: string[]; bestFor?: string }[] = [
-    // ZXCStream variants (Best - No redirects)
-    { id: 'zxcplayer', name: 'Server 1', hasEvents: false, tags: ['Fast', 'No Ads'], bestFor: 'Best Quality' },
-    { id: 'zxcembed', name: 'Server 2', hasEvents: false, tags: ['Fast', 'No Ads'], bestFor: 'Alternative Player' },
-
-    // Premium servers (Clean)
-    { id: 'cinemaos', name: 'Server 3', hasEvents: false, tags: ['Reliable'], bestFor: 'Backup' },
-    { id: 'aeon', name: 'Server 4', hasEvents: false, tags: ['Reliable'], bestFor: 'Backup' },
-    { id: 'cinezo', name: 'Server 5', hasEvents: false, tags: ['Reliable'], bestFor: 'Backup' },
-
-    // Premium servers with redirect issues (Moved down)
-    { id: 'rive', name: 'Server 6', hasEvents: false, tags: ['Redirects'], bestFor: 'All Content' },
-    { id: 'vidora', name: 'Server 7', hasEvents: true, tags: ['Redirects'], bestFor: 'All Content' },
-];
+export type { Provider } from '../lib/playerProviders';
+export const PROVIDERS = PLAYER_PROVIDER_DEFAULTS;
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     tmdbId,
@@ -91,6 +78,12 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [showVotingModal, setShowVotingModal] = useState(false);
     const [genres, setGenres] = useState<string[]>([]);
     const sessionIdRef = useRef<string>('');
+    const providerAttemptIdRef = useRef<string>('');
+    const providerAttemptStartedAtRef = useRef<number>(0);
+    const providerAttemptFinishedRef = useRef(false);
+    const providerReadyMarkedRef = useRef(false);
+    const directVideoRef = useRef<HTMLVideoElement>(null);
+    const { providers } = usePlayerProviders();
 
     // Fetch genres from TMDB for stats tracking
     useEffect(() => {
@@ -112,7 +105,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         // 1. Try to connect to best-voted server
         StatsService.getBestServer(tmdbId, mediaType, season, episode).then(vote => {
             if (vote && vote.vote_count > 5) { // Threshold to prevent fluctuation from low votes
-                const availableProvider = PROVIDERS.find(p => p.id === vote.provider_id);
+                const availableProvider = providers.find(p => p.id === vote.provider_id);
                 if (availableProvider) {
                     setProvider(availableProvider.id);
                 }
@@ -157,15 +150,69 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 }
             });
         }
-    }, [tmdbId, mediaType, season, episode]);
+    }, [tmdbId, mediaType, season, episode, providers]);
 
     useEffect(() => {
         sessionIdRef.current = crypto.randomUUID();
     }, [tmdbId, mediaType, season, episode]);
 
+    const providerContext: ProviderContext = {
+        tmdbId,
+        mediaType,
+        season,
+        episode,
+    };
 
+    const enabledProviders = providers.filter(item => item.enabled);
+    const availableProviders = enabledProviders.length > 0 ? enabledProviders : PLAYER_PROVIDER_DEFAULTS;
+    const currentProvider = getProviderAdapter(availableProviders, provider);
+    const directSources = currentProvider.renderMode === 'direct'
+        ? currentProvider.getDirectSources?.(providerContext) || []
+        : [];
 
+    useEffect(() => {
+        if (!availableProviders.some(item => item.id === provider)) {
+            setProvider(availableProviders[0].id);
+        }
+    }, [availableProviders, provider]);
 
+    const finishProviderAttempt = (reason: string) => {
+        if (providerAttemptFinishedRef.current) return;
+        providerAttemptFinishedRef.current = true;
+        void StatsService.finishProviderAttempt(providerAttemptIdRef.current, reason);
+    };
+
+    useEffect(() => {
+        providerAttemptIdRef.current = crypto.randomUUID();
+        providerAttemptStartedAtRef.current = Date.now();
+        providerAttemptFinishedRef.current = false;
+        providerReadyMarkedRef.current = false;
+
+        void StatsService.startProviderAttempt({
+            attemptId: providerAttemptIdRef.current,
+            sessionId: sessionIdRef.current,
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            providerId: currentProvider.id,
+        });
+
+        const timeout = window.setTimeout(() => {
+            if (!providerReadyMarkedRef.current) {
+                finishProviderAttempt('no_ready_timeout');
+            }
+        }, 20000);
+
+        return () => {
+            window.clearTimeout(timeout);
+            if (!providerAttemptFinishedRef.current) {
+                finishProviderAttempt(
+                    providerReadyMarkedRef.current ? 'provider_exit' : 'provider_exit_before_ready'
+                );
+            }
+        };
+    }, [tmdbId, mediaType, season, episode, currentProvider.id]);
 
     // Close server menu on click outside
     useEffect(() => {
@@ -177,63 +224,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showServers]);
-
-
-
-
-    // Construct URL based on provider
-    const getUrl = () => {
-        switch (provider) {
-            // ZXCStream variants (Best quality, no redirects)
-            case 'zxcplayer':
-                if (mediaType === 'movie') {
-                    return `https://zxcstream.xyz/player/movie/${tmdbId}/en?autoplay=false&back=true&server=0`;
-                }
-                return `https://zxcstream.xyz/player/tv/${tmdbId}/${season}/${episode}/en?autoplay=false&back=true&server=0`;
-
-            case 'zxcembed':
-                if (mediaType === 'movie') {
-                    return `https://zxcstream.xyz/embed/movie/${tmdbId}`;
-                }
-                return `https://zxcstream.xyz/embed/tv/${tmdbId}/${season}/${episode}`;
-
-            case 'cinemaos':
-                const baseUrl = 'https://zxcstream.xyz/player';
-                const commonQuery = 'autoplay=false&back=true&server=0';
-                if (mediaType === 'movie') {
-                    return `${baseUrl}/movie/${tmdbId}/en?${commonQuery}`;
-                }
-                return `${baseUrl}/tv/${tmdbId}/${season}/${episode}/en?${commonQuery}`;
-
-            case 'vidora':
-                if (mediaType === 'movie') {
-                    return `https://vidora.su/movie/${tmdbId}?autoplay=false`;
-                }
-                return `https://vidora.su/tv/${tmdbId}/${season}/${episode}?autoplay=false`;
-
-            case 'rive':
-                if (mediaType === 'movie') {
-                    return `https://rivestream.org/embed?type=movie&id=${tmdbId}`;
-                }
-                return `https://rivestream.org/embed?type=tv&id=${tmdbId}&season=${season}&episode=${episode}`;
-
-            case 'aeon':
-                if (mediaType === 'movie') {
-                    return `https://thisiscinema.pages.dev/?type=movie&version=v3&id=${tmdbId}`;
-                }
-                return `https://thisiscinema.pages.dev/?type=tv&version=v3&id=${tmdbId}&season=${season}&episode=${episode}`;
-
-            case 'cinezo':
-                if (mediaType === 'movie') {
-                    return `https://api.cinezo.net/embed/tmdb-movie-${tmdbId}`;
-                }
-                return `https://api.cinezo.net/embed/tmdb-tv-${tmdbId}/${season}/${episode}`;
-
-            default:
-                return '';
-        }
-    };
-
     // Event Listener for PostMessage (P-Stream / Vidora)
     const [isProviderReady, setIsProviderReady] = useState(false);
 
@@ -242,12 +232,33 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         setIsProviderReady(false);
     }, [provider]);
 
+    const markProviderReady = () => {
+        if (providerReadyMarkedRef.current) return;
+        providerReadyMarkedRef.current = true;
+        setIsProviderReady(true);
+        void StatsService.markProviderAttemptReady(providerAttemptIdRef.current);
+    };
+
+    const handleProviderSwitch = (nextProviderId: Provider) => {
+        if (nextProviderId === provider) {
+            setShowServers(false);
+            return;
+        }
+
+        const elapsed = Date.now() - providerAttemptStartedAtRef.current;
+        finishProviderAttempt(elapsed < 45000 ? 'switched_provider_early' : 'switched_provider');
+        setProvider(nextProviderId);
+        setShowServers(false);
+    };
+
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (event.origin.includes("vidora.su") && provider === 'vidora') {
+            if (currentProvider.id === 'vidora' && event.origin.includes("vidora.su")) {
                 if (event.data?.type === 'MEDIA_DATA') {
                     // Provider is ready once we start getting data
-                    if (!isProviderReady) setIsProviderReady(true);
+                    if (!isProviderReady) {
+                        markProviderReady();
+                    }
 
                     const { progress, duration, isPlaying } = event.data.data || {};
                     if (progress) {
@@ -269,7 +280,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                             episodeImage: currentEpisodeImage || episodeImage,
                             genres: genres.length > 0 ? genres : undefined
                         });
-
+                        if (!providerAttemptFinishedRef.current) {
+                            void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, progress, 15);
+                        }
 
                     }
                 }
@@ -278,7 +291,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [provider, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
+    }, [currentProvider.id, isProviderReady, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
 
 
 
@@ -291,31 +304,39 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             let currentPosition = 0;
             let videoDuration = 0;
 
-            // Try to access the actual video element in iframe
-            try {
-                const iframe = iframeRef.current;
-                if (iframe && iframe.contentDocument) {
-                    const videoElement = iframe.contentDocument.querySelector('video');
-                    if (videoElement) {
-                        // SUCCESS: Got real video position!
-                        currentPosition = videoElement.currentTime || 0;
-                        videoDuration = videoElement.duration || 0;
-                        console.log(`[Progress] Real position: ${Math.round(currentPosition)}s / ${Math.round(videoDuration)}s`);
+            if (currentProvider.renderMode === 'direct') {
+                const videoElement = directVideoRef.current;
+                if (videoElement) {
+                    currentPosition = videoElement.currentTime || 0;
+                    videoDuration = videoElement.duration || 0;
+                }
+            } else {
+                // Try to access the actual video element in iframe
+                try {
+                    const iframe = iframeRef.current;
+                    if (iframe && iframe.contentDocument) {
+                        const videoElement = iframe.contentDocument.querySelector('video');
+                        if (videoElement) {
+                            // SUCCESS: Got real video position!
+                            currentPosition = videoElement.currentTime || 0;
+                            videoDuration = videoElement.duration || 0;
+                            console.log(`[Progress] Real position: ${Math.round(currentPosition)}s / ${Math.round(videoDuration)}s`);
+                        } else {
+                            // No video element found, use fallback
+                            fallbackTime += 30;
+                            currentPosition = fallbackTime;
+                            console.log(`[Progress] Fallback timer: ${fallbackTime}s`);
+                        }
                     } else {
-                        // No video element found, use fallback
+                        // Can't access iframe (cross-origin), use fallback
                         fallbackTime += 30;
                         currentPosition = fallbackTime;
-                        console.log(`[Progress] Fallback timer: ${fallbackTime}s`);
                     }
-                } else {
-                    // Can't access iframe (cross-origin), use fallback
+                } catch (error) {
+                    // Cross-origin error, use fallback
                     fallbackTime += 30;
                     currentPosition = fallbackTime;
                 }
-            } catch (error) {
-                // Cross-origin error, use fallback
-                fallbackTime += 30;
-                currentPosition = fallbackTime;
             }
 
             // Only save if we have meaningful progress (>10s)
@@ -339,6 +360,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     genres: genres.length > 0 ? genres : undefined
                 });
             }
+
+            if (!providerAttemptFinishedRef.current) {
+                void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, currentPosition > 0 ? currentPosition : undefined, 15);
+            }
         };
 
         progressInterval = setInterval(saveProgress, 15000); // Poll every 15 seconds (reduced from 30s)
@@ -350,11 +375,14 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             // Don't call saveProgress() here - it triggers setState during unmount!
             // Progress will be auto-saved to localStorage by useWatchHistory cleanup
         };
-    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
+    }, [tmdbId, mediaType, season, episode, provider, title, posterUrl, voteAverage, updateProgress, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop, currentProvider.renderMode]);
 
     useEffect(() => {
         const heartbeat = () => {
             if (document.hidden || !document.hasFocus()) {
+                return;
+            }
+            if (providerAttemptFinishedRef.current) {
                 return;
             }
 
@@ -382,17 +410,29 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     return (
         <div className="w-full h-full relative bg-black group">
 
-            {/* Iframe spans entire container */}
-            <iframe
-                ref={iframeRef}
-                src={getUrl()}
-                width="100%"
-                height="100%"
-                allowFullScreen
-                className="w-full h-full border-none"
-                title={`Player - ${provider}`}
-                id="unified-iframe"
-            />
+            {currentProvider.renderMode === 'direct' ? (
+                <DirectMediaPlayer
+                    sources={directSources}
+                    title={`${title || tmdbId} - ${currentProvider.name}`}
+                    videoRef={directVideoRef}
+                    onReady={markProviderReady}
+                    onError={() => {
+                        finishProviderAttempt('media_error');
+                    }}
+                />
+            ) : (
+                <iframe
+                    ref={iframeRef}
+                    src={currentProvider.getEmbedUrl?.(providerContext) || ''}
+                    width="100%"
+                    height="100%"
+                    allowFullScreen
+                    className="w-full h-full border-none"
+                    title={`Player - ${provider}`}
+                    id="unified-iframe"
+                    onLoad={markProviderReady}
+                />
+            )}
 
 
 
@@ -516,14 +556,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
                     {showServers && (
                         <div className="absolute right-0 top-full mt-2 w-64 md:w-72 bg-[#0f1014]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
-                            {PROVIDERS.map((p) => {
+                            {availableProviders.map((p) => {
                                 const isActive = provider === p.id;
                                 return (
                                     <button
                                         key={p.id}
                                         onClick={() => {
-                                            setProvider(p.id);
-                                            setShowServers(false);
+                                            handleProviderSwitch(p.id);
                                         }}
                                         className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border border-transparent
                                         ${isActive
@@ -535,19 +574,21 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                                                 <span className={`text-sm font-bold ${isActive ? 'text-black' : 'text-zinc-200'}`}>
                                                     {p.name}
                                                 </span>
-                                                {p.tags && p.tags[0] && (
+                                                {(p.tags?.[0] || p.renderMode === 'direct') && (
                                                     <span className={`text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold ${isActive
                                                         ? 'bg-black/10 text-black/70'
-                                                        : p.tags[0].includes('Redirect') || p.tags[0].includes('Ads')
+                                                        : (p.tags?.[0] || '').includes('Redirect') || (p.tags?.[0] || '').includes('Ads')
                                                             ? 'bg-red-500/20 text-red-400'
+                                                            : p.renderMode === 'direct'
+                                                                ? 'bg-green-500/20 text-green-400'
                                                             : 'bg-white/10 text-zinc-500'
                                                         }`}>
-                                                        {p.tags[0].replace('Redirect Issues', 'Redirects')}
+                                                        {(p.tags?.[0] || (p.renderMode === 'direct' ? 'Direct' : 'Embed')).replace('Redirect Issues', 'Redirects')}
                                                     </span>
                                                 )}
                                             </div>
                                             <span className={`text-[10px] ${isActive ? 'text-black/60' : 'text-zinc-600'}`}>
-                                                {p.bestFor}
+                                                {p.bestFor}{p.renderMode === 'direct' ? ' · Direct playback' : ''}
                                             </span>
                                         </div>
 
@@ -566,7 +607,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
             {/* Provider Watermark (Fades out) */}
             <div className="absolute bottom-6 right-6 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] text-white/30 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                {PROVIDERS.find(p => p.id === provider)?.name}
+                {currentProvider.name}
             </div>
 
             <ServerVotingModal
@@ -577,6 +618,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 season={season}
                 episode={episode}
                 currentProvider={provider}
+                providers={availableProviders}
             />
 
         </div>
