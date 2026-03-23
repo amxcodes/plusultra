@@ -45,6 +45,10 @@ interface CommunityStats {
     };
 }
 
+type WrappedProfileResponse = {
+    stats?: WrappedStats | null;
+};
+
 interface PredictiveInsights {
     projected_2027_total: number;
     confidence: 'high' | 'medium' | 'low';
@@ -96,13 +100,13 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                 .single();
 
             const [result] = await Promise.all([statsPromise, minLoadTime]);
-            const { data } = result;
+            const profile = result.data as WrappedProfileResponse | null;
 
-            if (data?.stats) {
-                setStats(data.stats);
+            if (profile?.stats) {
+                setStats(profile.stats);
 
                 // Calculate predictions from user stats
-                const predictions = calculatePredictions(data.stats);
+                const predictions = calculatePredictions(profile.stats);
                 setPredictions(predictions);
 
                 // Fetch community stats

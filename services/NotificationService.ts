@@ -1,5 +1,10 @@
 import { supabase } from '../lib/supabase';
 
+type PrivateNotificationProfile = {
+    last_seen_announcements?: string | null;
+    last_seen_activity?: string | null;
+};
+
 export const NotificationService = {
     async getNotifications(userId: string) {
         const { data, error } = await supabase
@@ -14,11 +19,13 @@ export const NotificationService = {
 
     async getUnreadCounts(userId: string) {
         // Get user's last seen timestamps
-        const { data: profile } = await supabase
+        const { data } = await supabase
             .rpc('get_private_profile', {
                 p_user_id: userId
             })
             .single();
+
+        const profile = data as PrivateNotificationProfile | null;
 
         if (!profile) return { announcementsCount: 0, activityCount: 0 };
 

@@ -245,13 +245,14 @@ export const ProfileService = {
 
     async saveRecentSearch(userId: string, query: string) {
         // Get current searches
-        const { data: profile } = await supabase
+        const { data } = await supabase
             .rpc('get_private_profile', {
                 p_user_id: userId
             })
             .single();
 
-        let searches: string[] = (profile?.recent_searches as string[] | undefined) || [];
+        const profile = data as PrivateProfileRow | null;
+        let searches: string[] = profile?.recent_searches || [];
 
         // Remove if already exists (dedupe)
         searches = searches.filter(s => s.toLowerCase() !== query.toLowerCase());
@@ -272,13 +273,14 @@ export const ProfileService = {
     },
 
     async getRecentSearches(userId: string): Promise<string[]> {
-        const { data: profile } = await supabase
+        const { data } = await supabase
             .rpc('get_private_profile', {
                 p_user_id: userId
             })
             .single();
 
-        return (profile?.recent_searches as string[] | undefined) || [];
+        const profile = data as PrivateProfileRow | null;
+        return profile?.recent_searches || [];
     },
 
     async getAppSettings() {

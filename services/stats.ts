@@ -41,6 +41,10 @@ export interface ProviderAttemptInput {
     providerId: string;
 }
 
+type PrivateStatsProfile = {
+    stats?: UserStats | null;
+};
+
 export const StatsService = {
     /**
      * Get the best server for a specific movie/episode
@@ -167,11 +171,13 @@ export const StatsService = {
             return null;
         }
 
-        if (!data || !data.stats) {
+        const profile = data as PrivateStatsProfile | null;
+
+        if (!profile?.stats) {
             console.warn('[StatsService] No stats found for user:', userId);
             return null;
         }
 
-        return data.stats as UserStats;
+        return profile.stats;
     }
 };

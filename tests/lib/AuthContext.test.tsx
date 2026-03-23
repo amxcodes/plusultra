@@ -11,8 +11,10 @@ vi.mock('../../lib/supabase', () => ({
     supabase: {
         auth: {
             getSession: vi.fn(),
-            onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } }))
+            onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+            signOut: vi.fn()
         },
+        rpc: vi.fn(),
         from: vi.fn(() => ({
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
@@ -30,7 +32,8 @@ vi.mock('../../lib/cache', () => ({
     cache: {
         get: vi.fn(),
         set: vi.fn(),
-        clearAll: vi.fn()
+        clearAll: vi.fn(),
+        invalidate: vi.fn()
     },
     CACHE_KEYS: { USER_PROFILE: 'user_profile' }
 }));
@@ -38,6 +41,20 @@ vi.mock('../../lib/cache', () => ({
 vi.mock('../../lib/sentry', () => ({
     setUserContext: vi.fn(),
     clearUserContext: vi.fn()
+}));
+
+vi.mock('../../services/presence', () => ({
+    APP_PRESENCE_HEARTBEAT_SECONDS: 30,
+    PresenceService: {
+        trackHeartbeat: vi.fn(),
+        endSession: vi.fn().mockResolvedValue(undefined)
+    },
+    clearPresenceSessionId: vi.fn()
+}));
+
+vi.mock('../../lib/network', () => ({
+    isLikelyNetworkError: vi.fn(() => false),
+    isNavigatorOnline: vi.fn(() => true)
 }));
 
 // Test component to consume context
@@ -55,6 +72,19 @@ const TestComponent = () => {
 describe('AuthContext', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        (cache.get as any).mockReturnValue(null);
+        (supabase.rpc as any).mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+                data: {
+                    id: 'u123',
+                    username: 'testuser',
+                    avatar_url: '',
+                    role: 'user',
+                    can_stream: false
+                },
+                error: null
+            })
+        });
     });
 
     it('should show loading initially', () => {
@@ -86,18 +116,9 @@ describe('AuthContext', () => {
 
     it('should initialize with user and fetch profile', async () => {
         const mockUser = { id: 'u123', email: 'test@test.com' };
-        const mockProfile = { id: 'u123', username: 'testuser', role: 'user' };
-
         (supabase.auth.getSession as any).mockResolvedValue({
             data: { session: { user: mockUser } },
             error: null
-        });
-
-        // Mock profile fetch
-        (supabase.from as any).mockReturnValue({
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: mockProfile, error: null })
         });
 
         await act(async () => {
@@ -122,11 +143,6 @@ describe('AuthContext', () => {
         (supabase.auth.getSession as any).mockResolvedValue({
             data: { session: { user: mockUser } },
             error: null
-        });
-        (supabase.from as any).mockReturnValue({
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: { id: 'u123' }, error: null })
         });
 
         let authStateCallback: any;

@@ -16,6 +16,14 @@ type Profile = {
     can_stream?: boolean
 }
 
+type PrivateProfileRpcRow = {
+    id: string
+    username: string
+    avatar_url: string | null
+    role: 'user' | 'admin' | 'moderator'
+    can_stream?: boolean | null
+}
+
 type AuthContextType = {
     session: Session | null
     user: User | null
@@ -216,12 +224,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Success - set profile and loading false
+            const profile = data as PrivateProfileRpcRow | null
+
+            if (!profile) {
+                setLoading(false)
+                return
+            }
+
             const profileData = {
-                id: data.id,
-                username: data.username,
-                avatar_url: data.avatar_url || '',
-                role: data.role,
-                can_stream: data.can_stream ?? false,
+                id: profile.id,
+                username: profile.username,
+                avatar_url: profile.avatar_url || '',
+                role: profile.role,
+                can_stream: profile.can_stream ?? false,
             } as Profile;
             setProfile(profileData);
             setUserContext(profileData.id, profileData.username); // Set Sentry user context

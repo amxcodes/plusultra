@@ -35,6 +35,9 @@ vi.mock('../../lib/idempotency', () => ({
 }));
 
 describe('useWatchHistory', () => {
+    const getRpcCalls = (name: string) =>
+        (supabase.rpc as any).mock.calls.filter(([rpcName]: [string]) => rpcName === name);
+
     const flushInitialLoad = async () => {
         await act(async () => {
             await Promise.resolve();
@@ -46,6 +49,18 @@ describe('useWatchHistory', () => {
         vi.useFakeTimers();
         // Clear localStorage
         localStorage.clear();
+        (supabase.auth.getUser as any).mockResolvedValue({ data: { user: mockUser } });
+        (supabase.rpc as any).mockImplementation((name: string) => {
+            if (name === 'get_private_watch_history') {
+                return Promise.resolve({ data: {}, error: null });
+            }
+
+            if (name === 'update_watch_history_v2') {
+                return Promise.resolve({ error: null });
+            }
+
+            return Promise.resolve({ data: null, error: null });
+        });
     });
 
     afterEach(() => {
@@ -95,8 +110,6 @@ describe('useWatchHistory', () => {
             provider: 'tmdb'
         };
 
-        (supabase.rpc as any).mockResolvedValue({ error: null });
-
         // First update
         act(() => {
             result.current.updateProgress(movie);
@@ -106,7 +119,7 @@ describe('useWatchHistory', () => {
         await act(async () => {
             vi.advanceTimersByTime(2000);
         });
-        expect(supabase.rpc).not.toHaveBeenCalled();
+        expect(getRpcCalls('update_watch_history_v2')).toHaveLength(0);
 
         // Second update (reset timer)
         act(() => {
@@ -117,14 +130,14 @@ describe('useWatchHistory', () => {
         await act(async () => {
             vi.advanceTimersByTime(4000);
         });
-        expect(supabase.rpc).not.toHaveBeenCalled();
+        expect(getRpcCalls('update_watch_history_v2')).toHaveLength(0);
 
         // Advance to trigger
         await act(async () => {
             vi.runAllTimers(); // Force flush
         });
 
-        expect(supabase.rpc).toHaveBeenCalledTimes(1);
+        expect(getRpcCalls('update_watch_history_v2')).toHaveLength(1);
         expect(supabase.rpc).toHaveBeenCalledWith('update_watch_history_v2', {
             p_user_id: 'u1',
             p_tmdb_id: '102',
@@ -149,7 +162,17 @@ describe('useWatchHistory', () => {
         };
 
         // Mock failure
-        (supabase.rpc as any).mockResolvedValue({ error: { message: 'Network Error' } });
+        (supabase.rpc as any).mockImplementation((name: string) => {
+            if (name === 'get_private_watch_history') {
+                return Promise.resolve({ data: {}, error: null });
+            }
+
+            if (name === 'update_watch_history_v2') {
+                return Promise.resolve({ error: { message: 'Network Error' } });
+            }
+
+            return Promise.resolve({ data: null, error: null });
+        });
 
         act(() => {
             result.current.updateProgress(movie);
@@ -184,8 +207,6 @@ describe('useWatchHistory', () => {
             provider: 'tmdb'
         };
 
-        (supabase.rpc as any).mockResolvedValue({ error: null });
-
         act(() => {
             result.current.updateProgress(movie);
         });
@@ -195,6 +216,6 @@ describe('useWatchHistory', () => {
             await result.current.flushNow();
         });
 
-        expect(supabase.rpc).toHaveBeenCalledTimes(1);
+        expect(getRpcCalls('update_watch_history_v2')).toHaveLength(1);
     });
 });
