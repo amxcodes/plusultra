@@ -116,32 +116,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 (payload) => {
                     console.log('[Auth] Profile updated via realtime:', payload.new);
 
-                    // Validate payload structure before using
                     const newProfile = payload.new;
-                    const validRoles = ['user', 'admin', 'moderator'];
-
                     if (
                         newProfile &&
                         typeof newProfile === 'object' &&
-                        typeof newProfile.id === 'string' &&
-                        typeof newProfile.username === 'string' &&
-                        typeof newProfile.role === 'string' &&
-                        validRoles.includes(newProfile.role)
+                        typeof newProfile.id === 'string'
                     ) {
-                        // Sanitize optional fields
-                        const sanitizedProfile: Profile = {
-                            id: newProfile.id,
-                            username: newProfile.username,
-                            avatar_url: typeof newProfile.avatar_url === 'string' ? newProfile.avatar_url : '',
-                            role: newProfile.role as Profile['role'],
-                            can_stream: typeof newProfile.can_stream === 'boolean' ? newProfile.can_stream : false
-                        };
-
-                        // Invalidate cache and update profile
                         cache.invalidate(CACHE_KEYS.USER_PROFILE, true);
-                        setProfile(sanitizedProfile);
-                    } else {
-                        console.warn('[Auth] Received malformed profile update, ignoring:', newProfile);
+                        void fetchProfile(newProfile.id);
                     }
                 }
             )

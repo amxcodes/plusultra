@@ -25,16 +25,18 @@ export const NotificationService = {
         // Count unread announcements
         const { count: announcementsCount } = await supabase
             .from('announcements')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact' })
             .eq('is_active', true)
-            .gt('created_at', profile.last_seen_announcements || '1970-01-01');
+            .gt('created_at', profile.last_seen_announcements || '1970-01-01')
+            .limit(1);
 
         // Count new follows
         const { count: followsCount } = await supabase
             .from('follows')
-            .select('*', { count: 'exact', head: true })
+            .select('id', { count: 'exact' })
             .eq('following_id', userId)
-            .gt('created_at', profile.last_seen_activity || '1970-01-01');
+            .gt('created_at', profile.last_seen_activity || '1970-01-01')
+            .limit(1);
 
         // Count new likes on user's playlists
         const { data: userPlaylists } = await supabase
@@ -47,9 +49,10 @@ export const NotificationService = {
             const playlistIds = userPlaylists.map(p => p.id);
             const { count } = await supabase
                 .from('playlist_likes')
-                .select('*', { count: 'exact', head: true })
+                .select('id', { count: 'exact' })
                 .in('playlist_id', playlistIds)
-                .gt('created_at', profile.last_seen_activity || '1970-01-01');
+                .gt('created_at', profile.last_seen_activity || '1970-01-01')
+                .limit(1);
             likesCount = count || 0;
         }
 
