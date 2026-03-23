@@ -25,7 +25,7 @@ import { ProfilePage } from './components/ProfilePage';
 import { PlaylistPage } from './components/PlaylistPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { SocialService } from './lib/social';
-import { ToastProvider, useToast } from './lib/ToastContext';
+import { ToastProvider } from './lib/ToastContext';
 import { ConfirmProvider } from './lib/ConfirmContext';
 import { PlaylistRow } from './components/PlaylistRow';
 import { AddToPlaylistModal } from './components/AddToPlaylistModal';
@@ -33,7 +33,6 @@ import { AnnouncementsPage } from './components/AnnouncementsPage';
 import { ViewAllPage } from './components/ViewAllPage';
 import { PlayerPage } from './components/PlayerPage';
 import { ActivityPage } from './components/ActivityPage';
-import { WatchTogetherService } from './lib/watchTogether';
 import { PlaylistsPage } from './components/PlaylistsPage';
 import { StatsDashboard } from './components/StatsDashboard';
 import { NewsFeed } from './components/NewsFeed';
@@ -65,7 +64,6 @@ type PlayerState = {
   movie: Movie;
   season?: number;
   episode?: number;
-  autoJoinCode?: string;
 };
 
 type NavigationSnapshot = {
@@ -93,7 +91,6 @@ const isAppHistoryState = (state: unknown): state is AppHistoryState => {
 
 function StreamApp() {
   const { user, loading, profile } = useAuth();
-  const { error } = useToast();
   const canStream = profile?.can_stream || profile?.role === 'admin';
 
 
@@ -441,54 +438,6 @@ function StreamApp() {
     }
   }, [user]);
 
-  // Auto-Join Logic
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const joinCode = params.get('join');
-
-    if (joinCode) {
-      const handleAutoJoin = async () => {
-        try {
-          console.log('[Auto-Join] Attempting to join party with code:', joinCode);
-
-          const party = await WatchTogetherService.getPartyDetails(joinCode);
-          if (!party) {
-            console.error('[Auto-Join] Party not found for code:', joinCode);
-            error('Watch party not found or has expired.');
-            return;
-          }
-
-          console.log('[Auto-Join] Party found, fetching movie details...');
-
-          // Fetch movie details to construct full object
-          const details = await TmdbService.getDetails(party.tmdb_id, party.media_type);
-          const movieReq = {
-            id: parseInt(party.tmdb_id),
-            tmdbId: parseInt(party.tmdb_id),
-            mediaType: party.media_type,
-            title: details.title,
-            ...details
-          };
-
-          console.log('[Auto-Join] Starting player with movie:', details.title);
-
-          commitSnapshot(buildSnapshot({
-            playerState: {
-              movie: movieReq as Movie,
-              season: party.season,
-              episode: party.episode,
-              autoJoinCode: joinCode
-            }
-          }), 'replace');
-        } catch (err) {
-          console.error('[Auto-Join] Error:', err);
-          error('Failed to join watch party. Please try again.');
-        }
-      };
-      handleAutoJoin();
-    }
-  }, []);
-
   // Playlist Deep Linking
   useEffect(() => {
     const path = window.location.pathname;
@@ -572,7 +521,6 @@ function StreamApp() {
         season={playerState.season}
         episode={playerState.episode}
         onBack={() => navigateBack(buildSnapshot({ playerState: null }), { scrollToTop: false })}
-        autoJoinCode={playerState.autoJoinCode}
       />
     );
   }

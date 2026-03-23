@@ -21,7 +21,6 @@ interface UnifiedPlayerProps {
     voteAverage?: number;
     backdropUrl?: string;
     episodeImage?: string;
-    autoJoinCode?: string;
 }
 
 export type { Provider } from '../lib/playerProviders';
@@ -36,8 +35,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     posterUrl = '',
     voteAverage = 0,
     backdropUrl = '',
-    episodeImage = '',
-    autoJoinCode
+    episodeImage = ''
 }) => {
     // ... existing state ...
     // ... existing state ...
