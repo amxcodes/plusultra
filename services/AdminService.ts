@@ -24,6 +24,22 @@ export interface AdminViewSession {
     updated_at: string;
 }
 
+export interface AdminPresenceUser {
+    user_id: string;
+    username: string | null;
+    avatar_url: string | null;
+    role: 'user' | 'admin' | 'moderator';
+    can_stream: boolean | null;
+    is_online: boolean;
+    last_seen_at: string | null;
+    current_session_started_at: string | null;
+    current_online_seconds: number;
+    today_active_seconds: number;
+    total_active_seconds: number;
+    session_count: number;
+    last_path: string | null;
+}
+
 export const AdminService = {
     async getAdminStats() {
         // Parallel fetch for overview stats
@@ -231,5 +247,21 @@ export const AdminService = {
 
         if (error) throw error;
         return (data || []) as AdminViewSession[];
+    },
+
+    async getPlatformPresence(options?: {
+        limit?: number;
+        search?: string | null;
+        onlineOnly?: boolean;
+    }) {
+        const { data, error } = await supabase
+            .rpc('admin_get_platform_presence', {
+                p_limit: options?.limit ?? 100,
+                p_search: options?.search ?? null,
+                p_online_only: options?.onlineOnly ?? false
+            });
+
+        if (error) throw error;
+        return (data || []) as AdminPresenceUser[];
     }
 };

@@ -1,9 +1,10 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import { cache, CACHE_KEYS } from './cache'
 import { setUserContext, clearUserContext } from './sentry'
+import { APP_PRESENCE_HEARTBEAT_SECONDS, PresenceService, clearPresenceSessionId } from '../services/presence'
 
 // Define the shape of our Profile
 type Profile = {
@@ -31,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null)
     const [profile, setProfile] = useState<Profile | null>(null)
     const [loading, setLoading] = useState(true)
+    const isEndingPresenceRef = useRef(false)
 
     useEffect(() => {
         // 1. Get initial session
@@ -59,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     setProfile(null);
                     cache.clearAll();
                     clearUserContext(); // Clear Sentry user context
+                    clearPresenceSessionId();
                     setLoading(false);
                     break;
 
@@ -149,6 +152,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, [user?.id]);
 
+    useEffect(() => {
+        if (!user?.id) return;
+
+        const sendHeartbeat = () => {
+            if (document.visibilityState !== 'visible' || !navigator.onLine) {
+                return;
+            }
+
+            void PresenceService.trackHeartbeat();
+        };
+
+        sendHeartbeat();
+
+        const interval = window.setInterval(sendHeartbeat, APP_PRESENCE_HEARTBEAT_SECONDS * 1000);
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                sendHeartbeat();
+            }
+        };
+        const handleFocus = () => {
+            sendHeartbeat();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            window.clearInterval(interval);
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [user?.id]);
+
     const fetchProfile = async (userId: string, retryCount = 0) => {
         const MAX_RETRIES = 3;
 
@@ -196,6 +232,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const signOut = async () => {
+        if (!isEndingPresenceRef.current) {
+            isEndingPresenceRef.current = true
+            try {
+                await PresenceService.endSession()
+            } finally {
+                isEndingPresenceRef.current = false
+            }
+        }
         await supabase.auth.signOut()
         setProfile(null)
         setUser(null)

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { SocialService } from '../lib/social';
 import { CommunityService } from '../lib/community';
 import { Profile } from '../types';
-import type { AdminViewSession } from '../services/AdminService';
+import type { AdminPresenceUser, AdminViewSession } from '../services/AdminService';
 import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus, MessageSquarePlus, Check, X, Trophy, RefreshCw } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { HealthService, HealthStatus } from '../services/health';
@@ -18,7 +18,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const { isAdmin } = useAuth();
     const { success, error, info } = useToast();
     const confirm = useConfirm();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions' | 'presence'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -27,6 +27,9 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const [viewSessions, setViewSessions] = useState<AdminViewSession[]>([]);
     const [isLoadingViewSessions, setIsLoadingViewSessions] = useState(false);
     const [onlyPendingSessions, setOnlyPendingSessions] = useState(false);
+    const [presenceUsers, setPresenceUsers] = useState<AdminPresenceUser[]>([]);
+    const [isLoadingPresence, setIsLoadingPresence] = useState(false);
+    const [onlineOnlyPresence, setOnlineOnlyPresence] = useState(false);
 
     // Setting state for Toggle
     const [appSettings, setAppSettings] = useState<any>({});
@@ -49,6 +52,11 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         if (!isAdmin || activeTab !== 'sessions') return;
         loadViewSessions();
     }, [isAdmin, activeTab, onlyPendingSessions]);
+
+    useEffect(() => {
+        if (!isAdmin || activeTab !== 'presence') return;
+        loadPresenceUsers();
+    }, [isAdmin, activeTab, onlineOnlyPresence]);
 
     const loadData = async () => {
         setLoading(true);
@@ -202,6 +210,22 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         }
     };
 
+    const loadPresenceUsers = async () => {
+        setIsLoadingPresence(true);
+        try {
+            const data = await SocialService.getPlatformPresence({
+                limit: 100,
+                onlineOnly: onlineOnlyPresence
+            });
+            setPresenceUsers(data);
+        } catch (e) {
+            console.error(e);
+            error('Failed to load presence');
+        } finally {
+            setIsLoadingPresence(false);
+        }
+    };
+
     const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
     const toggleUserExpand = (id: string) => {
@@ -215,8 +239,20 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         const safeSeconds = Math.max(seconds || 0, 0);
         const minutes = Math.floor(safeSeconds / 60);
         const remainder = safeSeconds % 60;
+        if (minutes >= 60) {
+            const hours = Math.floor(minutes / 60);
+            return `${hours}h ${minutes % 60}m`;
+        }
         return `${minutes}m ${remainder.toString().padStart(2, '0')}s`;
     };
+
+    const presenceSummary = presenceUsers.reduce((summary, user) => ({
+        onlineCount: summary.onlineCount + (user.is_online ? 1 : 0),
+        todayActiveSeconds: summary.todayActiveSeconds + (user.today_active_seconds || 0),
+    }), {
+        onlineCount: 0,
+        todayActiveSeconds: 0,
+    });
 
     if (!isAdmin) return <div className="p-10 text-center text-red-500">Access Denied</div>;
 
@@ -232,6 +268,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     { id: 'announcements', icon: Megaphone },
                     { id: 'requests', icon: MessageSquarePlus },
                     { id: 'sessions', icon: Database },
+                    { id: 'presence', icon: Wifi },
                     { id: 'health', icon: Activity },
                     { id: 'settings', icon: Settings }
                 ].map(item => (
@@ -701,6 +738,115 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                 {!isLoadingViewSessions && viewSessions.length === 0 && (
                                     <div className="bg-zinc-900/60 p-8 rounded-2xl border border-dashed border-zinc-800 text-center text-zinc-500 text-sm">
                                         No sessions match the current filters.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'presence' && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                                    <Wifi size={18} className="text-zinc-500 mb-2" />
+                                    <div className="text-2xl font-bold text-white">{presenceSummary.onlineCount}</div>
+                                    <div className="text-xs text-zinc-500">Online now</div>
+                                </div>
+                                <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                                    <Activity size={18} className="text-zinc-500 mb-2" />
+                                    <div className="text-2xl font-bold text-white">{formatDuration(presenceSummary.todayActiveSeconds)}</div>
+                                    <div className="text-xs text-zinc-500">Tracked today</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-white">Platform Presence</h2>
+                                        <p className="text-[11px] text-zinc-500 mt-1">
+                                            Who is online now and how long they have stayed active in the app.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={loadPresenceUsers}
+                                        disabled={isLoadingPresence}
+                                        className="p-2 bg-zinc-800 rounded-lg text-white border border-zinc-700 disabled:opacity-50"
+                                    >
+                                        <RefreshCw size={16} className={isLoadingPresence ? 'animate-spin' : ''} />
+                                    </button>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-between bg-black/20 p-3 rounded-xl">
+                                    <div>
+                                        <div className="text-white font-bold text-sm">Online Only</div>
+                                        <div className="text-zinc-500 text-[10px]">Hide offline users from the admin list</div>
+                                    </div>
+                                    <div
+                                        onClick={() => setOnlineOnlyPresence(prev => !prev)}
+                                        className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${onlineOnlyPresence ? 'bg-white' : 'bg-zinc-800'}`}
+                                    >
+                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${onlineOnlyPresence ? 'translate-x-4' : ''}`} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {presenceUsers.map(user => (
+                                    <div key={user.user_id} className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-11 h-11 rounded-full overflow-hidden bg-zinc-800 shrink-0">
+                                                    <img
+                                                        src={user.avatar_url || `https://ui-avatars.com/api/?name=${user.username || 'User'}&background=27272a&color=fff&bold=true`}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <div className="text-white font-bold text-sm">{user.username || 'Unknown user'}</div>
+                                                    <div className="text-[10px] text-zinc-500 mt-1">{user.role}</div>
+                                                </div>
+                                            </div>
+                                            <span className={`text-[9px] uppercase font-bold tracking-wider px-2 py-1 rounded-full border inline-flex items-center gap-1 ${user.is_online
+                                                ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                                                : 'text-zinc-300 bg-zinc-800 border-zinc-700'
+                                                }`}>
+                                                {user.is_online ? <Wifi size={10} /> : <WifiOff size={10} />}
+                                                {user.is_online ? 'Online' : 'Offline'}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3 mt-4 text-[10px]">
+                                            <div className="bg-black/20 rounded-xl p-3">
+                                                <div className="text-zinc-500 uppercase tracking-wider mb-1">Current</div>
+                                                <div className="text-white font-bold">{user.is_online ? formatDuration(user.current_online_seconds) : 'Not active'}</div>
+                                                <div className="text-zinc-600 mt-1">
+                                                    {user.current_session_started_at ? `Started ${new Date(user.current_session_started_at).toLocaleTimeString()}` : 'No live session'}
+                                                </div>
+                                            </div>
+                                            <div className="bg-black/20 rounded-xl p-3">
+                                                <div className="text-zinc-500 uppercase tracking-wider mb-1">Today</div>
+                                                <div className="text-white font-bold">{formatDuration(user.today_active_seconds)}</div>
+                                                <div className="text-zinc-600 mt-1">{user.session_count} total sessions</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-3 bg-black/20 rounded-xl p-3 text-[10px]">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="text-zinc-500 uppercase tracking-wider">Last Seen</span>
+                                                <span className="text-zinc-400">{user.last_seen_at ? new Date(user.last_seen_at).toLocaleString() : 'No presence yet'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-3 mt-2">
+                                                <span className="text-zinc-500 uppercase tracking-wider">Lifetime</span>
+                                                <span className="text-white font-bold">{formatDuration(user.total_active_seconds)}</span>
+                                            </div>
+                                            <div className="mt-2 text-zinc-600 truncate">{user.last_path || 'No recent path captured'}</div>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {!isLoadingPresence && presenceUsers.length === 0 && (
+                                    <div className="bg-zinc-900/60 p-8 rounded-2xl border border-dashed border-zinc-800 text-center text-zinc-500 text-sm">
+                                        No presence rows yet.
                                     </div>
                                 )}
                             </div>
