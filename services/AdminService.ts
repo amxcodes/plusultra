@@ -81,10 +81,9 @@ export const AdminService = {
 
     async getAllUsers(limit = 50) {
         const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(limit);
+            .rpc('admin_get_all_profiles', {
+                p_limit: limit
+            });
 
         if (error) throw error;
         return data || [];
@@ -100,18 +99,20 @@ export const AdminService = {
 
     async updateUserRole(userId: string, newRole: 'admin' | 'moderator' | 'user') {
         const { error } = await supabase
-            .from('profiles')
-            .update({ role: newRole })
-            .eq('id', userId);
+            .rpc('admin_update_user_role', {
+                p_user_id: userId,
+                p_new_role: newRole
+            });
 
         if (error) throw error;
     },
 
     async updateStreamingPermission(userId: string, canStream: boolean) {
         const { error } = await supabase
-            .from('profiles')
-            .update({ can_stream: canStream })
-            .eq('id', userId);
+            .rpc('admin_update_user_streaming_permission', {
+                p_user_id: userId,
+                p_can_stream: canStream
+            });
 
         if (error) throw error;
     },

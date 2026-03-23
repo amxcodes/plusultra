@@ -84,9 +84,9 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
 
             // Fetch user stats
             const statsPromise = supabase
-                .from('profiles')
-                .select('stats')
-                .eq('id', user.id)
+                .rpc('get_private_profile', {
+                    p_user_id: user.id
+                })
                 .single();
 
             const [result] = await Promise.all([statsPromise, minLoadTime]);

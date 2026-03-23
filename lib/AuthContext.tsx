@@ -199,9 +199,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Fetch from database
             const { data, error } = await supabase
-                .from('profiles')
-                .select('id, username, avatar_url, role, can_stream') // Include streaming permission
-                .eq('id', userId)
+                .rpc('get_private_profile', {
+                    p_user_id: userId
+                })
                 .single()
 
             if (error) {
@@ -209,7 +209,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Success - set profile and loading false
-            const profileData = data as Profile;
+            const profileData = {
+                id: data.id,
+                username: data.username,
+                avatar_url: data.avatar_url || '',
+                role: data.role,
+                can_stream: data.can_stream ?? false,
+            } as Profile;
             setProfile(profileData);
             setUserContext(profileData.id, profileData.username); // Set Sentry user context
             cache.set(CACHE_KEYS.USER_PROFILE, profileData, 5, true);

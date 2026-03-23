@@ -157,9 +157,9 @@ export const StatsService = {
      */
     async getUserStats(userId: string): Promise<UserStats | null> {
         const { data, error } = await supabase
-            .from('profiles')
-            .select('stats')
-            .eq('id', userId)
+            .rpc('get_private_profile', {
+                p_user_id: userId
+            })
             .maybeSingle(); // Use maybeSingle() to handle no results gracefully
 
         if (error) {

@@ -27,7 +27,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({ isOpen, onClos
 
     const handleInstall = () => {
         const url = browserType === 'firefox' ? FIREFOX_STORE_URL : CHROME_STORE_URL;
-        window.open(url, '_blank');
+        window.open(url, '_blank', 'noopener,noreferrer');
         onClose();
     };
 

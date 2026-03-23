@@ -169,6 +169,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const directSources = currentProvider.renderMode === 'direct'
         ? currentProvider.getDirectSources?.(providerContext) || []
         : [];
+    const currentEmbedUrl = currentProvider.getEmbedUrl?.(providerContext) || '';
 
     useEffect(() => {
         if (!availableProviders.some(item => item.id === provider)) {
@@ -253,7 +254,17 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
-            if (currentProvider.id === 'vidora' && event.origin.includes("vidora.su")) {
+            let expectedOrigin: string | null = null;
+            try {
+                expectedOrigin = currentEmbedUrl ? new URL(currentEmbedUrl).origin : null;
+            } catch {
+                expectedOrigin = null;
+            }
+
+            const isTrustedSource = event.source === iframeRef.current?.contentWindow;
+            const isTrustedOrigin = expectedOrigin !== null && event.origin === expectedOrigin;
+
+            if (currentProvider.id === 'vidora' && isTrustedSource && isTrustedOrigin) {
                 if (event.data?.type === 'MEDIA_DATA') {
                     // Provider is ready once we start getting data
                     if (!isProviderReady) {
@@ -291,7 +302,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
         window.addEventListener("message", handleMessage);
         return () => window.removeEventListener("message", handleMessage);
-    }, [currentProvider.id, isProviderReady, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
+    }, [currentProvider.id, currentEmbedUrl, isProviderReady, tmdbId, mediaType, season, episode, title, posterUrl, voteAverage, backdropUrl, episodeImage, currentEpisodeImage, currentMovieBackdrop]);
 
 
 
@@ -423,14 +434,17 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             ) : (
                 <iframe
                     ref={iframeRef}
-                    src={currentProvider.getEmbedUrl?.(providerContext) || ''}
+                    src={currentEmbedUrl}
                     width="100%"
                     height="100%"
                     allowFullScreen
+                    allow="fullscreen; encrypted-media; picture-in-picture"
                     className="w-full h-full border-none"
                     title={`Player - ${provider}`}
                     id="unified-iframe"
                     onLoad={markProviderReady}
+                    referrerPolicy="no-referrer"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
                 />
             )}
 

@@ -15,9 +15,9 @@ export const NotificationService = {
     async getUnreadCounts(userId: string) {
         // Get user's last seen timestamps
         const { data: profile } = await supabase
-            .from('profiles')
-            .select('last_seen_announcements, last_seen_activity')
-            .eq('id', userId)
+            .rpc('get_private_profile', {
+                p_user_id: userId
+            })
             .single();
 
         if (!profile) return { announcementsCount: 0, activityCount: 0 };

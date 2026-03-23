@@ -38,42 +38,14 @@ export const WatchTogetherService = {
         season?: number,
         episode?: number
     ): Promise<WatchParty | null> {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return null;
-
-        const { data, error } = await supabase
-            .from('watch_parties')
-            .insert({
-                host_id: user.id,
-                tmdb_id: tmdbId,
-                media_type: mediaType,
-                season,
-                episode
-            })
-            .select()
-            .single();
-
-        if (error || !data) {
-            console.error('Error creating party:', error);
-            return null;
-        }
-
-        return data;
+        console.warn('[WatchParty] Legacy DB-backed watch parties are disabled. Use the extension flow instead.');
+        return null;
     },
 
     // Join query - DB ONLY
     async joinParty(inviteCode: string): Promise<WatchParty | null> {
-        const { data, error } = await supabase
-            .from('watch_parties')
-            .select('*')
-            .eq('invite_code', inviteCode.toUpperCase())
-            .single();
-
-        if (error || !data) {
-            console.error('Party not found:', error);
-            return null;
-        }
-        return data;
+        console.warn('[WatchParty] Legacy DB-backed watch parties are disabled.');
+        return null;
     },
 
     // Unified Connection Logic
@@ -124,14 +96,8 @@ export const WatchTogetherService = {
 
     // Get party details without joining (for auto-join routing)
     async getPartyDetails(inviteCode: string): Promise<WatchParty | null> {
-        const { data, error } = await supabase
-            .from('watch_parties')
-            .select('*')
-            .eq('invite_code', inviteCode.toUpperCase())
-            .single();
-
-        if (error) return null;
-        return data;
+        console.warn('[WatchParty] Legacy DB-backed watch parties are disabled.');
+        return null;
     },
 
     // Leave party and cleanup
@@ -144,14 +110,7 @@ export const WatchTogetherService = {
 
     // End party (host only) - deletes from database
     async endParty(partyId: string) {
-        const { error } = await supabase
-            .from('watch_parties')
-            .delete()
-            .eq('id', partyId);
-
-        if (error) {
-            console.error('Error ending party:', error);
-        }
+        console.warn('[WatchParty] Legacy DB-backed watch parties are disabled.');
     },
 
     // Broadcast sync event to all participants

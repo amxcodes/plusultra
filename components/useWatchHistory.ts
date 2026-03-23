@@ -42,14 +42,13 @@ export const useWatchHistory = () => {
       return;
     }
 
-    const loadHistory = async () => {
+        const loadHistory = async () => {
       try {
         // Single row fetch - extremely fast!
         const { data, error } = await supabase
-          .from('profiles')
-          .select('watch_history')
-          .eq('id', user.id)
-          .single();
+          .rpc('get_private_watch_history', {
+            p_user_id: user.id
+          });
 
         if (error) {
           console.error('Failed to load watch history:', error);
@@ -57,8 +56,8 @@ export const useWatchHistory = () => {
         }
 
         // The watch_history column IS already a proper object
-        if (data?.watch_history) {
-          setHistory(data.watch_history as Record<string, WatchProgress>);
+        if (data) {
+          setHistory(data as Record<string, WatchProgress>);
         }
       } catch (e) {
         console.error('Error loading history:', e);

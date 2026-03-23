@@ -306,7 +306,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
             try {
                 // If admin inspecting another user, we might want to fetch differently or force show private
                 const [prof, plays, stat, checkFollow] = await Promise.all([
-                    SocialService.getProfile(targetId),
+                    isAdmin && !isOwnProfile
+                        ? SocialService.getPrivateProfile(targetId)
+                        : SocialService.getProfile(targetId),
                     SocialService.getPlaylists(targetId), // This usually filters private. We need to manually filter if not own?
                     // actually getPlaylists returns all for own, and public for others.
                     // We need a way to get ALL for admin. SocialService.getPlaylists likely limits this via RLS.

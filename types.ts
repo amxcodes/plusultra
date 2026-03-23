@@ -60,7 +60,7 @@ export interface Profile {
   id: string;
   username: string;
   avatar_url: string;
-  role: 'user' | 'admin' | 'moderator';
+  role?: 'user' | 'admin' | 'moderator';
   recent_searches?: string[];
   can_stream?: boolean; // Permission to access streaming features
   likes_count?: number; // Total likes received

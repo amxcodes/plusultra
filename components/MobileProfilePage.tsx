@@ -172,7 +172,9 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
             setLoading(true);
             try {
                 const [prof, plays, stat, checkFollow] = await Promise.all([
-                    SocialService.getProfile(targetId),
+                    isAdmin && !isOwnProfile
+                        ? SocialService.getPrivateProfile(targetId)
+                        : SocialService.getProfile(targetId),
                     SocialService.getPlaylists(targetId),
                     SocialService.getFollowStats(targetId),
                     currentUser && !isOwnProfile ? SocialService.isFollowing(currentUser.id, targetId) : Promise.resolve(false)

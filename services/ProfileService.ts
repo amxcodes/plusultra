@@ -2,11 +2,48 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { cache, CACHE_KEYS } from '../lib/cache';
 
+const PUBLIC_PROFILE_COLUMNS = 'id, username, avatar_url, created_at';
+
+type PrivateProfileRow = {
+    id: string;
+    username: string;
+    avatar_url: string | null;
+    role?: 'user' | 'admin' | 'moderator';
+    can_stream?: boolean | null;
+    recent_searches?: string[] | null;
+    stats?: {
+        total_movies?: number;
+        total_shows?: number;
+        watch_time?: number;
+    } | null;
+    last_seen_announcements?: string | null;
+    last_seen_activity?: string | null;
+    created_at?: string | null;
+};
+
+const normalizePublicProfile = (row: any): Profile => ({
+    id: row.id,
+    username: row.username,
+    avatar_url: row.avatar_url || '',
+    created_at: row.created_at || undefined,
+});
+
+const normalizePrivateProfile = (row: PrivateProfileRow): Profile => ({
+    id: row.id,
+    username: row.username,
+    avatar_url: row.avatar_url || '',
+    role: row.role,
+    can_stream: row.can_stream ?? undefined,
+    recent_searches: (row.recent_searches as string[] | null) || undefined,
+    stats: row.stats || undefined,
+    created_at: row.created_at || undefined,
+});
+
 export const ProfileService = {
     async getProfile(userId: string): Promise<Profile | null> {
         const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select(PUBLIC_PROFILE_COLUMNS)
             .eq('id', userId)
             .single();
 
@@ -14,13 +51,34 @@ export const ProfileService = {
             console.error('Error fetching profile:', error);
             return null;
         }
-        return data;
+        return normalizePublicProfile(data);
+    },
+
+    async getPrivateProfile(userId?: string): Promise<Profile | null> {
+        const { data, error } = await supabase
+            .rpc('get_private_profile', {
+                p_user_id: userId || null
+            })
+            .single();
+
+        if (error) {
+            console.error('Error fetching private profile:', error);
+            return null;
+        }
+
+        return normalizePrivateProfile(data as PrivateProfileRow);
     },
 
     async updateProfile(userId: string, updates: Partial<Profile>) {
+        const safeUpdates: Partial<Profile> = {};
+        if (typeof updates.username === 'string') safeUpdates.username = updates.username;
+        if (typeof updates.avatar_url === 'string') safeUpdates.avatar_url = updates.avatar_url;
+        if (Array.isArray(updates.recent_searches)) safeUpdates.recent_searches = updates.recent_searches;
+        if (Object.keys(safeUpdates).length === 0) return;
+
         const { error } = await supabase
             .from('profiles')
-            .update(updates)
+            .update(safeUpdates)
             .eq('id', userId);
         if (error) throw error;
     },
@@ -28,7 +86,7 @@ export const ProfileService = {
     async searchUsers(query: string): Promise<Profile[]> {
         const { data, error } = await supabase
             .from('profiles')
-            .select('*')
+            .select(PUBLIC_PROFILE_COLUMNS)
             .ilike('username', `%${query}%`)
             .limit(20);
 
@@ -36,7 +94,7 @@ export const ProfileService = {
             console.error('Error searching users:', error);
             return [];
         }
-        return data || [];
+        return (data || []).map(normalizePublicProfile);
     },
 
     async followUser(followerId: string, followingId: string) {
@@ -80,9 +138,7 @@ export const ProfileService = {
     async getFollowers(userId: string): Promise<Profile[]> {
         const { data, error } = await supabase
             .from('follows')
-            .select(`
-                follower:follower_id (*)
-            `)
+            .select('follower_id')
             .eq('following_id', userId);
 
         if (error) {
@@ -90,20 +146,31 @@ export const ProfileService = {
             return [];
         }
 
-        // Flatten the structure
-        return data.map((d: any) => d.follower) || [];
+        const followerIds = (data || []).map((d: any) => d.follower_id).filter(Boolean);
+        if (followerIds.length === 0) return [];
+
+        const { data: followers, error: followersError } = await supabase
+            .from('profiles')
+            .select(PUBLIC_PROFILE_COLUMNS)
+            .in('id', followerIds);
+
+        if (followersError) {
+            console.error('Error fetching follower profiles:', followersError);
+            return [];
+        }
+
+        return (followers || []).map(normalizePublicProfile);
     },
 
     async getUserStats(userId: string) {
         // Watch History Count (from JSONB in profiles table)
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('watch_history')
-            .eq('id', userId)
-            .single();
+        const { data: profileHistory } = await supabase
+            .rpc('get_private_watch_history', {
+                p_user_id: userId
+            });
 
-        const historyCount = profile?.watch_history
-            ? Object.keys(profile.watch_history).length
+        const historyCount = profileHistory
+            ? Object.keys(profileHistory).length
             : 0;
 
         // Total Playlists Created by User
@@ -138,10 +205,9 @@ export const ProfileService = {
 
     async getUserWatchHistory(userId: string) {
         const { data, error } = await supabase
-            .from('profiles')
-            .select('watch_history')
-            .eq('id', userId)
-            .single();
+            .rpc('get_private_watch_history', {
+                p_user_id: userId
+            });
 
         if (error) {
             console.error('Error fetching watch history:', error);
@@ -149,7 +215,7 @@ export const ProfileService = {
         }
 
         // Convert JSONB object to array
-        const historyObj = data?.watch_history || {};
+        const historyObj = data || {};
         return Object.values(historyObj)
             .sort((a: any, b: any) => (b.lastUpdated || 0) - (a.lastUpdated || 0))
             .slice(0, 20); // Limit to 20 most recent
@@ -157,10 +223,9 @@ export const ProfileService = {
 
     async getFullWatchHistory(userId: string) {
         const { data, error } = await supabase
-            .from('profiles')
-            .select('watch_history')
-            .eq('id', userId)
-            .single();
+            .rpc('get_private_watch_history', {
+                p_user_id: userId
+            });
 
         if (error) {
             console.error('Error fetching full watch history:', error);
@@ -168,7 +233,7 @@ export const ProfileService = {
         }
 
         // Convert JSONB object to array (no limit)
-        const historyObj = data?.watch_history || {};
+        const historyObj = data || {};
         return Object.values(historyObj)
             .sort((a: any, b: any) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
     },
@@ -181,12 +246,12 @@ export const ProfileService = {
     async saveRecentSearch(userId: string, query: string) {
         // Get current searches
         const { data: profile } = await supabase
-            .from('profiles')
-            .select('recent_searches')
-            .eq('id', userId)
+            .rpc('get_private_profile', {
+                p_user_id: userId
+            })
             .single();
 
-        let searches: string[] = profile?.recent_searches || [];
+        let searches: string[] = (profile?.recent_searches as string[] | undefined) || [];
 
         // Remove if already exists (dedupe)
         searches = searches.filter(s => s.toLowerCase() !== query.toLowerCase());
@@ -208,12 +273,12 @@ export const ProfileService = {
 
     async getRecentSearches(userId: string): Promise<string[]> {
         const { data: profile } = await supabase
-            .from('profiles')
-            .select('recent_searches')
-            .eq('id', userId)
+            .rpc('get_private_profile', {
+                p_user_id: userId
+            })
             .single();
 
-        return profile?.recent_searches || [];
+        return (profile?.recent_searches as string[] | undefined) || [];
     },
 
     async getAppSettings() {
