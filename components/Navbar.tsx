@@ -68,33 +68,51 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     };
     fetchUnreadCounts();
     // Refresh every 30 seconds
+    // Refresh every 30 seconds
     const interval = setInterval(fetchUnreadCounts, 30000);
     return () => clearInterval(interval);
   }, [user?.id]);
+
+  // DRY helper for adaptive button styles on short screens
+  const getNavButtonClass = (isActive: boolean) => 
+    `p-2 [@media(max-height:850px)]:p-1.5 [@media(max-height:750px)]:p-1 rounded-2xl transition-all duration-300 relative flex justify-center items-center ${
+      isActive 
+        ? 'bg-white text-black shadow-xl shadow-white/10 scale-105' 
+        : 'text-zinc-400 hover:text-white hover:bg-white/5'
+    }`;
+
+  const getIconSize = () => {
+    if (typeof window !== 'undefined') {
+      if (window.innerHeight <= 750) return 14;
+      if (window.innerHeight <= 850) return 15;
+    }
+    return 16;
+  };
+  const iconSize = getIconSize();
 
   return (
     <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-4 bg-[#0a0a0a]/60 backdrop-blur-2xl rounded-[24px] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
 
       {/* Top: Home/Logo */}
-      <div className="mb-2">
+      <div className="mb-2 [@media(max-height:850px)]:mb-1 [@media(max-height:750px)]:mb-0">
         <button
           onClick={() => setActiveTab(NavItem.DASHBOARD)}
-          className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.DASHBOARD ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          className={getNavButtonClass(activeTab === NavItem.DASHBOARD)}
         >
-          <LayoutGrid size={16} strokeWidth={activeTab === NavItem.DASHBOARD ? 2.5 : 2} />
+          <LayoutGrid size={iconSize} strokeWidth={activeTab === NavItem.DASHBOARD ? 2.5 : 2} />
         </button>
       </div>
 
       {/* Middle: Navigation */}
-      <div className="flex flex-col items-center gap-2 flex-1 w-full px-2">
+      <div className="flex flex-col items-center gap-2 [@media(max-height:850px)]:gap-1.5 [@media(max-height:750px)]:gap-1 flex-1 w-full px-2">
 
         {/* Search - Distinct */}
         <div className="relative group flex justify-center w-full">
           <button
             onClick={onSearchClick}
-            className="text-zinc-400 hover:text-white hover:bg-white/5 p-2 rounded-2xl transition-all duration-300"
+            className={getNavButtonClass(false)}
           >
-            <Search size={16} strokeWidth={2} />
+            <Search size={iconSize} strokeWidth={2} />
           </button>
 
           {/* Tooltip */}
@@ -107,16 +125,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         <div className="w-8 h-px bg-white/5 my-1"></div>
 
         {/* News Feed Button - Specific Placement */}
-        <div className="relative group flex justify-center w-full mb-1">
+        <div className="relative group flex justify-center w-full mb-1 [@media(max-height:750px)]:mb-0">
           <button
             onClick={() => setActiveTab(NavItem.NEWS)}
-            className={`p-2 rounded-2xl transition-all duration-300 relative ${activeTab === NavItem.NEWS
-              ? 'bg-white text-black shadow-lg shadow-white/10 scale-105'
-              : 'text-zinc-400 hover:text-white hover:bg-white/5'
-              }`}
+            className={getNavButtonClass(activeTab === NavItem.NEWS)}
           >
             <Newspaper
-              size={16}
+              size={iconSize}
               strokeWidth={activeTab === NavItem.NEWS ? 2.5 : 2}
             />
           </button>
@@ -146,13 +161,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             <div key={item} className="relative group flex justify-center w-full">
               <button
                 onClick={() => setActiveTab(item)}
-                className={`p-2 rounded-2xl transition-all duration-300 relative ${isActive
-                  ? 'bg-white text-black shadow-lg shadow-white/10 scale-105'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                  }`}
+                className={getNavButtonClass(isActive)}
               >
                 <Icon
-                  size={16}
+                  size={iconSize}
                   strokeWidth={isActive ? 2.5 : 2}
                 />
               </button>
@@ -167,67 +179,68 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
       </div>
 
       {/* Bottom: Settings & Profile */}
-      <div className="mt-auto flex flex-col items-center gap-2">
+      <div className="mt-auto flex flex-col items-center gap-2 [@media(max-height:850px)]:gap-1.5 [@media(max-height:750px)]:gap-1">
 
         {/* Announcements (Bell) */}
-        <div className="relative">
+        <div className="relative w-full flex justify-center">
           <button
             onClick={() => {
               setActiveTab(NavItem.ANNOUNCEMENTS);
               setUnreadCounts(prev => ({ ...prev, announcementsCount: 0 }));
             }}
-            className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ANNOUNCEMENTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+            className={getNavButtonClass(activeTab === NavItem.ANNOUNCEMENTS)}
           >
-            <Bell size={16} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
+            <Bell size={iconSize} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
           </button>
           {unreadCounts.announcementsCount > 0 && (
-            <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" />
+            <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse pointer-events-none" />
           )}
         </div>
 
-        <div className="relative">
+        <div className="relative w-full flex justify-center">
           <button
             onClick={() => {
               setActiveTab(NavItem.ACTIVITY);
               setUnreadCounts(prev => ({ ...prev, activityCount: 0 }));
             }}
-            className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.ACTIVITY ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+            className={getNavButtonClass(activeTab === NavItem.ACTIVITY)}
           >
-            <Activity size={16} strokeWidth={activeTab === NavItem.ACTIVITY ? 2.5 : 2} />
+            <Activity size={iconSize} strokeWidth={activeTab === NavItem.ACTIVITY ? 2.5 : 2} />
           </button>
           {unreadCounts.activityCount > 0 && (
-            <div className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />
+            <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse pointer-events-none" />
           )}
         </div>
 
         <button
           onClick={() => setActiveTab(NavItem.PLAYLISTS)}
-          className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.PLAYLISTS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          className={getNavButtonClass(activeTab === NavItem.PLAYLISTS)}
         >
-          <ListVideo size={16} strokeWidth={activeTab === NavItem.PLAYLISTS ? 2.5 : 2} />
+          <ListVideo size={iconSize} strokeWidth={activeTab === NavItem.PLAYLISTS ? 2.5 : 2} />
         </button>
 
         {canStream && (
           <button
             onClick={() => setActiveTab(NavItem.STATS)}
-            className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.STATS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+            className={getNavButtonClass(activeTab === NavItem.STATS)}
           >
-            <BarChart2 size={16} strokeWidth={activeTab === NavItem.STATS ? 2.5 : 2} />
+            <BarChart2 size={iconSize} strokeWidth={activeTab === NavItem.STATS ? 2.5 : 2} />
           </button>
         )}
 
         <button
           onClick={() => setActiveTab(NavItem.SETTINGS)}
-          className={`p-2 rounded-2xl transition-all duration-300 ${activeTab === NavItem.SETTINGS ? 'bg-white text-black shadow-lg shadow-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}
+          className={getNavButtonClass(activeTab === NavItem.SETTINGS)}
         >
-          <Settings size={16} strokeWidth={activeTab === NavItem.SETTINGS ? 2.5 : 2} />
+          <Settings size={iconSize} strokeWidth={activeTab === NavItem.SETTINGS ? 2.5 : 2} />
         </button>
 
         {/* Profile */}
-        <button
-          onClick={() => setActiveTab(NavItem.PROFILE)}
-          className={`p-1 rounded-full border-2 transition-all duration-300 ${activeTab === NavItem.PROFILE ? 'border-white' : 'border-transparent hover:border-white/50'}`}
-        >
+        <div className="relative group flex justify-center w-full mt-1 [@media(max-height:750px)]:mt-0">
+          <button
+            onClick={() => setActiveTab(NavItem.PROFILE)}
+            className={`p-1 [@media(max-height:750px)]:p-0.5 rounded-full border-2 transition-all duration-300 ${activeTab === NavItem.PROFILE ? 'border-white' : 'border-transparent hover:border-white/50'}`}
+          >
           <div className="w-7 h-7 rounded-full bg-zinc-800 overflow-hidden">
             <img
               src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&background=10b981&color=fff&bold=true`}
@@ -236,6 +249,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             />
           </div>
         </button>
+        
+        {/* Profile Tooltip - Add tooltip to Profile since it has a smaller icon style but sits in the sequence */}
+        <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md whitespace-nowrap">
+          Profile
+        </div>
+      </div>
       </div>
     </nav>
   );
