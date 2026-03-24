@@ -139,7 +139,8 @@ export const ProfileService = {
         const { data, error } = await supabase
             .from('follows')
             .select('follower_id')
-            .eq('following_id', userId);
+            .eq('following_id', userId)
+            .order('created_at', { ascending: false });
 
         if (error) {
             console.error('Error fetching followers:', error);
@@ -159,7 +160,27 @@ export const ProfileService = {
             return [];
         }
 
-        return (followers || []).map(normalizePublicProfile);
+        const profilesById = new Map((followers || []).map((profile: any) => [profile.id, normalizePublicProfile(profile)]));
+
+        return followerIds
+            .map(id => profilesById.get(id))
+            .filter((profile): profile is Profile => Boolean(profile));
+    },
+
+    async getFollowingIds(userId: string): Promise<string[]> {
+        const { data, error } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', userId);
+
+        if (error) {
+            console.error('Error fetching following ids:', error);
+            return [];
+        }
+
+        return (data || [])
+            .map((row: { following_id: string | null }) => row.following_id)
+            .filter((id): id is string => Boolean(id));
     },
 
     async getUserStats(userId: string) {

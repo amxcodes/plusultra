@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavItem } from '../types';
 import {
@@ -15,54 +14,65 @@ interface MobileNavbarProps {
 }
 
 export const MobileNavbar: React.FC<MobileNavbarProps> = ({ activeTab, setActiveTab, onSearchClick, onMenuClick }) => {
-    return (
-        <nav className="fixed bottom-0 left-0 right-0 z-[60] pb-safe">
-            {/* Gradient Blur Background */}
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black via-black/90 to-transparent pointer-events-none" />
+    // Determine if the menu tab is active based on the tabs housed inside the menu
+    const isMenuTabActive = [
+        NavItem.MOVIES,
+        NavItem.SERIES,
+        NavItem.ANIME,
+        NavItem.ASIAN_DRAMA,
+        NavItem.FOR_YOU,
+        NavItem.PROFILE,
+        NavItem.ADMIN,
+        NavItem.ANNOUNCEMENTS,
+        NavItem.ACTIVITY,
+        NavItem.PLAYLISTS,
+        NavItem.STATS,
+        NavItem.NEWS,
+        NavItem.REQUESTS,
+        NavItem.SETTINGS,
+    ].includes(activeTab);
 
-            {/* Navbar Container */}
-            <div className="relative px-8 pb-4 pt-2 flex justify-between items-end">
+    return (
+        <nav className="fixed bottom-6 w-full px-6 z-[60] pb-safe flex justify-center pointer-events-none">
+            <div className="relative flex items-center justify-between px-6 py-2 bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl w-full max-w-[280px] pointer-events-auto">
 
                 {/* Home */}
                 <button
                     onClick={() => setActiveTab(NavItem.DASHBOARD)}
-                    className={`group relative flex flex-col items-center justify-center w-14 h-14 transition-all duration-300 ${activeTab === NavItem.DASHBOARD ? '-translate-y-1' : ''}`}
+                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 active:scale-95"
                 >
-                    <div className={`p-3 rounded-2xl transition-all duration-300 ${activeTab === NavItem.DASHBOARD
-                            ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)] rotate-3'
-                            : 'text-zinc-500 hover:text-zinc-300 bg-white/5 border border-white/5'
-                        }`}>
-                        <LayoutGrid size={20} className={activeTab === NavItem.DASHBOARD ? 'fill-black' : ''} strokeWidth={2.5} />
-                    </div>
+                    <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${activeTab === NavItem.DASHBOARD ? 'bg-white/10' : 'bg-transparent group-hover:bg-white/5'}`} />
+                    <LayoutGrid 
+                        size={22} 
+                        className={`relative z-10 transition-colors duration-200 ${activeTab === NavItem.DASHBOARD ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`} 
+                        strokeWidth={activeTab === NavItem.DASHBOARD ? 2.5 : 2} 
+                    />
                 </button>
 
-                {/* Pop-out Search - Centerpiece */}
-                <div className="relative -top-4 group">
-                    <div className="absolute inset-0 bg-white/20 blur-xl rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <button
-                        onClick={onSearchClick}
-                        className="relative flex items-center justify-center w-16 h-16 bg-white text-black rounded-full shadow-[0_10px_30px_rgba(255,255,255,0.2)] border-[6px] border-[#0f1014] transition-all duration-300 active:scale-95 z-10"
-                    >
-                        <Search size={26} strokeWidth={3} />
-                    </button>
-                    {/* Artistic Line deco */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent -z-10" />
-                </div>
+                {/* Search */}
+                <button
+                    onClick={onSearchClick}
+                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 active:scale-95"
+                >
+                    <div className="absolute inset-0 rounded-full transition-colors duration-200 bg-transparent group-hover:bg-white/5" />
+                    <Search 
+                        size={22} 
+                        strokeWidth={2} 
+                        className="relative z-10 text-zinc-400 group-hover:text-white transition-colors duration-200" 
+                    />
+                </button>
 
                 {/* Menu */}
                 <button
                     onClick={onMenuClick}
-                    className={`group relative flex flex-col items-center justify-center w-14 h-14 transition-all duration-300 ${[NavItem.SETTINGS, NavItem.PROFILE, NavItem.ADMIN, NavItem.STATS, NavItem.NEWS, NavItem.FOR_YOU].includes(activeTab)
-                            ? '-translate-y-1'
-                            : ''
-                        }`}
+                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 active:scale-95"
                 >
-                    <div className={`p-3 rounded-2xl transition-all duration-300 ${[NavItem.SETTINGS, NavItem.PROFILE, NavItem.ADMIN, NavItem.STATS, NavItem.NEWS, NavItem.FOR_YOU].includes(activeTab)
-                            ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)] -rotate-3'
-                            : 'text-zinc-500 hover:text-zinc-300 bg-white/5 border border-white/5'
-                        }`}>
-                        <Menu size={20} strokeWidth={2.5} />
-                    </div>
+                    <div className={`absolute inset-0 rounded-full transition-colors duration-200 ${isMenuTabActive ? 'bg-white/10' : 'bg-transparent group-hover:bg-white/5'}`} />
+                    <Menu 
+                        size={22} 
+                        className={`relative z-10 transition-colors duration-200 ${isMenuTabActive ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-200'}`} 
+                        strokeWidth={isMenuTabActive ? 2.5 : 2} 
+                    />
                 </button>
 
             </div>

@@ -45,25 +45,25 @@ export const NotificationService = {
             .gt('created_at', profile.last_seen_activity || '1970-01-01')
             .limit(1);
 
-        // Count new likes on user's playlists
-        const { data: userPlaylists } = await supabase
-            .from('playlists')
-            .select('id')
-            .eq('user_id', userId);
+        // Count new non-request activity notifications since the last visit
+        const { count: notificationsCount } = await supabase
+            .from('notifications')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userId)
+            .neq('type', 'playlist_invite')
+            .gt('created_at', profile.last_seen_activity || '1970-01-01')
+            .limit(1);
 
-        let likesCount = 0;
-        if (userPlaylists && userPlaylists.length > 0) {
-            const playlistIds = userPlaylists.map(p => p.id);
-            const { count } = await supabase
-                .from('playlist_likes')
-                .select('playlist_id', { count: 'exact' })
-                .in('playlist_id', playlistIds)
-                .gt('created_at', profile.last_seen_activity || '1970-01-01')
-                .limit(1);
-            likesCount = count || 0;
-        }
+        // Pending requests should continue to badge until handled.
+        const { count: requestCount } = await supabase
+            .from('notifications')
+            .select('id', { count: 'exact' })
+            .eq('user_id', userId)
+            .eq('type', 'playlist_invite')
+            .eq('is_read', false)
+            .limit(1);
 
-        const activityCount = (followsCount || 0) + likesCount;
+        const activityCount = (followsCount || 0) + (notificationsCount || 0) + (requestCount || 0);
 
         return {
             announcementsCount: announcementsCount || 0,

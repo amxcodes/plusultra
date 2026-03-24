@@ -108,7 +108,7 @@ export interface PlaylistCollaborator {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'playlist_invite' | 'system' | 'follow';
+  type: 'playlist_invite' | 'system' | 'follow' | 'playlist_liked' | 'follower_new_playlist';
   title: string;
   message: string;
   data: any;
