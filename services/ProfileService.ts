@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { cache, CACHE_KEYS } from '../lib/cache';
+import { getDisplayName } from '../lib/displayName';
 
 const PUBLIC_PROFILE_COLUMNS = 'id, username, avatar_url, created_at';
 
@@ -23,14 +24,14 @@ type PrivateProfileRow = {
 
 const normalizePublicProfile = (row: any): Profile => ({
     id: row.id,
-    username: row.username,
+    username: getDisplayName(row.username),
     avatar_url: row.avatar_url || '',
     created_at: row.created_at || undefined,
 });
 
 const normalizePrivateProfile = (row: PrivateProfileRow): Profile => ({
     id: row.id,
-    username: row.username,
+    username: getDisplayName(row.username),
     avatar_url: row.avatar_url || '',
     role: row.role,
     can_stream: row.can_stream ?? undefined,

@@ -5,6 +5,33 @@ ALTER TABLE public.notifications
 ADD CONSTRAINT notifications_type_check
 CHECK (type IN ('playlist_invite', 'system', 'follow', 'playlist_liked', 'follower_new_playlist'));
 
+CREATE OR REPLACE FUNCTION public.notify_playlist_invite()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  p_name text;
+  inviter_name text;
+BEGIN
+  SELECT name INTO p_name FROM public.playlists WHERE id = NEW.playlist_id;
+  SELECT split_part(username, '@', 1) INTO inviter_name
+  FROM public.profiles
+  WHERE id = (SELECT user_id FROM public.playlists WHERE id = NEW.playlist_id);
+
+  INSERT INTO public.notifications (user_id, type, title, message, data)
+  VALUES (
+    NEW.user_id,
+    'playlist_invite',
+    'Playlist Invitation',
+    COALESCE(inviter_name, 'Someone') || ' invited you to collaborate on "' || COALESCE(p_name, 'Untitled') || '"',
+    jsonb_build_object('playlist_id', NEW.playlist_id, 'invite_id', NEW.id)
+  );
+  RETURN NEW;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.notify_playlist_like()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -25,7 +52,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT username
+  SELECT split_part(username, '@', 1)
   INTO liker_name
   FROM public.profiles
   WHERE id = NEW.user_id;
@@ -67,7 +94,7 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  SELECT username
+  SELECT split_part(username, '@', 1)
   INTO creator_name
   FROM public.profiles
   WHERE id = NEW.user_id;

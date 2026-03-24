@@ -1,5 +1,6 @@
 import React from 'react';
 import { Users, LogOut } from 'lucide-react';
+import { getDisplayName } from '../lib/displayName';
 
 interface PartyMember {
     userId: string;
@@ -39,23 +40,28 @@ export const PartyIndicator: React.FC<PartyIndicatorProps> = ({
             {/* Avatars Vertical Stack */}
             <div className="flex flex-col -space-y-2 items-center">
                 {members.map((member) => (
+                    (() => {
+                        const displayName = getDisplayName(member.username);
+                        return (
                     <div
                         key={member.userId}
                         className="w-8 h-8 rounded-full border-2 border-black overflow-hidden bg-zinc-800 relative z-0 hover:z-10 transition-all hover:scale-110"
-                        title={member.username}
+                        title={displayName}
                     >
                         {member.avatar ? (
                             <img
                                 src={member.avatar}
-                                alt={member.username}
+                                alt={displayName}
                                 className="w-full h-full object-cover"
                             />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-white uppercase">
-                                {member.username[0]}
+                                {displayName[0]}
                             </div>
                         )}
                     </div>
+                        );
+                    })()
                 ))}
             </div>
 

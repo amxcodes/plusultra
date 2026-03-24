@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { Playlist, Movie } from '../types';
+import { getDisplayName } from '../lib/displayName';
 
 export const PlaylistService = {
     async getPlaylists(userId: string): Promise<Playlist[]> {
@@ -79,6 +80,10 @@ export const PlaylistService = {
         }
         return data.map((p: any) => ({
             ...p,
+            profiles: p.profiles ? {
+                ...p.profiles,
+                username: getDisplayName(p.profiles.username)
+            } : p.profiles,
             items_count: p.items.length,
             items: p.items.slice(0, 4)
         }));
@@ -99,7 +104,13 @@ export const PlaylistService = {
             console.error('Error searching playlists:', error);
             return [];
         }
-        return data || [];
+        return (data || []).map((playlist: any) => ({
+            ...playlist,
+            profiles: playlist.profiles ? {
+                ...playlist.profiles,
+                username: getDisplayName(playlist.profiles.username)
+            } : playlist.profiles,
+        }));
     },
 
     async createPlaylist(userId: string, name: string, description?: string, isPublic: boolean = true) {
@@ -218,7 +229,7 @@ export const PlaylistService = {
             genre: [], // Encoded in metadata if needed
             genreIds: item.metadata.genre_ids || [],
             addedBy: item.profile ? {
-                username: item.profile.username,
+                username: getDisplayName(item.profile.username),
                 avatarUrl: item.profile.avatar_url
             } : undefined,
             addedByUserId: item.added_by_user_id,
@@ -247,7 +258,7 @@ export const PlaylistService = {
             if (!statsMap[uid]) {
                 statsMap[uid] = {
                     user_id: uid,
-                    username: item.profile?.username || 'Unknown',
+                    username: getDisplayName(item.profile?.username),
                     avatar_url: item.profile?.avatar_url || '',
                     items_added: 0,
                     role: 'editor' // Default role
@@ -277,7 +288,13 @@ export const PlaylistService = {
             `)
             .eq('playlist_id', playlistId);
         if (error) throw error;
-        return data || [];
+        return (data || []).map((collaborator: any) => ({
+            ...collaborator,
+            profile: collaborator.profile ? {
+                ...collaborator.profile,
+                username: getDisplayName(collaborator.profile.username)
+            } : collaborator.profile
+        }));
     },
 
     async respondToInvite(collaboratorId: string, status: 'accepted' | 'rejected') {

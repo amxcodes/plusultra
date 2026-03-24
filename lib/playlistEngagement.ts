@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Playlist } from '../types';
+import { getDisplayName } from './displayName';
 
 export const PlaylistEngagement = {
     // Like a playlist
@@ -81,7 +82,10 @@ export const PlaylistEngagement = {
 
             return (data || []).map((item: any) => ({
                 ...item.playlists,
-                profiles: item.playlists.profiles
+                profiles: item.playlists.profiles ? {
+                    ...item.playlists.profiles,
+                    username: getDisplayName(item.playlists.profiles.username)
+                } : item.playlists.profiles
             }));
         } catch (error) {
             console.error('Error fetching liked playlists:', error);
@@ -152,7 +156,13 @@ export const PlaylistEngagement = {
                 .limit(limit);
 
             if (error) throw error;
-            return data || [];
+            return (data || []).map((playlist: any) => ({
+                ...playlist,
+                profiles: playlist.profiles ? {
+                    ...playlist.profiles,
+                    username: getDisplayName(playlist.profiles.username)
+                } : playlist.profiles
+            }));
         } catch (error) {
             console.error('Error fetching trending playlists:', error);
             return [];
@@ -180,7 +190,13 @@ export const PlaylistEngagement = {
                 .limit(limit);
 
             if (error) throw error;
-            return data || [];
+            return (data || []).map((playlist: any) => ({
+                ...playlist,
+                profiles: playlist.profiles ? {
+                    ...playlist.profiles,
+                    username: getDisplayName(playlist.profiles.username)
+                } : playlist.profiles
+            }));
         } catch (error) {
             console.error('Error fetching popular playlists:', error);
             return [];
@@ -208,7 +224,13 @@ export const PlaylistEngagement = {
                 .limit(limit);
 
             if (error) throw error;
-            return data || [];
+            return (data || []).map((playlist: any) => ({
+                ...playlist,
+                profiles: playlist.profiles ? {
+                    ...playlist.profiles,
+                    username: getDisplayName(playlist.profiles.username)
+                } : playlist.profiles
+            }));
         } catch (error) {
             console.error('Error fetching most liked playlists:', error);
             return [];

@@ -6,6 +6,7 @@ import { cache, CACHE_KEYS } from './cache'
 import { setUserContext, clearUserContext } from './sentry'
 import { APP_PRESENCE_HEARTBEAT_SECONDS, PresenceService, clearPresenceSessionId } from '../services/presence'
 import { isLikelyNetworkError, isNavigatorOnline } from './network'
+import { getDisplayName } from './displayName'
 
 // Define the shape of our Profile
 type Profile = {
@@ -233,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             const profileData = {
                 id: profile.id,
-                username: profile.username,
+                username: getDisplayName(profile.username),
                 avatar_url: profile.avatar_url || '',
                 role: profile.role,
                 can_stream: profile.can_stream ?? false,
