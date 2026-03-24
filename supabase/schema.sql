@@ -340,8 +340,39 @@ declare
   stored_week text;
   stored_month text;
   new_analytics jsonb;
+  requester_id uuid := auth.uid();
+  last_viewer jsonb;
+  last_timestamp bigint := 0;
+  six_hours_ago bigint := extract(epoch from (now() - interval '6 hours'))::bigint;
 begin
-  current_analytics := (select analytics from public.playlists where id = p_playlist_id);
+  if requester_id is null then
+    raise exception 'Authentication required';
+  end if;
+
+  select analytics
+  into current_analytics
+  from public.playlists
+  where id = p_playlist_id
+  for update;
+
+  if current_analytics is null then
+    return;
+  end if;
+
+  select viewer
+  into last_viewer
+  from jsonb_array_elements(coalesce(current_analytics->'last_viewers', '[]'::jsonb)) viewer
+  where viewer->>'user_id' = requester_id::text
+  order by coalesce((viewer->>'timestamp')::bigint, 0) desc
+  limit 1;
+
+  if last_viewer is not null then
+    last_timestamp := coalesce((last_viewer->>'timestamp')::bigint, 0);
+    if last_timestamp >= six_hours_ago then
+      return;
+    end if;
+  end if;
+
   current_week := to_char(now(), 'IYYY-IW'); -- ISO week format
   current_month := to_char(now(), 'YYYY-MM');
   
@@ -358,9 +389,11 @@ begin
     'last_viewers', (
       select jsonb_agg(viewer order by (viewer->>'timestamp')::bigint desc)
       from (
-        select jsonb_array_elements(coalesce(current_analytics->'last_viewers', '[]'::jsonb)) as viewer
+        select viewer
+        from jsonb_array_elements(coalesce(current_analytics->'last_viewers', '[]'::jsonb)) as viewer
+        where viewer->>'user_id' <> requester_id::text
         union all
-        select jsonb_build_object('user_id', auth.uid()::text, 'timestamp', extract(epoch from now())::bigint)
+        select jsonb_build_object('user_id', requester_id::text, 'timestamp', extract(epoch from now())::bigint)
         limit 10
       ) viewers
     )
@@ -370,7 +403,7 @@ begin
   set analytics = new_analytics
   where id = p_playlist_id;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 -- ========================================
 -- PERFORMANCE INDEXES

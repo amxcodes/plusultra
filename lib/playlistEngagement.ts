@@ -91,22 +91,43 @@ export const PlaylistEngagement = {
 
     // Track a playlist view
     trackView: async (playlistId: string): Promise<void> => {
-        // Prevent view inflation: check if we already tracked this playlist in this session
-        const trackedKey = `viewed_playlist_${playlistId}`;
-        if (typeof window !== 'undefined' && sessionStorage.getItem(trackedKey)) {
+        const { data: authData } = await supabase.auth.getUser();
+        const userId = authData.user?.id;
+
+        // Server-side view tracking requires auth. Skip quietly for signed-out sessions.
+        if (!userId) {
             return;
         }
 
-        // Lock immediately to prevent race conditions (e.g. strict mode double-invoke)
+        const trackedKey = `viewed_playlist_${playlistId}_${userId}`;
+        const inFlightKey = `viewing_playlist_${playlistId}_${userId}`;
+
         if (typeof window !== 'undefined') {
-            sessionStorage.setItem(trackedKey, 'true');
+            if (sessionStorage.getItem(trackedKey) || sessionStorage.getItem(inFlightKey)) {
+                return;
+            }
+
+            // Temporary in-flight lock prevents strict-mode double invokes,
+            // but only becomes a permanent session lock after a successful RPC.
+            sessionStorage.setItem(inFlightKey, 'true');
         }
 
         try {
-            await supabase.rpc('track_playlist_view', { p_playlist_id: playlistId });
+            const { error } = await supabase.rpc('track_playlist_view', { p_playlist_id: playlistId });
+
+            if (error) {
+                throw error;
+            }
+
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem(trackedKey, 'true');
+            }
         } catch (error) {
             console.error('Error tracking view:', error);
-            // Optional: convert back if failed? But safer to just ignore failure to avoid retry loops
+        } finally {
+            if (typeof window !== 'undefined') {
+                sessionStorage.removeItem(inFlightKey);
+            }
         }
     },
 

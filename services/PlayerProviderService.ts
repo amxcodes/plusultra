@@ -30,6 +30,17 @@ export const PlayerProviderService = {
         if (error) throw error;
     },
 
+    async upsertProviders(providers: PlayerProviderRecord[]) {
+        const { error } = await supabase
+            .from('player_providers')
+            .upsert(providers.map(p => ({
+                ...p,
+                updated_at: new Date().toISOString(),
+            })));
+
+        if (error) throw error;
+    },
+
     async deleteProvider(id: string) {
         const { error } = await supabase
             .from('player_providers')

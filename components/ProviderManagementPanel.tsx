@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2, GripVertical } from 'lucide-react';
+import { ProviderFormModal } from './ProviderFormModal';
 import { SocialService } from '../lib/social';
 import { useToast } from '../lib/ToastContext';
 import { useConfirm } from '../lib/ConfirmContext';
@@ -10,71 +11,7 @@ interface ProviderManagementPanelProps {
     compact?: boolean;
 }
 
-type ProviderFormState = {
-    id: string;
-    name: string;
-    render_mode: 'embed' | 'direct';
-    enabled: boolean;
-    sort_order: number;
-    has_events: boolean;
-    risk_level: 'low' | 'medium' | 'high';
-    tags: string;
-    best_for: string;
-    movie_embed_template: string;
-    tv_embed_template: string;
-    movie_direct_template: string;
-    tv_direct_template: string;
-};
-
 const BUILT_IN_PROVIDER_IDS = new Set(getDefaultProviderRecords().map(provider => provider.id));
-
-const createEmptyForm = (): ProviderFormState => ({
-    id: '',
-    name: '',
-    render_mode: 'embed',
-    enabled: true,
-    sort_order: 100,
-    has_events: false,
-    risk_level: 'medium',
-    tags: '',
-    best_for: '',
-    movie_embed_template: '',
-    tv_embed_template: '',
-    movie_direct_template: '',
-    tv_direct_template: '',
-});
-
-const recordToForm = (record: PlayerProviderRecord): ProviderFormState => ({
-    id: record.id,
-    name: record.name,
-    render_mode: record.render_mode,
-    enabled: record.enabled,
-    sort_order: record.sort_order,
-    has_events: record.has_events,
-    risk_level: record.risk_level,
-    tags: (record.tags || []).join(', '),
-    best_for: record.best_for || '',
-    movie_embed_template: record.movie_embed_template || '',
-    tv_embed_template: record.tv_embed_template || '',
-    movie_direct_template: record.movie_direct_template || '',
-    tv_direct_template: record.tv_direct_template || '',
-});
-
-const formToRecord = (form: ProviderFormState): PlayerProviderRecord => ({
-    id: form.id.trim(),
-    name: form.name.trim(),
-    render_mode: form.render_mode,
-    enabled: form.enabled,
-    sort_order: Number(form.sort_order) || 0,
-    has_events: form.has_events,
-    risk_level: form.risk_level,
-    tags: form.tags.split(',').map(item => item.trim()).filter(Boolean),
-    best_for: form.best_for.trim() || null,
-    movie_embed_template: form.movie_embed_template.trim() || null,
-    tv_embed_template: form.tv_embed_template.trim() || null,
-    movie_direct_template: form.movie_direct_template.trim() || null,
-    tv_direct_template: form.tv_direct_template.trim() || null,
-});
 
 export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = ({ compact = false }) => {
     const { success, error, info } = useToast();
@@ -82,9 +19,10 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
     const [providers, setProviders] = useState<PlayerProviderRecord[]>([]);
     const [analytics, setAnalytics] = useState<AdminProviderAnalytics[]>([]);
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [form, setForm] = useState<ProviderFormState>(createEmptyForm());
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingProvider, setEditingProvider] = useState<PlayerProviderRecord | null>(null);
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
 
     const loadProviders = async () => {
         setLoading(true);
@@ -108,6 +46,72 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
         }
     };
 
+    const handleDragStart = (e: React.DragEvent, id: string) => {
+        setDraggedId(id);
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', id);
+        setTimeout(() => {
+           if (e.target instanceof HTMLElement) {
+             e.target.style.opacity = '0.5';
+           }
+        }, 0);
+    };
+
+    const handleDragEnter = (e: React.DragEvent, id: string) => {
+        e.preventDefault();
+        setDragOverId(id);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+    };
+
+    const handleDrop = async (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        if (!draggedId || draggedId === targetId) {
+            setDraggedId(null);
+            setDragOverId(null);
+            return;
+        }
+
+        const currentSorted = [...sortedProviders];
+        const draggedIndex = currentSorted.findIndex(p => p.id === draggedId);
+        const targetIndex = currentSorted.findIndex(p => p.id === targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        const updated = [...currentSorted];
+        const [movedItem] = updated.splice(draggedIndex, 1);
+        updated.splice(targetIndex, 0, movedItem);
+
+        const reorderedProviders = updated.map((p, index) => ({
+            ...p,
+            sort_order: index + 1
+        }));
+
+        setProviders(reorderedProviders);
+        setDraggedId(null);
+        setDragOverId(null);
+
+        try {
+            await SocialService.upsertProviders(reorderedProviders);
+            success('Provider ordering saved');
+            await loadProviders();
+        } catch (err) {
+            console.error(err);
+            error('Failed to save ordering');
+        }
+    };
+
+    const handleDragEnd = (e: React.DragEvent) => {
+        if (e.target instanceof HTMLElement) {
+            e.target.style.opacity = '1';
+        }
+        setDraggedId(null);
+        setDragOverId(null);
+    };
+
     useEffect(() => {
         void loadProviders();
     }, []);
@@ -122,50 +126,20 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
         return map;
     }, [analytics]);
 
-    const resetForm = () => {
-        setEditingId(null);
-        setForm(createEmptyForm());
+    const handleAddClick = () => {
+        setEditingProvider(null);
+        setIsModalOpen(true);
     };
 
     const handleEdit = (provider: PlayerProviderRecord) => {
-        setEditingId(provider.id);
-        setForm(recordToForm(provider));
+        setEditingProvider(provider);
+        setIsModalOpen(true);
     };
 
-    const handleSave = async () => {
-        const normalizedId = form.id.trim().toLowerCase().replace(/\s+/g, '-');
-        if (!normalizedId || !form.name.trim()) {
-            info('Provider id and name are required');
-            return;
-        }
-
-        const record = formToRecord({
-            ...form,
-            id: normalizedId,
-        });
-
-        if (record.render_mode === 'embed' && !record.movie_embed_template && !record.tv_embed_template) {
-            info('Add at least one embed template for an embed provider');
-            return;
-        }
-
-        if (record.render_mode === 'direct' && !record.movie_direct_template && !record.tv_direct_template) {
-            info('Add at least one direct template for a direct provider');
-            return;
-        }
-
-        setSaving(true);
-        try {
-            await SocialService.upsertProvider(record);
-            success(editingId ? 'Provider updated' : 'Provider added');
-            await loadProviders();
-            resetForm();
-        } catch (e) {
-            console.error(e);
-            error('Failed to save provider');
-        } finally {
-            setSaving(false);
-        }
+    const handleSaveProvider = async (record: PlayerProviderRecord, isEditing: boolean) => {
+        await SocialService.upsertProvider(record);
+        success(isEditing ? 'Provider updated' : 'Provider added');
+        await loadProviders();
     };
 
     const handleDelete = async (provider: PlayerProviderRecord) => {
@@ -185,8 +159,9 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
         try {
             await SocialService.deleteProvider(provider.id);
             success('Provider deleted');
-            if (editingId === provider.id) {
-                resetForm();
+            if (editingProvider?.id === provider.id) {
+                setIsModalOpen(false);
+                setEditingProvider(null);
             }
             await loadProviders();
         } catch (e) {
@@ -222,7 +197,7 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
                         </p>
                     </div>
                     <button
-                        onClick={resetForm}
+                        onClick={handleAddClick}
                         className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 bg-black/40 text-white text-sm font-medium hover:border-zinc-500 transition-colors"
                     >
                         <Plus size={14} />
@@ -234,11 +209,24 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
                     {loading ? (
                         <div className="text-sm text-zinc-500">Loading providers...</div>
                     ) : sortedProviders.map(provider => (
-                        <div key={provider.id} className="border border-zinc-800 rounded-xl bg-black/20 p-4">
-                            {(() => {
-                                const providerAnalytics = analyticsByProvider.get(provider.id);
-                                return (
-                            <div className="flex items-start justify-between gap-3">
+                        <div 
+                            key={provider.id} 
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, provider.id)}
+                            onDragEnter={(e) => handleDragEnter(e, provider.id)}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, provider.id)}
+                            onDragEnd={handleDragEnd}
+                            className={`border ${dragOverId === provider.id ? 'border-zinc-500 bg-white/5' : 'border-zinc-800 bg-black/20'} rounded-xl p-4 transition-all flex items-center gap-4 ${draggedId === provider.id ? 'opacity-50' : 'opacity-100'} shadow-sm`}
+                        >
+                            <div className="cursor-grab text-zinc-600 hover:text-white shrink-0 active:cursor-grabbing flex flex-col items-center p-2 rounded-lg hover:bg-white/5 transition-colors">
+                                <GripVertical size={20} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                {(() => {
+                                    const providerAnalytics = analyticsByProvider.get(provider.id);
+                                    return (
+                                <div className="flex items-start justify-between gap-3">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="text-white font-medium">{provider.name}</span>
@@ -324,170 +312,22 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
                                         </button>
                                     )}
                                 </div>
+                                </div>
+                                    );
+                                })()}
                             </div>
-                                );
-                            })()}
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className={`border border-zinc-800 rounded-2xl overflow-hidden ${compact ? 'bg-zinc-900' : 'bg-zinc-900/20'}`}>
-                <div className={`${compact ? 'p-5' : 'p-5 border-b border-zinc-800/80'}`}>
-                    <h3 className="font-bold text-white text-base">{editingId ? 'Edit Provider' : 'Add Provider'}</h3>
-                    <p className="text-zinc-500 text-sm">
-                        Create new providers or tune existing ones without changing code.
-                    </p>
-                </div>
-
-                <div className={`${compact ? 'p-4' : 'p-5'} grid grid-cols-1 md:grid-cols-2 gap-4`}>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Provider Id</span>
-                        <input
-                            value={form.id}
-                            onChange={(e) => setForm(prev => ({ ...prev, id: e.target.value }))}
-                            disabled={Boolean(editingId)}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none disabled:opacity-60"
-                            placeholder="example-provider"
-                        />
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Display Name</span>
-                        <input
-                            value={form.name}
-                            onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none"
-                            placeholder="Server 8"
-                        />
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Mode</span>
-                        <select
-                            value={form.render_mode}
-                            onChange={(e) => setForm(prev => ({ ...prev, render_mode: e.target.value as 'embed' | 'direct' }))}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none"
-                        >
-                            <option value="embed">Embed</option>
-                            <option value="direct">Direct</option>
-                        </select>
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Sort Order</span>
-                        <input
-                            type="number"
-                            value={form.sort_order}
-                            onChange={(e) => setForm(prev => ({ ...prev, sort_order: Number(e.target.value) }))}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none"
-                        />
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Risk</span>
-                        <select
-                            value={form.risk_level}
-                            onChange={(e) => setForm(prev => ({ ...prev, risk_level: e.target.value as 'low' | 'medium' | 'high' }))}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none"
-                        >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Tags</span>
-                        <input
-                            value={form.tags}
-                            onChange={(e) => setForm(prev => ({ ...prev, tags: e.target.value }))}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none"
-                            placeholder="Fast, No Ads"
-                        />
-                    </label>
-                    <label className="space-y-2 md:col-span-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Best For</span>
-                        <input
-                            value={form.best_for}
-                            onChange={(e) => setForm(prev => ({ ...prev, best_for: e.target.value }))}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none"
-                            placeholder="Backup, Best Quality, Direct HLS"
-                        />
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Movie Embed Template</span>
-                        <textarea
-                            value={form.movie_embed_template}
-                            onChange={(e) => setForm(prev => ({ ...prev, movie_embed_template: e.target.value }))}
-                            rows={compact ? 2 : 3}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none resize-y"
-                            placeholder="https://example.com/movie/{{tmdbId}}"
-                        />
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">TV Embed Template</span>
-                        <textarea
-                            value={form.tv_embed_template}
-                            onChange={(e) => setForm(prev => ({ ...prev, tv_embed_template: e.target.value }))}
-                            rows={compact ? 2 : 3}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none resize-y"
-                            placeholder="https://example.com/tv/{{tmdbId}}/{{season}}/{{episode}}"
-                        />
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">Movie Direct Template</span>
-                        <textarea
-                            value={form.movie_direct_template}
-                            onChange={(e) => setForm(prev => ({ ...prev, movie_direct_template: e.target.value }))}
-                            rows={compact ? 2 : 3}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none resize-y"
-                            placeholder="https://cdn.example.com/movie/{{tmdbId}}.m3u8"
-                        />
-                    </label>
-                    <label className="space-y-2">
-                        <span className="text-xs text-zinc-500 uppercase tracking-wider">TV Direct Template</span>
-                        <textarea
-                            value={form.tv_direct_template}
-                            onChange={(e) => setForm(prev => ({ ...prev, tv_direct_template: e.target.value }))}
-                            rows={compact ? 2 : 3}
-                            className="w-full bg-black/50 text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none resize-y"
-                            placeholder="https://cdn.example.com/tv/{{tmdbId}}/{{season}}/{{episode}}.m3u8"
-                        />
-                    </label>
-                    <div className="md:col-span-2 flex flex-wrap items-center gap-4 pt-1">
-                        <label className="flex items-center gap-3 text-sm text-zinc-300">
-                            <input
-                                type="checkbox"
-                                checked={form.enabled}
-                                onChange={(e) => setForm(prev => ({ ...prev, enabled: e.target.checked }))}
-                            />
-                            Enabled
-                        </label>
-                        <label className="flex items-center gap-3 text-sm text-zinc-300">
-                            <input
-                                type="checkbox"
-                                checked={form.has_events}
-                                onChange={(e) => setForm(prev => ({ ...prev, has_events: e.target.checked }))}
-                            />
-                            Provider emits events
-                        </label>
-                    </div>
-                    <div className="md:col-span-2 flex flex-wrap items-center gap-3 pt-2">
-                        <button
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-black text-sm font-bold hover:bg-zinc-200 transition-colors disabled:opacity-50"
-                        >
-                            <Save size={14} />
-                            {editingId ? 'Save Changes' : 'Add Provider'}
-                        </button>
-                        {editingId && (
-                            <button
-                                onClick={resetForm}
-                                className="px-5 py-3 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium hover:border-zinc-500 transition-colors"
-                            >
-                                Cancel Edit
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
+            <ProviderFormModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSave={handleSaveProvider}
+                initialData={editingProvider}
+                compact={compact}
+            />
         </div>
     );
 };
