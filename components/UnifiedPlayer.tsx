@@ -262,37 +262,79 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             const isTrustedSource = event.source === iframeRef.current?.contentWindow;
             const isTrustedOrigin = expectedOrigin !== null && event.origin === expectedOrigin;
 
-            if (currentProvider.id === 'vidora' && isTrustedSource && isTrustedOrigin) {
-                if (event.data?.type === 'MEDIA_DATA') {
-                    // Provider is ready once we start getting data
+            if (!isTrustedSource || !isTrustedOrigin) {
+                return;
+            }
+
+            if (currentProvider.id === 'vidora' && event.data?.type === 'MEDIA_DATA') {
+                // Provider is ready once we start getting data
+                if (!isProviderReady) {
+                    markProviderReady();
+                }
+
+                const { progress, duration } = event.data.data || {};
+                if (progress) {
+                    setLastTime(progress);
+                    updateProgress({
+                        tmdbId,
+                        type: mediaType,
+                        season,
+                        episode,
+                        time: progress,
+                        duration: duration || 0,
+                        lastUpdated: Date.now(),
+                        provider: 'vidora',
+                        title,
+                        posterPath: posterUrl,
+                        voteAverage,
+                        backdropUrl: currentMovieBackdrop || backdropUrl,
+                        episodeImage: currentEpisodeImage || episodeImage,
+                        genres: genres.length > 0 ? genres : undefined
+                    });
+                    if (!providerAttemptFinishedRef.current) {
+                        void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, progress, 15);
+                    }
+                }
+                return;
+            }
+
+            if (currentProvider.id === 'cinesrc') {
+                const eventType = event.data?.type;
+
+                if (eventType === 'cinesrc:error') {
+                    finishProviderAttempt('media_error');
+                    return;
+                }
+
+                if (eventType === 'cinesrc:ready' || eventType === 'cinesrc:play' || eventType === 'cinesrc:timeupdate') {
                     if (!isProviderReady) {
                         markProviderReady();
                     }
+                }
 
-                    const { progress, duration, isPlaying } = event.data.data || {};
-                    if (progress) {
-                        setLastTime(progress);
-                        updateProgress({
-                            tmdbId,
-                            type: mediaType,
-                            season,
-                            episode,
-                            time: progress,
-                            duration: duration || 0,
-                            lastUpdated: Date.now(),
-                            provider: 'vidora',
-                            title,
-                            posterPath: posterUrl,
-                            voteAverage,
+                if (eventType === 'cinesrc:timeupdate' && typeof event.data?.currentTime === 'number') {
+                    const progress = event.data.currentTime;
+                    const duration = typeof event.data?.duration === 'number' ? event.data.duration : 0;
 
-                            backdropUrl: currentMovieBackdrop || backdropUrl,
-                            episodeImage: currentEpisodeImage || episodeImage,
-                            genres: genres.length > 0 ? genres : undefined
-                        });
-                        if (!providerAttemptFinishedRef.current) {
-                            void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, progress, 15);
-                        }
-
+                    setLastTime(progress);
+                    updateProgress({
+                        tmdbId,
+                        type: mediaType,
+                        season,
+                        episode,
+                        time: progress,
+                        duration,
+                        lastUpdated: Date.now(),
+                        provider: 'cinesrc',
+                        title,
+                        posterPath: posterUrl,
+                        voteAverage,
+                        backdropUrl: currentMovieBackdrop || backdropUrl,
+                        episodeImage: currentEpisodeImage || episodeImage,
+                        genres: genres.length > 0 ? genres : undefined
+                    });
+                    if (!providerAttemptFinishedRef.current) {
+                        void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, progress, 15);
                     }
                 }
             }

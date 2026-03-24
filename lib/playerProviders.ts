@@ -141,6 +141,19 @@ const DEFAULT_PROVIDER_RECORDS: PlayerProviderRecord[] = [
         movie_embed_template: 'https://vidora.su/movie/{{tmdbId}}?autoplay=false',
         tv_embed_template: 'https://vidora.su/tv/{{tmdbId}}/{{season}}/{{episode}}?autoplay=false',
     },
+    {
+        id: 'cinesrc',
+        name: 'Server 8',
+        render_mode: 'embed',
+        enabled: true,
+        sort_order: 80,
+        has_events: true,
+        risk_level: 'low',
+        tags: ['Auto Next', 'Events'],
+        best_for: 'Movies & TV',
+        movie_embed_template: 'https://cinesrc.st/embed/movie/{{tmdbId}}?autoplay=false&controls=true',
+        tv_embed_template: 'https://cinesrc.st/embed/tv/{{tmdbId}}?s={{season}}&e={{episode}}&autoplay=false&controls=true&autonext=true',
+    },
 ];
 
 const interpolateTemplate = (template: string | undefined, context: ProviderContext) => {
