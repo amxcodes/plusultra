@@ -365,13 +365,24 @@ function StreamApp() {
     navigateBack(buildSnapshot({ playlistModalMovie: null }), { scrollToTop: false });
   };
 
-  // Clear player state if streaming permission is revoked mid-session
+  // Revoke access immediately across shared desktop/mobile routes.
   useEffect(() => {
-    if (playerState && !canStream) {
+    if (canStream) return;
+
+    if (playerState) {
       console.log('[Security] Streaming permission revoked - clearing player');
-      setPlayerState(null);
+      commitSnapshot(buildSnapshot({ playerState: null }), 'replace', { scrollToTop: false });
+      return;
     }
-  }, [canStream, playerState]);
+
+    if (activeTab === NavItem.STATS || activeTab === NavItem.REQUESTS) {
+      console.log('[Security] Streaming permission revoked - redirecting to dashboard');
+      commitSnapshot(buildSnapshot({
+        activeTab: NavItem.DASHBOARD,
+        isMobileMenuOpen: false,
+      }), 'replace');
+    }
+  }, [activeTab, canStream, playerState]);
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -855,7 +866,7 @@ function StreamApp() {
               )}
 
               {/* STATS VIEW */}
-              {activeTab === NavItem.STATS && (
+              {activeTab === NavItem.STATS && canStream && (
                 <>
                   <div className="hidden md:block">
                     <StatsDashboard />
