@@ -21,6 +21,7 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({ activeTab, setActive
         NavItem.ANIME,
         NavItem.ASIAN_DRAMA,
         NavItem.FOR_YOU,
+        NavItem.CURATOR,
         NavItem.PROFILE,
         NavItem.ADMIN,
         NavItem.ANNOUNCEMENTS,

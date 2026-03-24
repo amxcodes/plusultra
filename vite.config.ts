@@ -3,6 +3,7 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { handleRecommendationBridge } from './server/recommendationBridgeHandler';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
@@ -21,6 +22,35 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      {
+        name: 'local-recommendation-bridge',
+        configureServer(server) {
+          server.middlewares.use('/api/recommendation-bridge', async (req, res) => {
+            if (req.method !== 'POST') {
+              res.statusCode = 405;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Method not allowed' }));
+              return;
+            }
+
+            const chunks: Buffer[] = [];
+            for await (const chunk of req) {
+              chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+            }
+
+            const rawBody = Buffer.concat(chunks).toString('utf8');
+            const body = rawBody ? JSON.parse(rawBody) : null;
+            const response = await handleRecommendationBridge(body, {
+              VITE_TASTEDIVE_API_KEY: env.VITE_TASTEDIVE_API_KEY,
+              VITE_OMDB_API_KEY: env.VITE_OMDB_API_KEY,
+            });
+
+            res.statusCode = response.status;
+            Object.entries(response.headers).forEach(([key, value]) => res.setHeader(key, value));
+            res.end(response.body);
+          });
+        }
+      },
       VitePWA({
         registerType: 'autoUpdate',
         workbox: {

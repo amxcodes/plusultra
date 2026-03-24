@@ -52,6 +52,7 @@ import { MobileAnnouncementsPage } from './components/MobileAnnouncementsPage';
 import { MobileAddToPlaylistModal } from './components/MobileAddToPlaylistModal';
 import { MobileWrappedPage } from './components/MobileWrappedPage';
 import { MobileViewAllPage } from './components/MobileViewAllPage';
+import { CuratorLabPage } from './components/CuratorLabPage';
 
 type ViewAllCategoryState = {
   title: string;
@@ -747,6 +748,14 @@ function StreamApp() {
               {/* FOR YOU VIEW */}
               {activeTab === NavItem.FOR_YOU && (
                 <ForYouPage onMovieSelect={handleMovieSelect} />
+              )}
+
+              {/* CURATOR LAB VIEW */}
+              {activeTab === NavItem.CURATOR && (
+                <CuratorLabPage
+                  onMovieSelect={handleMovieSelect}
+                  onPlaylistSelect={handlePlaylistSelect}
+                />
               )}
 
 

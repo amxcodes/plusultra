@@ -16,11 +16,10 @@ import {
   Shield, // For Admin
   Bell, // Announcements
   Activity, // Activity Log
-  Heart,
   BarChart2,
   Newspaper, // News Feed
-  MessageSquare,
-  MessageSquarePlus
+  MessageSquarePlus,
+  ListVideo
 } from 'lucide-react';
 import { SocialService } from '../lib/social';
 
@@ -38,6 +37,7 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.ANIME]: Ghost,
   [NavItem.ASIAN_DRAMA]: Drama,
   [NavItem.FOR_YOU]: Zap,
+  [NavItem.CURATOR]: Bot,
   [NavItem.MY_LIST]: Bookmark,
   [NavItem.SETTINGS]: Settings,
   [NavItem.PROFILE]: User,
@@ -48,9 +48,6 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.STATS]: BarChart2,
   [NavItem.REQUESTS]: MessageSquarePlus
 };
-import { ListVideo } from 'lucide-react';
-
-
 import { useAuth } from '../lib/AuthContext';
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick }) => {

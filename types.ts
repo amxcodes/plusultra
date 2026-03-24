@@ -44,6 +44,7 @@ export enum NavItem {
   ANIME = 'Anime',
   ASIAN_DRAMA = 'Asian Drama',
   FOR_YOU = 'For You',
+  CURATOR = 'Curator Lab',
   MY_LIST = 'My List',
   SETTINGS = 'Settings',
   PROFILE = 'Profile',

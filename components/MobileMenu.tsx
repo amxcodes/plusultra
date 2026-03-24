@@ -19,7 +19,8 @@ import {
     Drama,
     LayoutGrid,
     Newspaper,
-    MessageSquarePlus
+    MessageSquarePlus,
+    Bot
 } from 'lucide-react';
 
 interface MobileMenuProps {
@@ -106,6 +107,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
                         <div className="grid grid-cols-2 gap-2">
                             <MenuItem icon={LayoutGrid} label="Home" tab={NavItem.DASHBOARD} />
                             <MenuItem icon={Zap} label="For You" tab={NavItem.FOR_YOU} />
+                            <MenuItem icon={Bot} label="Curator Lab" tab={NavItem.CURATOR} />
                             <MenuItem icon={Newspaper} label="News Feed" tab={NavItem.NEWS} />
                             {canStream && <MenuItem icon={MessageSquarePlus} label="Requests" tab={NavItem.REQUESTS} />}
                         </div>

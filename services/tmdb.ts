@@ -150,6 +150,65 @@ export const TmdbService = {
         }
     },
 
+    getTopRated: async (): Promise<Movie[]> => {
+        if (!API_KEY) return [];
+        try {
+            const res = await fetch(`${BASE_URL}${requests.fetchTopRated}`);
+            const data = await res.json();
+            return data.results.map((i: any) => mapTmdbToMovie(i, 'movie'));
+        } catch (e) {
+            if (!isLikelyNetworkError(e)) {
+                console.error("Top Rated Fetch Error", e);
+            }
+            return [];
+        }
+    },
+
+    discover: async ({
+        mediaType,
+        includeGenreIds = [],
+        excludeGenreIds = [],
+        sortBy = 'popularity.desc',
+        maxRuntimeMinutes,
+    }: {
+        mediaType: 'movie' | 'tv';
+        includeGenreIds?: number[];
+        excludeGenreIds?: number[];
+        sortBy?: string;
+        maxRuntimeMinutes?: number;
+    }): Promise<Movie[]> => {
+        if (!API_KEY) return [];
+        try {
+            const params = new URLSearchParams({
+                api_key: API_KEY,
+                sort_by: sortBy,
+                include_adult: 'false',
+                language: 'en-US',
+            });
+
+            if (includeGenreIds.length > 0) {
+                params.set('with_genres', includeGenreIds.join(','));
+            }
+
+            if (excludeGenreIds.length > 0) {
+                params.set('without_genres', excludeGenreIds.join(','));
+            }
+
+            if (maxRuntimeMinutes) {
+                params.set('with_runtime.lte', String(maxRuntimeMinutes));
+            }
+
+            const res = await fetch(`${BASE_URL}/discover/${mediaType}?${params.toString()}`);
+            const data = await res.json();
+            return (data.results || []).map((i: any) => mapTmdbToMovie(i, mediaType));
+        } catch (e) {
+            if (!isLikelyNetworkError(e)) {
+                console.error("Discover Fetch Error", e);
+            }
+            return [];
+        }
+    },
+
     getDetails: async (id: string, type: 'movie' | 'tv'): Promise<Partial<Movie> & { numberOfSeasons?: number }> => {
         if (!API_KEY) return {};
         try {
