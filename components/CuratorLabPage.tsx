@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BookmarkPlus } from 'lucide-react';
 import { Movie, Playlist } from '../types';
 import { useAuth } from '../lib/AuthContext';
@@ -63,8 +63,13 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
     const [savingPlaylist, setSavingPlaylist] = useState(false);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
     const [playlistVariant, setPlaylistVariant] = useState(0);
+    const requestSequenceRef = useRef(0);
+    const dismissedKeysRef = useRef<Set<string>>(new Set());
+    const surfacedKeysRef = useRef<Set<string>>(new Set());
+    const feedbackLockRef = useRef<string | null>(null);
 
     const currentPick = recommendations[0] || null;
+    const toMovieKey = (movie: Movie) => `${movie.mediaType || 'movie'}:${movie.id}`;
 
     const toggleChip = (chip: string) => {
         setSelectedChips(prev =>
@@ -74,33 +79,77 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
 
     const persistMemory = (nextMemory: CuratorMemory) => {
         if (!user?.id) return;
-        CuratorService.saveMemory(user.id, nextMemory);
         setMemory(nextMemory);
+        void CuratorService.saveMemory(user.id, nextMemory);
+    };
+
+    const takeFreshRecommendations = (movies: RankedCuratorMovie[], limit: number) => {
+        const fresh: RankedCuratorMovie[] = [];
+
+        for (const movie of movies) {
+            const key = toMovieKey(movie);
+            if (dismissedKeysRef.current.has(key) || surfacedKeysRef.current.has(key)) {
+                continue;
+            }
+
+            surfacedKeysRef.current.add(key);
+            fresh.push(movie);
+
+            if (fresh.length >= limit) {
+                break;
+            }
+        }
+
+        return fresh;
     };
 
     const refreshPickMode = async (
         nextPrompt = prompt,
         nextChips = selectedChips,
         loadedContext = context,
-        loadedMemory = memory
+        loadedMemory = memory,
+        options?: { resetSession?: boolean; trackPrompt?: boolean; appendResults?: boolean }
     ) => {
         if (!loadedContext || !loadedMemory) return;
 
         const effectivePrompt = nextPrompt.trim() || getPromptFallback('pick', loadedContext);
+        const requestId = ++requestSequenceRef.current;
+        if (options?.resetSession) {
+            dismissedKeysRef.current = new Set();
+            surfacedKeysRef.current = new Set();
+        }
         setRefreshing(true);
         setStatusMessage(null);
 
         try {
             const nextRequest = CuratorService.parsePrompt(effectivePrompt, nextChips, 10);
-            const nextMemory = CuratorService.appendPrompt(loadedMemory, effectivePrompt);
+            const nextMemory = options?.trackPrompt === false
+                ? loadedMemory
+                : CuratorService.appendPrompt(loadedMemory, effectivePrompt);
             persistMemory(nextMemory);
             setRequest(nextRequest);
 
             const promptSeeds = await CuratorService.resolvePromptSeeds(nextRequest);
             const pool = await CuratorService.buildCandidatePool(nextRequest, loadedContext, nextMemory, promptSeeds);
-            const ranked = CuratorService.rankCandidates(pool, nextRequest, loadedContext, nextMemory, promptSeeds).slice(0, 8);
+            const ranked = CuratorService.rankCandidates(pool, nextRequest, loadedContext, nextMemory, promptSeeds);
 
-            setRecommendations(ranked);
+            if (requestId !== requestSequenceRef.current) {
+                return;
+            }
+
+            if (options?.appendResults) {
+                setRecommendations(prev => {
+                    const existingKeys = new Set(prev.map(movie => toMovieKey(movie)));
+                    const fresh = takeFreshRecommendations(
+                        ranked.filter(movie => !existingKeys.has(toMovieKey(movie))),
+                        Math.max(0, 8 - prev.length)
+                    );
+                    return [...prev, ...fresh];
+                });
+            } else {
+                const fresh = takeFreshRecommendations(ranked, 8);
+                setRecommendations(fresh);
+            }
             setDraft(null);
             setStatusMessage(ranked.length > 0 ? null : 'Constraints too tight. Try removing a filter.');
         } catch (error) {
@@ -162,7 +211,7 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
         try {
             const [loadedContext, loadedMemory] = await Promise.all([
                 CuratorService.loadUserContext(user.id),
-                Promise.resolve(CuratorService.getMemory(user.id)),
+                CuratorService.loadMemory(user.id),
             ]);
 
             setContext(loadedContext);
@@ -170,7 +219,7 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
 
             const starterPrompt = getPromptFallback('pick', loadedContext);
             setPrompt(starterPrompt);
-            await refreshPickMode(starterPrompt, [], loadedContext, loadedMemory);
+            await refreshPickMode(starterPrompt, [], loadedContext, loadedMemory, { resetSession: true });
         } finally {
             setLoading(false);
         }
@@ -182,15 +231,27 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
 
     const handleFeedback = async (feedback: CuratorFeedbackType) => {
         if (!currentPick || !memory) return;
+        const currentKey = toMovieKey(currentPick);
+        if (feedbackLockRef.current === currentKey) return;
 
-        const nextMemory = CuratorService.recordFeedback(memory, currentPick, feedback);
-        persistMemory(nextMemory);
+        feedbackLockRef.current = currentKey;
+        try {
+            dismissedKeysRef.current.add(currentKey);
 
-        const remaining = recommendations.slice(1);
-        setRecommendations(remaining);
+            const nextMemory = CuratorService.recordFeedback(memory, currentPick, feedback);
+            persistMemory(nextMemory);
 
-        if (remaining.length < 3) {
-            await refreshPickMode(prompt, selectedChips, context, nextMemory);
+            const remaining = recommendations.slice(1);
+            setRecommendations(remaining);
+
+            if (remaining.length < 3) {
+                await refreshPickMode(prompt, selectedChips, context, nextMemory, {
+                    trackPrompt: false,
+                    appendResults: true,
+                });
+            }
+        } finally {
+            feedbackLockRef.current = null;
         }
     };
 
@@ -214,7 +275,7 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
 
     const handlePrimaryAction = async () => {
         if (mode === 'pick') {
-            await refreshPickMode();
+            await refreshPickMode(prompt, selectedChips, context, memory, { resetSession: true });
         } else {
             setPlaylistVariant(0);
             await handleGenerateDraft();

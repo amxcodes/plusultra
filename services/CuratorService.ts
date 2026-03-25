@@ -4,6 +4,7 @@ import { ProfileService } from './ProfileService';
 import { PlaylistService } from './PlaylistService';
 import { PlaylistEngagement } from '../lib/playlistEngagement';
 import { RecommendationBridge } from './recommendationBridge';
+import { supabase } from '../lib/supabase';
 
 export type CuratorMode = 'pick' | 'playlist';
 
@@ -76,6 +77,7 @@ export type CuratorPlaylistDraft = {
 };
 
 const CURATOR_MEMORY_LIMIT = 30;
+const CURATOR_PROMPT_LIMIT = 10;
 
 const STOP_WORDS = new Set([
     'a', 'an', 'and', 'are', 'at', 'be', 'best', 'build', 'for', 'from', 'give', 'i', 'in', 'into',
@@ -187,6 +189,145 @@ const normalizeMemoryItem = (movie: Movie): CuratorMemoryItem => ({
     genreIds: movie.genreIds || [],
     timestamp: Date.now(),
 });
+
+const createEmptyMemory = (): CuratorMemory => ({
+    sessions: 0,
+    promptHistory: [],
+    smashed: [],
+    passed: [],
+    updatedAt: Date.now(),
+});
+
+const normalizeMemoryItemRecord = (item: any): CuratorMemoryItem | null => {
+    if (!item || typeof item.id !== 'number' || (item.mediaType !== 'movie' && item.mediaType !== 'tv')) {
+        return null;
+    }
+
+    return {
+        id: item.id,
+        mediaType: item.mediaType,
+        title: typeof item.title === 'string' ? item.title : 'Untitled',
+        genreIds: Array.isArray(item.genreIds)
+            ? item.genreIds.filter((genreId: unknown): genreId is number => typeof genreId === 'number')
+            : [],
+        timestamp: typeof item.timestamp === 'number' ? item.timestamp : Date.now(),
+    };
+};
+
+const normalizeMemory = (memory: Partial<CuratorMemory> | null | undefined): CuratorMemory => {
+    if (!memory) return createEmptyMemory();
+
+    const smashed = Array.isArray(memory.smashed)
+        ? memory.smashed
+            .map(normalizeMemoryItemRecord)
+            .filter((item): item is CuratorMemoryItem => Boolean(item))
+            .slice(0, CURATOR_MEMORY_LIMIT)
+        : [];
+
+    const passed = Array.isArray(memory.passed)
+        ? memory.passed
+            .map(normalizeMemoryItemRecord)
+            .filter((item): item is CuratorMemoryItem => Boolean(item))
+            .slice(0, CURATOR_MEMORY_LIMIT)
+        : [];
+
+    return {
+        sessions: typeof memory.sessions === 'number' ? memory.sessions : 0,
+        promptHistory: Array.isArray(memory.promptHistory)
+            ? memory.promptHistory.filter((entry): entry is string => typeof entry === 'string').slice(0, CURATOR_PROMPT_LIMIT)
+            : [],
+        smashed,
+        passed,
+        updatedAt: typeof memory.updatedAt === 'number' ? memory.updatedAt : Date.now(),
+    };
+};
+
+const mergeMemoryItems = (left: CuratorMemoryItem[], right: CuratorMemoryItem[]) => {
+    const merged = [...left, ...right]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .filter((item, index, items) => (
+            items.findIndex(entry => entry.id === item.id && entry.mediaType === item.mediaType) === index
+        ));
+
+    return merged.slice(0, CURATOR_MEMORY_LIMIT);
+};
+
+const mergePromptHistory = (left: string[], right: string[]) => {
+    const merged = [...left, ...right].filter(Boolean);
+    return merged.filter((prompt, index) => merged.indexOf(prompt) === index).slice(0, CURATOR_PROMPT_LIMIT);
+};
+
+const mergeMemories = (localMemory: CuratorMemory, remoteMemory: CuratorMemory): CuratorMemory => {
+    const smashed = mergeMemoryItems(remoteMemory.smashed, localMemory.smashed);
+    const passed = mergeMemoryItems(
+        remoteMemory.passed.filter(remoteItem => !smashed.some(item => item.id === remoteItem.id && item.mediaType === remoteItem.mediaType)),
+        localMemory.passed.filter(localItem => !smashed.some(item => item.id === localItem.id && item.mediaType === localItem.mediaType))
+    );
+
+    return normalizeMemory({
+        sessions: Math.max(localMemory.sessions, remoteMemory.sessions),
+        promptHistory: mergePromptHistory(remoteMemory.promptHistory, localMemory.promptHistory),
+        smashed,
+        passed,
+        updatedAt: Math.max(localMemory.updatedAt, remoteMemory.updatedAt),
+    });
+};
+
+const buildWeightedGenreMap = (items: CuratorMemoryItem[]) => {
+    const weights = new Map<number, number>();
+
+    items.forEach((item, index) => {
+        const recencyWeight = Math.max(0.45, 1.8 - index * 0.18);
+        item.genreIds.forEach(genreId => {
+            weights.set(genreId, (weights.get(genreId) || 0) + recencyWeight);
+        });
+    });
+
+    return weights;
+};
+
+const buildKeywordMap = (items: CuratorMemoryItem[]) => {
+    const weights = new Map<string, number>();
+
+    items.forEach((item, index) => {
+        const recencyWeight = Math.max(0.35, 1.5 - index * 0.15);
+        tokenizePrompt(item.title).forEach(token => {
+            weights.set(token, (weights.get(token) || 0) + recencyWeight);
+        });
+    });
+
+    return weights;
+};
+
+const buildMediaTypeMap = (items: CuratorMemoryItem[]) => {
+    const weights = new Map<'movie' | 'tv', number>();
+
+    items.forEach((item, index) => {
+        const recencyWeight = Math.max(0.35, 1.3 - index * 0.12);
+        weights.set(item.mediaType, (weights.get(item.mediaType) || 0) + recencyWeight);
+    });
+
+    return weights;
+};
+
+const sumGenreWeights = (genreIds: number[], weights: Map<number, number>) => (
+    genreIds.reduce((total, genreId) => total + (weights.get(genreId) || 0), 0)
+);
+
+const sumKeywordWeights = (movie: Movie, weights: Map<string, number>) => {
+    if (weights.size === 0) return 0;
+
+    const haystack = `${movie.title} ${movie.description || ''}`.toLowerCase();
+    let total = 0;
+
+    weights.forEach((weight, keyword) => {
+        if (haystack.includes(keyword)) {
+            total += weight;
+        }
+    });
+
+    return total;
+};
 
 const overlapCount = (left: number[] = [], right: number[] = []) => {
     if (left.length === 0 || right.length === 0) return 0;
@@ -329,37 +470,85 @@ const stableVariantJitter = (id: number, variant: number) => {
 export const CuratorService = {
     getMemory(userId: string): CuratorMemory {
         if (typeof window === 'undefined') {
-            return { sessions: 0, promptHistory: [], smashed: [], passed: [], updatedAt: Date.now() };
+            return createEmptyMemory();
         }
 
         try {
             const raw = localStorage.getItem(getStorageKey(userId));
             if (!raw) {
-                return { sessions: 0, promptHistory: [], smashed: [], passed: [], updatedAt: Date.now() };
+                return createEmptyMemory();
             }
 
-            const parsed = JSON.parse(raw) as CuratorMemory;
-            return {
-                sessions: parsed.sessions || 0,
-                promptHistory: parsed.promptHistory || [],
-                smashed: parsed.smashed || [],
-                passed: parsed.passed || [],
-                updatedAt: parsed.updatedAt || Date.now(),
-            };
+            return normalizeMemory(JSON.parse(raw) as CuratorMemory);
         } catch {
-            return { sessions: 0, promptHistory: [], smashed: [], passed: [], updatedAt: Date.now() };
+            return createEmptyMemory();
         }
     },
 
-    saveMemory(userId: string, memory: CuratorMemory) {
+    async loadMemory(userId: string): Promise<CuratorMemory> {
+        const localMemory = this.getMemory(userId);
+
+        const { data, error } = await supabase
+            .from('curator_memories')
+            .select('memory, updated_at')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error loading curator memory:', error);
+            return localMemory;
+        }
+
+        if (!data?.memory) {
+            if (localMemory.sessions > 0 || localMemory.smashed.length > 0 || localMemory.passed.length > 0) {
+                void this.saveMemory(userId, localMemory);
+            }
+            return localMemory;
+        }
+
+        const remoteMemory = normalizeMemory(data.memory as CuratorMemory);
+        const mergedMemory = mergeMemories(localMemory, remoteMemory);
+        const mergedIsNewer = mergedMemory.updatedAt > remoteMemory.updatedAt
+            || mergedMemory.sessions !== remoteMemory.sessions
+            || mergedMemory.promptHistory.length !== remoteMemory.promptHistory.length
+            || mergedMemory.smashed.length !== remoteMemory.smashed.length
+            || mergedMemory.passed.length !== remoteMemory.passed.length;
+
+        this.saveLocalMemory(userId, mergedMemory);
+
+        if (mergedIsNewer) {
+            void this.saveMemory(userId, mergedMemory);
+        }
+
+        return mergedMemory;
+    },
+
+    saveLocalMemory(userId: string, memory: CuratorMemory) {
         if (typeof window === 'undefined') return;
-        localStorage.setItem(getStorageKey(userId), JSON.stringify(memory));
+        localStorage.setItem(getStorageKey(userId), JSON.stringify(normalizeMemory(memory)));
+    },
+
+    async saveMemory(userId: string, memory: CuratorMemory) {
+        const normalized = normalizeMemory(memory);
+        this.saveLocalMemory(userId, normalized);
+
+        const { error } = await supabase
+            .from('curator_memories')
+            .upsert({
+                user_id: userId,
+                memory: normalized,
+                updated_at: new Date(normalized.updatedAt).toISOString(),
+            });
+
+        if (error) {
+            console.error('Error saving curator memory:', error);
+        }
     },
 
     appendPrompt(memory: CuratorMemory, prompt: string): CuratorMemory {
         if (!prompt.trim()) return memory;
 
-        const deduped = [prompt.trim(), ...memory.promptHistory.filter(entry => entry !== prompt.trim())].slice(0, 10);
+        const deduped = [prompt.trim(), ...memory.promptHistory.filter(entry => entry !== prompt.trim())].slice(0, CURATOR_PROMPT_LIMIT);
         return {
             ...memory,
             sessions: memory.sessions + 1,
@@ -657,6 +846,12 @@ export const CuratorService = {
     ): RankedCuratorMovie[] {
         const smashedGenreIds = memory.smashed.flatMap(item => item.genreIds);
         const passedGenreIds = memory.passed.flatMap(item => item.genreIds);
+        const smashedGenreWeights = buildWeightedGenreMap(memory.smashed);
+        const passedGenreWeights = buildWeightedGenreMap(memory.passed);
+        const smashedKeywordWeights = buildKeywordMap(memory.smashed);
+        const passedKeywordWeights = buildKeywordMap(memory.passed);
+        const smashedMediaWeights = buildMediaTypeMap(memory.smashed);
+        const passedMediaWeights = buildMediaTypeMap(memory.passed);
         const smashedKeys = new Set(memory.smashed.map(item => `${item.mediaType}:${item.id}`));
         const passedKeys = new Set(memory.passed.map(item => `${item.mediaType}:${item.id}`));
         const promptSeedKeys = new Set(promptSeeds.map(seed => toCandidateKey(seed)));
@@ -720,9 +915,31 @@ export const CuratorService = {
                     reasons.push('feels close to titles you smashed');
                 }
 
+                const smashedGenreWeight = sumGenreWeights(genreIds, smashedGenreWeights);
+                if (smashedGenreWeight > 0) {
+                    score += Math.min(smashedGenreWeight * (hasExplicitSeed ? 0.8 : 1.25), 7.5);
+                    reasons.push('leans into patterns from your strongest smashes');
+                }
+
                 const passedOverlap = overlapCount(genreIds, passedGenreIds);
                 if (passedOverlap > 0) {
                     score -= passedOverlap * 1.9;
+                }
+
+                const passedGenreWeight = sumGenreWeights(genreIds, passedGenreWeights);
+                if (passedGenreWeight > 0) {
+                    score -= Math.min(passedGenreWeight * 1.35, 8);
+                }
+
+                const smashedKeywordWeight = sumKeywordWeights(movie, smashedKeywordWeights);
+                if (smashedKeywordWeight > 0) {
+                    score += Math.min(smashedKeywordWeight * 0.75, 4.5);
+                    reasons.push('echoes titles you kept smashing');
+                }
+
+                const passedKeywordWeight = sumKeywordWeights(movie, passedKeywordWeights);
+                if (passedKeywordWeight > 0) {
+                    score -= Math.min(passedKeywordWeight * 0.85, 5);
                 }
 
                 if (request.mediaType !== 'mixed') {
@@ -733,6 +950,14 @@ export const CuratorService = {
                     }
                 } else if (context.preferredMediaType !== 'mixed' && movie.mediaType === context.preferredMediaType) {
                     score += 0.8;
+                }
+
+                const smashedMediaWeight = smashedMediaWeights.get(movie.mediaType || 'movie') || 0;
+                const passedMediaWeight = passedMediaWeights.get(movie.mediaType || 'movie') || 0;
+                if (smashedMediaWeight > passedMediaWeight) {
+                    score += Math.min((smashedMediaWeight - passedMediaWeight) * 0.65, 2.5);
+                } else if (passedMediaWeight > smashedMediaWeight) {
+                    score -= Math.min((passedMediaWeight - smashedMediaWeight) * 0.7, 2.8);
                 }
 
                 if (!request.animeAllowed && genreIds.includes(16)) {

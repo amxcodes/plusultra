@@ -155,20 +155,16 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
       setHasMore(true);
       setIsSearching(true);
 
-      console.log('🔍 SEARCH DEBUG:', { query: debouncedQuery, filterType, filterYear, activeTab });
-
       try {
         if (activeTab === SearchTab.MOVIES) {
           // Clean query: remove years since they'll be applied as filters
           const cleanedQuery = cleanSearchQuery(debouncedQuery);
-          console.log('🧹 Cleaned query:', cleanedQuery, '(original:', debouncedQuery + ')');
 
           const searchResults = await TmdbService.search(cleanedQuery, {
             type: filterType,
             year: filterYear.length === 4 ? filterYear : undefined,
             page: 1
           });
-          console.log('✅ TMDB Results:', searchResults.length, 'movies');
           setResults(searchResults);
           setHasMore(searchResults.length === 20); // TMDB returns 20 per page
           // Save successful search
@@ -285,11 +281,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
       let bestMatch = '';
       let minDistance = Infinity;
 
-      console.log('🔍 Fuzzy checking:', lower);
-
       for (const term of commonTerms) {
         const distance = levenshtein(lower, term);
-        console.log(`  - "${term}": distance=${distance}`);
 
         // More lenient: accept distance up to 3, and any distance under minDistance
         if (distance > 0 && distance <= 3 && distance < minDistance) {

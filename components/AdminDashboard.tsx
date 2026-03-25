@@ -17,7 +17,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, user } = useAuth();
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'providers' | 'settings' | 'reactions' | 'health' | 'requests' | 'sessions' | 'presence'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
@@ -315,7 +315,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     if (!isAdmin) return <div className="p-20 text-center text-red-500">Access Denied</div>;
 
     return (
-        <div className="min-h-screen bg-[#0f1014] pt-6 px-4 md:px-12 pb-20">
+        <div className="min-h-screen bg-[#0f1014] pt-6 px-4 md:pl-[88px] md:pr-8 pb-20">
             <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Admin Dashboard</h1>
             <p className="text-zinc-500 mb-8 text-sm">Platform management and insights</p>
 
@@ -952,159 +952,167 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         </div>
                     )}
 
-                    {/* SETTINGS TAB */}
+                    {/* SETTINGS TAB - MINIMAL BENTO VIEWPORT DESIGN */}
                     {activeTab === 'settings' && (
-                        <div className="max-w-3xl mx-auto">
-                            <div className="bg-[#0f1014] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-                                <div className="p-8 border-b border-white/5 bg-zinc-900/20">
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="p-3 bg-white/5 rounded-xl border border-white/10">
-                                            <Settings size={24} className="text-white" />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-white tracking-tight">System Configuration</h3>
-                                            <p className="text-zinc-500 text-sm">Manage global application settings and URLs</p>
+                        <div className="h-[calc(100vh-140px)] flex flex-col">
+                            {/* Header */}
+                            <div className="flex items-center justify-between mb-6 shrink-0">
+                                <div>
+                                    <h3 className="text-3xl font-bold text-white tracking-tighter flex items-center gap-3">
+                                        <Settings size={28} className="text-zinc-500" />
+                                        System Configuration
+                                    </h3>
+                                    <p className="text-zinc-500 font-medium">Global platform settings and feature flags.</p>
+                                </div>
+                            </div>
+
+                            {/* Bento Grid */}
+                            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 grid-rows-2 gap-4 h-full pb-4">
+                                {/* 1. Site Domain (Spans 2 columns) */}
+                                <div className="lg:col-span-2 flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                    <div>
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
+                                                <Globe size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xl font-bold text-white tracking-tight">Platform Domain</h4>
+                                                <p className="text-zinc-500 text-sm">Base URL for Watch Party invites and Playlist sharing.</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="p-8 space-y-8">
-                                    {/* Site URL */}
-                                    <div className="space-y-3">
-                                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider">
-                                            <Globe size={14} /> Site Base URL
-                                        </label>
-                                        <div className="flex gap-0 relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                <span className="text-zinc-600 font-mono text-sm">https://</span>
-                                            </div>
+                                    <div className="mt-8 flex gap-3 max-w-xl">
+                                        <div className="flex-1 flex items-center bg-black/50 border border-white/10 rounded-xl focus-within:border-white/20 transition-all">
+                                            <span className="text-zinc-600 font-mono text-sm pl-4 select-none">https://</span>
                                             <input
                                                 type="text"
                                                 value={appSettings.site_url?.replace('https://', '').replace('http://', '') || ''}
                                                 onChange={(e) => setAppSettings((prev: any) => ({ ...prev, site_url: `https://${e.target.value.replace(/^https?:\/\//, '')}` }))}
                                                 placeholder="stream.app"
-                                                className="flex-1 bg-black/50 border border-white/10 rounded-l-xl pl-16 pr-4 py-4 text-white placeholder:text-zinc-800 focus:border-white/20 focus:bg-white/5 outline-none transition-all font-mono text-sm"
+                                                className="w-full bg-transparent px-2 py-3 text-white placeholder:text-zinc-700 font-mono text-sm outline-none"
                                             />
-                                            <button
-                                                onClick={() => handleSaveSetting('site_url', appSettings.site_url)}
-                                                className="px-6 bg-white/5 hover:bg-white/10 border-y border-r border-white/10 rounded-r-xl text-white font-bold text-sm transition-all hover:px-8 active:scale-95"
-                                            >
-                                                Save
-                                            </button>
                                         </div>
-                                        <p className="text-[10px] text-zinc-600 pl-1">
-                                            Used for generating Watch Party invites and Playlist share links.
-                                        </p>
+                                        <button
+                                            onClick={() => handleSaveSetting('site_url', appSettings.site_url)}
+                                            className="px-6 bg-white text-black font-semibold rounded-xl hover:bg-zinc-200 active:scale-95 transition-all text-sm"
+                                        >
+                                            Save
+                                        </button>
                                     </div>
+                                </div>
 
-                                    {/* Donation URL (Optional) */}
-                                    <div className="space-y-3 pt-6 border-t border-white/5">
-                                        <label className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider">
-                                            <Heart size={14} /> Donation / Support URL
-                                        </label>
-                                        <div className="flex gap-3">
-                                            <input
-                                                type="text"
-                                                value={appSettings.donation_url || ''}
-                                                onChange={(e) => setAppSettings((prev: any) => ({ ...prev, donation_url: e.target.value }))}
-                                                placeholder="https://ko-fi.com/username"
-                                                className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-4 text-white placeholder:text-zinc-800 focus:border-white/20 focus:bg-white/5 outline-none transition-all font-mono text-sm"
-                                            />
-                                            <button
-                                                onClick={() => handleSaveSetting('donation_url', appSettings.donation_url)}
-                                                className="px-6 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition-colors active:scale-95"
-                                            >
-                                                Save
-                                            </button>
+                                {/* 2. Support / Donation URL */}
+                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                    <div>
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
+                                                <Heart size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xl font-bold text-white tracking-tight">Support URL</h4>
+                                                <p className="text-zinc-500 text-sm">Ko-fi or Patreon link.</p>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="mt-8 flex flex-col gap-3">
+                                        <input
+                                            type="text"
+                                            value={appSettings.donation_url || ''}
+                                            onChange={(e) => setAppSettings((prev: any) => ({ ...prev, donation_url: e.target.value }))}
+                                            placeholder="https://ko-fi.com/..."
+                                            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-700 focus:border-white/20 outline-none transition-all font-mono text-sm"
+                                        />
+                                        <button
+                                            onClick={() => handleSaveSetting('donation_url', appSettings.donation_url)}
+                                            className="w-full py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 active:scale-95 transition-all text-sm"
+                                        >
+                                            Update Link
+                                        </button>
+                                    </div>
+                                </div>
 
-                                    {/* Registration Toggle - Minimalist Refinement */}
-                                    <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
-                                        <div>
-                                            <h4 className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                                                <Users size={14} /> Registration
-                                            </h4>
-                                            <p className="text-zinc-600 text-xs">
-                                                {appSettings.registration_enabled === 'true'
-                                                    ? 'New users are allowed to sign up.'
-                                                    : 'New user registration is currently disabled.'}
-                                            </p>
+                                {/* 3. Registration Toggle */}
+                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                    <div>
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
+                                                <Users size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xl font-bold text-white tracking-tight">Registration</h4>
+                                                <p className="text-zinc-500 text-sm">
+                                                    {appSettings.registration_enabled === 'true' ? 'Public signups are open.' : 'Locked to invites.'}
+                                                </p>
+                                            </div>
                                         </div>
-
+                                    </div>
+                                    <div className="mt-8 flex justify-end">
                                         <button
                                             onClick={async () => {
                                                 const newValue = appSettings.registration_enabled === 'true' ? 'false' : 'true';
-                                                // Optimistic update
                                                 setAppSettings((prev: any) => ({ ...prev, registration_enabled: newValue }));
                                                 try {
                                                     await SocialService.updateAppSetting('registration_enabled', newValue);
                                                 } catch (e) {
-                                                    console.error(e);
                                                     setAppSettings((prev: any) => ({ ...prev, registration_enabled: appSettings.registration_enabled }));
                                                 }
                                             }}
-                                            className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${appSettings.registration_enabled === 'true'
-                                                ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                                                : 'bg-transparent border-zinc-700 hover:border-zinc-600'
-                                                }`}
+                                            className={`relative w-14 h-8 rounded-full transition-colors border ${appSettings.registration_enabled === 'true' ? 'bg-white border-white' : 'bg-transparent border-white/20'}`}
                                         >
-                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${appSettings.registration_enabled === 'true'
-                                                ? 'translate-x-[22px] bg-black'
-                                                : 'translate-x-[2px] bg-zinc-600'
-                                                }`} />
+                                            <div className={`absolute top-[3px] w-6 h-6 rounded-full transition-transform ${appSettings.registration_enabled === 'true' ? 'translate-x-[26px] bg-black' : 'translate-x-[3px] bg-zinc-500'}`} />
                                         </button>
                                     </div>
+                                </div>
 
-                                    {/* Clear History Toggle - User Privacy Control */}
-                                    <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
-                                        <div>
-                                            <h4 className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                                                <Trash2 size={14} /> Clear History
-                                            </h4>
-                                            <p className="text-zinc-600 text-xs">
-                                                {appSettings.clear_history_enabled === 'true'
-                                                    ? 'Users can clear their own watch history.'
-                                                    : 'Clear history feature is disabled for users.'}
-                                            </p>
+                                {/* 4. Clear History Toggle */}
+                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                    <div>
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
+                                                <Trash2 size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xl font-bold text-white tracking-tight">Clear History</h4>
+                                                <p className="text-zinc-500 text-sm">
+                                                    {appSettings.clear_history_enabled === 'true' ? 'Users can clear history.' : 'Self-clearing disabled.'}
+                                                </p>
+                                            </div>
                                         </div>
-
+                                    </div>
+                                    <div className="mt-8 flex justify-end">
                                         <button
                                             onClick={async () => {
                                                 const newValue = appSettings.clear_history_enabled === 'true' ? 'false' : 'true';
-                                                // Optimistic update
                                                 setAppSettings((prev: any) => ({ ...prev, clear_history_enabled: newValue }));
                                                 try {
                                                     await SocialService.updateAppSetting('clear_history_enabled', newValue);
                                                 } catch (e) {
-                                                    console.error(e);
                                                     setAppSettings((prev: any) => ({ ...prev, clear_history_enabled: appSettings.clear_history_enabled }));
                                                 }
                                             }}
-                                            className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${appSettings.clear_history_enabled === 'true'
-                                                ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                                                : 'bg-transparent border-zinc-700 hover:border-zinc-600'
-                                                }`}
+                                            className={`relative w-14 h-8 rounded-full transition-colors border ${appSettings.clear_history_enabled === 'true' ? 'bg-white border-white' : 'bg-transparent border-white/20'}`}
                                         >
-                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${appSettings.clear_history_enabled === 'true'
-                                                ? 'translate-x-[22px] bg-black'
-                                                : 'translate-x-[2px] bg-zinc-600'
-                                                }`} />
+                                            <div className={`absolute top-[3px] w-6 h-6 rounded-full transition-transform ${appSettings.clear_history_enabled === 'true' ? 'translate-x-[26px] bg-black' : 'translate-x-[3px] bg-zinc-500'}`} />
                                         </button>
                                     </div>
+                                </div>
 
-                                    <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
-                                        <div>
-                                            <h4 className="flex items-center gap-2 text-sm font-bold text-zinc-400 uppercase tracking-wider mb-1">
-                                                <Trophy size={14} /> Wrapped Override
-                                            </h4>
-                                            <p className="text-zinc-600 text-xs">
-                                                {appSettings[WRAPPED_SETTING_KEY] === 'true'
-                                                    ? 'Wrapped is forced on for everyone.'
-                                                    : 'Wrapped follows the normal seasonal unlock rules.'}
-                                            </p>
+                                {/* 5. Wrapped Override Toggle */}
+                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                    <div>
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
+                                                <Trophy size={20} />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xl font-bold text-white tracking-tight">Wrapped Override</h4>
+                                                <p className="text-zinc-500 text-sm">
+                                                    {appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'Wrapped forced unlocked.' : 'Using standard unlock rules.'}
+                                                </p>
+                                            </div>
                                         </div>
-
+                                    </div>
+                                    <div className="mt-8 flex justify-end">
                                         <button
                                             onClick={async () => {
                                                 const previousValue = appSettings[WRAPPED_SETTING_KEY] || 'false';
@@ -1113,19 +1121,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 try {
                                                     await SocialService.updateAppSetting(WRAPPED_SETTING_KEY, newValue);
                                                 } catch (e) {
-                                                    console.error(e);
                                                     setAppSettings((prev: any) => ({ ...prev, [WRAPPED_SETTING_KEY]: previousValue }));
                                                 }
                                             }}
-                                            className={`relative w-11 h-6 rounded-full transition-all duration-300 border ${appSettings[WRAPPED_SETTING_KEY] === 'true'
-                                                ? 'bg-white border-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
-                                                : 'bg-transparent border-zinc-700 hover:border-zinc-600'
-                                                }`}
+                                            className={`relative w-14 h-8 rounded-full transition-colors border ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'bg-white border-white' : 'bg-transparent border-white/20'}`}
                                         >
-                                            <div className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 shadow-sm ${appSettings[WRAPPED_SETTING_KEY] === 'true'
-                                                ? 'translate-x-[22px] bg-black'
-                                                : 'translate-x-[2px] bg-zinc-600'
-                                                }`} />
+                                            <div className={`absolute top-[3px] w-6 h-6 rounded-full transition-transform ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'translate-x-[26px] bg-black' : 'translate-x-[3px] bg-zinc-500'}`} />
                                         </button>
                                     </div>
                                 </div>
@@ -1229,7 +1230,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-800/50 text-sm">
-                                            {filteredUsers.map(u => (
+                                            {filteredUsers.map(u => {
+                                                const isCurrentUser = u.id === user?.id;
+                                                return (
                                                 <tr key={u.id} className="hover:bg-zinc-900/30 transition-colors group">
                                                     <td className="px-6 py-3 flex items-center gap-3">
                                                         <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden">
@@ -1239,7 +1242,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                             />
                                                         </div>
                                                         <div>
-                                                            <div className="text-white font-medium">{u.username}</div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="text-white font-medium">{u.username}</div>
+                                                                {isCurrentUser && (
+                                                                    <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300">
+                                                                        You
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             <div className="text-zinc-600 text-xs font-mono">{u.id.slice(0, 8)}</div>
                                                         </div>
                                                     </td>
@@ -1257,6 +1267,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                     <td className="px-6 py-3">
                                                         <select
                                                             value={u.role}
+                                                            disabled={isCurrentUser}
                                                             onChange={async (e) => {
                                                                 const newRole = e.target.value;
                                                                 const confirmed = await confirm({
@@ -1285,6 +1296,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                             <option value="moderator">Moderator</option>
                                                             <option value="user">User</option>
                                                         </select>
+                                                        {isCurrentUser && (
+                                                            <div className="mt-1 text-[10px] text-zinc-600">
+                                                                Your own admin role is protected.
+                                                            </div>
+                                                        )}
 
                                                     </td>
                                                     <td className="px-6 py-3">
@@ -1320,6 +1336,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                             >
                                                                 View
                                                             </button>
+                                                            {!isCurrentUser && (
                                                             <button
                                                                 onClick={async () => {
                                                                     const confirmed = await confirm({
@@ -1358,10 +1375,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                             >
                                                                 <Trash2 size={14} />
                                                             </button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                            )})}
                                         </tbody>
                                     </table>
                                 </div>

@@ -9,6 +9,7 @@ import {
   Bookmark, // My List
   Settings,
   Bot, // AI/Bot placeholder if needed in future
+  FlaskConical,
   Menu,
   Ghost,
   Drama,
@@ -37,7 +38,7 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.ANIME]: Ghost,
   [NavItem.ASIAN_DRAMA]: Drama,
   [NavItem.FOR_YOU]: Zap,
-  [NavItem.CURATOR]: Bot,
+  [NavItem.CURATOR]: FlaskConical,
   [NavItem.MY_LIST]: Bookmark,
   [NavItem.SETTINGS]: Settings,
   [NavItem.PROFILE]: User,

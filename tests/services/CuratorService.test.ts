@@ -118,4 +118,53 @@ describe('CuratorService', () => {
         expect(next.passed).toHaveLength(1);
         expect(next.passed[0].mediaType).toBe('tv');
     });
+
+    it('uses smash and pass memory to separate future rankings', () => {
+        const request = CuratorService.parsePrompt('Find me something to watch');
+        const memory = {
+            sessions: 5,
+            promptHistory: ['late night thrillers'],
+            smashed: [
+                {
+                    id: 301,
+                    mediaType: 'movie' as const,
+                    title: 'Sky Armor',
+                    genreIds: [28, 878],
+                    timestamp: Date.now(),
+                },
+            ],
+            passed: [
+                {
+                    id: 302,
+                    mediaType: 'movie' as const,
+                    title: 'Soft Letters',
+                    genreIds: [10749, 18],
+                    timestamp: Date.now() - 1000,
+                },
+            ],
+            updatedAt: Date.now(),
+        };
+
+        const ranked = CuratorService.rankCandidates(
+            [
+                sampleMovie({ id: 401, title: 'Armor Run', genreIds: [28, 878], description: 'Explosive armored sci-fi action.' }),
+                sampleMovie({ id: 402, title: 'Letter Season', genreIds: [10749, 18], description: 'A quiet emotional romance drama.' }),
+            ],
+            request,
+            {
+                recentSearches: [],
+                recentHistory: [],
+                ownedPlaylists: [],
+                likedPlaylists: [],
+                watchedKeys: new Set(),
+                playlistKeys: new Set(),
+                preferredGenreIds: new Map(),
+                preferredMediaType: 'mixed',
+            },
+            memory
+        );
+
+        expect(ranked[0].title).toBe('Armor Run');
+        expect(ranked[0].curatorScore).toBeGreaterThan(ranked[1].curatorScore);
+    });
 });

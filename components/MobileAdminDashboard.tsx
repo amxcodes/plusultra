@@ -16,7 +16,7 @@ interface MobileAdminDashboardProps {
 }
 
 export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNavigate }) => {
-    const { isAdmin } = useAuth();
+    const { isAdmin, user } = useAuth();
     const { success, error, info } = useToast();
     const confirm = useConfirm();
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions' | 'presence' | 'providers'>('overview');
@@ -319,7 +319,9 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     {/* USERS - Card List */}
                     {activeTab === 'users' && (
                         <div className="space-y-3">
-                            {users.map(u => (
+                            {users.map(u => {
+                                const isCurrentUser = u.id === user?.id;
+                                return (
                                 <div key={u.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex flex-col gap-3">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-3">
@@ -331,7 +333,12 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                     onClick={() => toggleUserExpand(u.id)}
                                                     className="font-bold text-white text-sm cursor-pointer select-none active:text-zinc-300 transition-colors"
                                                 >
-                                                    {expandedUsers.has(u.id) ? u.username : u.username.split('@')[0]}
+                                                    <span>{expandedUsers.has(u.id) ? u.username : u.username.split('@')[0]}</span>
+                                                    {isCurrentUser && (
+                                                        <span className="text-[10px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 ml-2">
+                                                            You
+                                                        </span>
+                                                    )}
                                                     {u.username.includes('@') && (
                                                         <span className="text-[10px] text-zinc-600 ml-1.5 font-normal">
                                                             {expandedUsers.has(u.id) ? '(tap to collapse)' : '...'}
@@ -356,12 +363,14 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             >
                                                 <Search size={16} />
                                             </button>
+                                            {!isCurrentUser && (
                                             <button
                                                 onClick={() => handleDeleteUser(u)}
                                                 className="p-2 bg-zinc-800/50 rounded-lg text-red-500/80 hover:text-red-500"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
+                                            )}
                                         </div>
                                     </div>
 
@@ -370,6 +379,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                         <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Role</span>
                                         <select
                                             value={u.role}
+                                            disabled={isCurrentUser}
                                             onChange={(e) => handleRoleChange(u, e.target.value)}
                                             className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border bg-transparent outline-none ${u.role === 'admin' ? 'text-white border-white' :
                                                 u.role === 'moderator' ? 'text-zinc-300 border-zinc-600' :
@@ -381,6 +391,11 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             <option value="admin" className="bg-zinc-900 text-white">Admin</option>
                                         </select>
                                     </div>
+                                    {isCurrentUser && (
+                                        <div className="text-[10px] text-zinc-600 -mt-1">
+                                            Your own admin role is protected.
+                                        </div>
+                                    )}
 
                                     {/* Streaming Permission */}
                                     <div className="flex items-center justify-between bg-black/20 p-2 rounded-lg">
@@ -405,7 +420,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                         </button>
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     )}
 

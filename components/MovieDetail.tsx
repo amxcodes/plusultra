@@ -53,19 +53,9 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         setCurrentSeason(1);
         setCurrentEpisode(1);
         setEpisodePage(1);
+        setEpisodes([]);
         setRecommendations([]);
-
-        // Default mock seasons if none yet
-        if (movie.numberOfSeasons) {
-            setSeasonList(Array.from({ length: movie.numberOfSeasons }, (_, i) => ({
-                id: i,
-                name: `Season ${i + 1}`,
-                season_number: i + 1,
-                episode_count: 0
-            })));
-        } else {
-            setSeasonList([{ id: 1, name: "Season 1", season_number: 1, episode_count: 0 }]);
-        }
+        setSeasonList(Array.isArray(movie.seasons) ? movie.seasons : []);
 
         // Fetch detailed info & recommendations
         const fetchFullDetails = async () => {
@@ -85,23 +75,28 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                 // Update Season List with Real Data (includes Specials/Season 0 and Names)
                 if (details.seasons && details.seasons.length > 0) {
-                    setSeasonList(details.seasons);
+                    const validSeasons = details.seasons
+                        .filter((season: any) => typeof season?.season_number === 'number')
+                        .sort((left: any, right: any) => left.season_number - right.season_number);
 
-                    // Smart Select: If currentSeason(1) exists, keep it. If not, pick the first sorted season (usually 1).
-                    if (details.seasons[0].season_number !== 1 && details.seasons.length > 0) {
-                        setCurrentSeason(details.seasons[0].season_number);
+                    setSeasonList(validSeasons);
+
+                    const preferredSeason = validSeasons.find((season: any) => season.season_number === 1)
+                        || validSeasons.find((season: any) => season.season_number > 0)
+                        || validSeasons[0];
+
+                    if (preferredSeason) {
+                        setCurrentSeason(preferredSeason.season_number);
                     }
-                } else if (details.numberOfSeasons) {
-                    // Fallback if seasons array is missing
-                    setSeasonList(Array.from({ length: details.numberOfSeasons }, (_, i) => ({
-                        id: i,
-                        name: `Season ${i + 1}`,
-                        season_number: i + 1,
-                        episode_count: 0
-                    })));
+                } else {
+                    setSeasonList([]);
                 }
             } catch (error) {
                 console.error("Error fetching details:", error);
+                if (isMounted) {
+                    setSeasonList([]);
+                    setEpisodes([]);
+                }
             } finally {
                 if (isMounted) setIsLoading(false); // STOP LOADING
             }
@@ -118,7 +113,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
     useEffect(() => {
         let isMounted = true;
 
-        if (activeMovie.mediaType === 'tv') {
+        if (activeMovie.mediaType === 'tv' && seasonList.length > 0) {
             // STANDARD TMDB LOGIC
             const fetchEp = async () => {
                 // Optional: Add loading state here too if TMDB is slow
@@ -132,12 +127,14 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                 }
             };
             fetchEp();
+        } else {
+            setEpisodes([]);
         }
 
         return () => {
             isMounted = false;
         };
-    }, [activeMovie.id, currentSeason, activeMovie.mediaType]);
+    }, [activeMovie.id, currentSeason, activeMovie.mediaType, seasonList.length]);
 
     const handleClose = () => {
         setIsVisible(false);
@@ -347,46 +344,52 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                         </div>
 
                                         {/* Season Selector - Grid Layout */}
-                                        <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 select-none py-4 mb-8 transition-opacity ${showSkeleton ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                                            {seasonList.map(s => (
-                                                <div
-                                                    key={s.id}
-                                                    onClick={() => setCurrentSeason(s.season_number)}
-                                                    className={`group relative aspect-[3/4] sm:aspect-video rounded-md overflow-hidden cursor-pointer transition-all duration-500 ease-out
+                                        {seasonList.length > 0 ? (
+                                            <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 select-none py-4 mb-8 transition-opacity ${showSkeleton ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                                {seasonList.map(s => (
+                                                    <div
+                                                        key={s.id}
+                                                        onClick={() => setCurrentSeason(s.season_number)}
+                                                        className={`group relative aspect-[3/4] sm:aspect-video rounded-md overflow-hidden cursor-pointer transition-all duration-500 ease-out
                                     ${currentSeason === s.season_number
-                                                            ? 'opacity-100'
-                                                            : 'opacity-40 hover:opacity-80'}`}
-                                                >
-                                                    {/* Background Image - Art Focus */}
-                                                    {s.poster_path ? (
-                                                        <img
-                                                            src={s.poster_path.startsWith('http') ? s.poster_path : `https://image.tmdb.org/t/p/w400${s.poster_path}`}
-                                                            alt={s.name}
-                                                            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
-                                                            <span className="text-white/20 text-[10px] tracking-widest uppercase">No Art</span>
-                                                        </div>
-                                                    )}
+                                                                ? 'opacity-100'
+                                                                : 'opacity-40 hover:opacity-80'}`}
+                                                    >
+                                                        {/* Background Image - Art Focus */}
+                                                        {s.poster_path ? (
+                                                            <img
+                                                                src={s.poster_path.startsWith('http') ? s.poster_path : `https://image.tmdb.org/t/p/w400${s.poster_path}`}
+                                                                alt={s.name}
+                                                                className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-zinc-900 flex items-center justify-center">
+                                                                <span className="text-white/20 text-[10px] tracking-widest uppercase">No Art</span>
+                                                            </div>
+                                                        )}
 
-                                                    {/* Overlay - Only text, no heavy dimming unless needed for readability */}
-                                                    <div className={`absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 ${currentSeason === s.season_number ? 'opacity-100' : ''} transition-opacity duration-300`}>
-                                                        <span className="text-white font-medium text-sm tracking-wide">{s.name}</span>
-                                                        {s.episode_count > 0 && (
-                                                            <span className="text-[10px] text-zinc-400 font-light mt-0.5">
-                                                                {s.episode_count} Episodes
-                                                            </span>
+                                                        {/* Overlay - Only text, no heavy dimming unless needed for readability */}
+                                                        <div className={`absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 ${currentSeason === s.season_number ? 'opacity-100' : ''} transition-opacity duration-300`}>
+                                                            <span className="text-white font-medium text-sm tracking-wide">{s.name}</span>
+                                                            {s.episode_count > 0 && (
+                                                                <span className="text-[10px] text-zinc-400 font-light mt-0.5">
+                                                                    {s.episode_count} Episodes
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Active Indicator Line */}
+                                                        {currentSeason === s.season_number && (
+                                                            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white animate-in fade-in zoom-in duration-300" />
                                                         )}
                                                     </div>
-
-                                                    {/* Active Indicator Line */}
-                                                    {currentSeason === s.season_number && (
-                                                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-white animate-in fade-in zoom-in duration-300" />
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="mb-8 rounded-2xl border border-zinc-800 bg-zinc-900/40 px-5 py-4 text-sm text-zinc-400">
+                                                Season data is not available for this show yet.
+                                            </div>
+                                        )}
 
                                         <h3 className="text-xl font-semibold text-white mb-4">Episodes</h3>
 
