@@ -57,6 +57,15 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
             .filter(entry => entry.length > 0);
     };
 
+    const sanitizeDynamicTerms = (value: unknown): string[] => {
+        if (!Array.isArray(value)) return [];
+
+        return value
+            .filter((entry): entry is string => typeof entry === 'string')
+            .map(entry => entry.trim().toLowerCase())
+            .filter(entry => entry.length > 2);
+    };
+
     // Load Recents
     useEffect(() => {
         const loadRecents = async () => {
@@ -93,12 +102,12 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                 if (cached) {
                     const { terms, timestamp } = JSON.parse(cached);
                     if (Date.now() - timestamp < 86400000) {
-                        setDynamicTerms(terms);
+                        setDynamicTerms(sanitizeDynamicTerms(terms));
                         return;
                     }
                 }
                 const trending = await TmdbService.getTrending();
-                const titles = trending.map(m => m.title.toLowerCase()).filter(t => t.length > 2);
+                const titles = sanitizeDynamicTerms(trending.map(m => m.title));
                 setDynamicTerms(titles);
                 localStorage.setItem(CACHE_KEY, JSON.stringify({ terms: titles, timestamp: Date.now() }));
             } catch (e) {

@@ -58,6 +58,15 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
       .filter(entry => entry.length > 0);
   };
 
+  const sanitizeDynamicTerms = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+
+    return value
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map(entry => entry.trim().toLowerCase())
+      .filter(entry => entry.length > 2);
+  };
+
   // Load recent searches on mount
   useEffect(() => {
     const loadRecents = async () => {
@@ -100,16 +109,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
         if (cached) {
           const { terms, timestamp } = JSON.parse(cached);
           if (Date.now() - timestamp < CACHE_DURATION) {
-            setDynamicTerms(terms);
+            setDynamicTerms(sanitizeDynamicTerms(terms));
             return;
           }
         }
 
         // Fetch fresh trending movies from TMDB
         const trending = await TmdbService.getTrending();
-        const titles = trending
-          .map(m => m.title.toLowerCase())
-          .filter(t => t.length > 2); // Filter out very short titles
+        const titles = sanitizeDynamicTerms(trending.map(m => m.title));
 
         // Cache for 24h
         localStorage.setItem(CACHE_KEY, JSON.stringify({

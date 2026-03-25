@@ -301,7 +301,9 @@ export const ProfileService = {
             .single();
 
         const profile = data as PrivateProfileRow | null;
-        return profile?.recent_searches || [];
+        return Array.isArray(profile?.recent_searches)
+            ? profile.recent_searches.filter((entry): entry is string => typeof entry === 'string').map(entry => entry.trim()).filter(Boolean)
+            : [];
     },
 
     async getAppSettings() {
