@@ -31,6 +31,14 @@ export interface GuestAccountSummary {
     is_expired: boolean;
 }
 
+export interface GuestAccessInspection {
+    status: 'active' | 'disabled' | 'expired' | 'exhausted' | 'invalid';
+    expires_at: string | null;
+    remaining_uses: number;
+    can_redeem: boolean;
+    reason: string | null;
+}
+
 export const GuestAccessService = {
     async createGuestAccessLink(expiresAt: string, maxUses = 1, note?: string | null) {
         const { data, error } = await supabase
@@ -72,6 +80,22 @@ export const GuestAccessService = {
 
         if (error) throw error;
         return data;
+    },
+
+    async inspectGuestAccessLink(token: string) {
+        const { data, error } = await supabase
+            .rpc('inspect_guest_access_link', {
+                p_token: token,
+            })
+            .single();
+
+        if (error) throw error;
+        return data as GuestAccessInspection;
+    },
+
+    async cleanupUnclaimedGuestSession() {
+        const { error } = await supabase.rpc('cleanup_unclaimed_guest_session');
+        if (error) throw error;
     },
 
     async secureGuestAccount() {

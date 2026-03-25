@@ -86,6 +86,8 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
     const handleContinue = async () => {
         if (!token || isWorking) return;
 
+        let createdAnonymousSession = false;
+
         if (user && !isAnonymousSession && !isGuestAccount(profile)) {
             setStatus('Sign out of your current account first to use this guest link.');
             return;
@@ -101,6 +103,12 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
 
         try {
             if (!user) {
+                setStatus('Checking guest link...');
+                const inspection = await SocialService.inspectGuestAccessLink(token);
+                if (!inspection.can_redeem) {
+                    throw new Error(inspection.reason || 'This guest link could not be claimed.');
+                }
+
                 setStatus('Creating guest session...');
                 const { error: signInError } = await supabase.auth.signInAnonymously({
                     options: {
@@ -108,6 +116,7 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
                     }
                 });
                 if (signInError) throw signInError;
+                createdAnonymousSession = true;
             }
 
             setStatus('Claiming guest access...');
@@ -117,6 +126,20 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
                 window.location.replace('/');
             }, 450);
         } catch (err: any) {
+            if (createdAnonymousSession || (isAnonymousSession && !isGuestAccount(profile))) {
+                try {
+                    await SocialService.cleanupUnclaimedGuestSession();
+                } catch (cleanupError) {
+                    console.error('Failed to cleanup unclaimed guest session', cleanupError);
+                }
+
+                try {
+                    await supabase.auth.signOut();
+                } catch (signOutError) {
+                    console.error('Failed to sign out failed guest session', signOutError);
+                }
+            }
+
             setError(err?.message || 'Guest access could not be redeemed.');
             setStatus('This guest link could not be claimed.');
             turnstileRef.current?.reset();
