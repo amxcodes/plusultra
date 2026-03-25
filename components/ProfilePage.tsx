@@ -8,6 +8,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { ContinueWatchingCard } from './ContinueWatchingCard'; // Keep if used elsewhere or remove later
 import { MovieCard } from './MovieCard';
 import { Movie } from '../types';
+import { isGuestAccount } from '../lib/guestAccess';
 
 interface ProfilePageProps {
     userId?: string; // If null, views own profile
@@ -281,7 +282,7 @@ const DeleteConfirmModal = ({ isOpen, playlistName, onClose, onConfirm }: { isOp
 };
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, onMovieSelect }) => {
-    const { user: currentUser, isAdmin, refreshProfile } = useAuth();
+    const { user: currentUser, isAdmin, refreshProfile, profile: currentViewerProfile } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [playlists, setPlaylists] = useState<Playlist[]>([]);
     const [stats, setStats] = useState({ followers: 0, following: 0 });
@@ -297,6 +298,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
     // Determine which ID to fetch
     const targetId = userId || currentUser?.id;
     const isOwnProfile = currentUser?.id === targetId;
+    const canFollowProfiles = !isGuestAccount(currentViewerProfile);
 
     useEffect(() => {
         if (!targetId) return;
@@ -462,7 +464,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                     </div>
 
                     <div className="pt-2">
-                        {!isOwnProfile && currentUser && (
+                        {!isOwnProfile && currentUser && canFollowProfiles && (
                             <button
                                 onClick={handleFollow}
                                 className={`

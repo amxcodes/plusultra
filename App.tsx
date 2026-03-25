@@ -53,6 +53,9 @@ import { MobileAddToPlaylistModal } from './components/MobileAddToPlaylistModal'
 import { MobileWrappedPage } from './components/MobileWrappedPage';
 import { MobileViewAllPage } from './components/MobileViewAllPage';
 import { CuratorLabPage } from './components/CuratorLabPage';
+import { GuestAccessPage } from './components/GuestAccessPage';
+import { GuestExpiredPage } from './components/GuestExpiredPage';
+import { isGuestExpired } from './lib/guestAccess';
 
 type ViewAllCategoryState = {
   title: string;
@@ -90,9 +93,35 @@ const isAppHistoryState = (state: unknown): state is AppHistoryState => {
   return '__streamNav' in state && (state as AppHistoryState).__streamNav === true;
 };
 
+const getGuestTokenFromPath = () => {
+  if (typeof window === 'undefined') return null;
+  const match = window.location.pathname.match(/^\/guest\/([^/?#]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+};
+
 function StreamApp() {
-  const { user, loading, profile } = useAuth();
+  const { user, loading, profile, signOut } = useAuth();
   const canStream = profile?.can_stream || profile?.role === 'admin';
+  const guestToken = getGuestTokenFromPath();
+  const [guestExpiryNow, setGuestExpiryNow] = useState(() => Date.now());
+  const guestExpired = isGuestExpired(profile, guestExpiryNow);
+
+  useEffect(() => {
+    if (profile?.account_kind !== 'guest' || !profile.guest_expires_at) return;
+
+    const expiresAt = new Date(profile.guest_expires_at).getTime();
+    if (!Number.isFinite(expiresAt)) return;
+    if (expiresAt <= Date.now()) {
+      setGuestExpiryNow(Date.now());
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setGuestExpiryNow(Date.now());
+    }, expiresAt - Date.now() + 50);
+
+    return () => window.clearTimeout(timeout);
+  }, [profile?.account_kind, profile?.guest_expires_at]);
 
 
   // Session Persistence Check
@@ -522,8 +551,15 @@ function StreamApp() {
     }
   };
 
+  if (guestToken) {
+    return <GuestAccessPage token={guestToken} />;
+  }
+
   if (loading) return <div className="min-h-screen bg-[#0f1014] flex items-center justify-center text-white">Loading...</div>;
   if (!user) return <AuthPage />;
+  if (guestExpired) {
+    return <GuestExpiredPage profile={profile} onSignOut={signOut} />;
+  }
 
   // Render Player Page if active AND user has streaming permission
   if (playerState && canStream) {

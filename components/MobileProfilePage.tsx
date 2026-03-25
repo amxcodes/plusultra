@@ -5,6 +5,7 @@ import { Profile, Playlist, Movie } from '../types';
 import { Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import { MovieCard } from './MovieCard';
+import { isGuestAccount } from '../lib/guestAccess';
 
 
 // --- DUPLICATED / SIMPLIFIED MODALS FOR MOBILE ---
@@ -151,7 +152,7 @@ interface MobileProfilePageProps {
 }
 
 export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, onNavigate, onMovieSelect }) => {
-    const { user: currentUser, isAdmin, refreshProfile } = useAuth();
+    const { user: currentUser, isAdmin, refreshProfile, profile: currentViewerProfile } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [playlists, setPlaylists] = useState<Playlist[]>([]);
     const [stats, setStats] = useState({ followers: 0, following: 0 });
@@ -165,6 +166,7 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
 
     const targetId = userId || currentUser?.id;
     const isOwnProfile = currentUser?.id === targetId;
+    const canFollowProfiles = !isGuestAccount(currentViewerProfile);
 
     useEffect(() => {
         if (!targetId) return;
@@ -303,7 +305,7 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                     </div>
                 </div>
 
-                {!isOwnProfile && currentUser && (
+                {!isOwnProfile && currentUser && canFollowProfiles && (
                     <button
                         onClick={handleFollow}
                         className={`w-full max-w-[320px] py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all shadow-lg ${isFollowing

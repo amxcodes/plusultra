@@ -11,6 +11,7 @@ import { useToast } from '../lib/ToastContext';
 import { useConfirm } from '../lib/ConfirmContext';
 import { WRAPPED_SETTING_KEY } from '../lib/wrappedSettings';
 import { ProviderManagementPanel } from './ProviderManagementPanel';
+import { GuestAccessAdminPanel } from './GuestAccessAdminPanel';
 
 interface AdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -18,7 +19,7 @@ interface AdminDashboardProps {
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
     const { isAdmin, user } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'playlists' | 'featured' | 'providers' | 'settings' | 'reactions' | 'health' | 'requests' | 'sessions' | 'presence'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'guests' | 'announcements' | 'playlists' | 'featured' | 'providers' | 'settings' | 'reactions' | 'health' | 'requests' | 'sessions' | 'presence'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -332,6 +333,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'users' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
                     Users
+                </button>
+                <button
+                    onClick={() => setActiveTab('guests')}
+                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'guests' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                    Guest Access
                 </button>
                 <button
                     onClick={() => setActiveTab('announcements')}
@@ -1385,6 +1392,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'guests' && (
+                        <GuestAccessAdminPanel />
                     )}
 
                     {/* ANNOUNCEMENTS TAB */}

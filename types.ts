@@ -62,6 +62,12 @@ export interface Profile {
   username: string;
   avatar_url: string;
   role?: 'user' | 'admin' | 'moderator';
+  account_kind?: 'standard' | 'guest';
+  guest_expires_at?: string | null;
+  guest_created_by?: string | null;
+  guest_secured_at?: string | null;
+  guest_link_id?: string | null;
+  is_guest_hidden?: boolean;
   recent_searches?: string[];
   can_stream?: boolean; // Permission to access streaming features
   likes_count?: number; // Total likes received

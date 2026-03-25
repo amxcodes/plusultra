@@ -7,6 +7,7 @@ import { MobileWrappedPage } from './MobileWrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { isWrappedUnlocked } from '../lib/wrappedSettings';
+import { GuestSecurityCard } from './GuestSecurityCard';
 
 interface UserStats {
     historyCount: number;
@@ -90,6 +91,10 @@ export const MobileSettingsPage: React.FC = () => {
             </div>
 
             {/* Wrapped Card */}
+            <div className="mb-6">
+                <GuestSecurityCard compact />
+            </div>
+
             <div
                 onClick={() => wrappedUnlocked && setShowWrapped(true)}
                 className={`w-full p-6 rounded-2xl border mb-6 relative overflow-hidden group transition-all active:scale-95 ${wrappedUnlocked ? 'bg-zinc-900 border-white/10' : 'bg-zinc-900/50 border-white/5 grayscale opacity-60'}`}

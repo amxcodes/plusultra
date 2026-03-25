@@ -7,15 +7,7 @@ import { setUserContext, clearUserContext } from './sentry'
 import { APP_PRESENCE_HEARTBEAT_SECONDS, PresenceService, clearPresenceSessionId } from '../services/presence'
 import { isLikelyNetworkError, isNavigatorOnline } from './network'
 import { getDisplayName } from './displayName'
-
-// Define the shape of our Profile
-type Profile = {
-    id: string
-    username: string
-    avatar_url: string
-    role: 'user' | 'admin' | 'moderator'
-    can_stream?: boolean
-}
+import type { Profile } from '../types'
 
 type PrivateProfileRpcRow = {
     id: string
@@ -23,6 +15,12 @@ type PrivateProfileRpcRow = {
     avatar_url: string | null
     role: 'user' | 'admin' | 'moderator'
     can_stream?: boolean | null
+    account_kind?: 'standard' | 'guest'
+    guest_expires_at?: string | null
+    guest_created_by?: string | null
+    guest_secured_at?: string | null
+    guest_link_id?: string | null
+    is_guest_hidden?: boolean | null
 }
 
 type AuthContextType = {
@@ -207,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             // Check cache first (sessionStorage, 5 min TTL)
             const cachedProfile = cache.get<Profile>(CACHE_KEYS.USER_PROFILE, true);
-            if (cachedProfile) {
+            if (cachedProfile && cachedProfile.account_kind !== 'guest') {
                 setProfile(cachedProfile);
                 setLoading(false);
                 return;
@@ -238,10 +236,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 avatar_url: profile.avatar_url || '',
                 role: profile.role,
                 can_stream: profile.can_stream ?? false,
+                account_kind: profile.account_kind,
+                guest_expires_at: profile.guest_expires_at ?? undefined,
+                guest_created_by: profile.guest_created_by ?? undefined,
+                guest_secured_at: profile.guest_secured_at ?? undefined,
+                guest_link_id: profile.guest_link_id ?? undefined,
+                is_guest_hidden: profile.is_guest_hidden ?? undefined,
             } as Profile;
             setProfile(profileData);
             setUserContext(profileData.id, profileData.username); // Set Sentry user context
-            cache.set(CACHE_KEYS.USER_PROFILE, profileData, 5, true);
+            if (profileData.account_kind !== 'guest') {
+                cache.set(CACHE_KEYS.USER_PROFILE, profileData, 5, true);
+            }
             setLoading(false); // Always set loading false on success
         } catch (err) {
             if (isLikelyNetworkError(err) || !isNavigatorOnline()) {

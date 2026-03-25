@@ -17,6 +17,7 @@ import { WrappedPage } from './WrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { isWrappedUnlocked } from '../lib/wrappedSettings';
+import { GuestSecurityCard } from './GuestSecurityCard';
 
 interface UserStats {
     historyCount: number;
@@ -172,6 +173,8 @@ export const SettingsPage: React.FC = () => {
                 <div className="col-span-12 space-y-8">
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <GuestSecurityCard />
+
                         {/* Wrapped Card */}
                         <section
                             onClick={() => {

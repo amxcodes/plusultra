@@ -11,6 +11,12 @@ type PrivateProfileRow = {
     avatar_url: string | null;
     role?: 'user' | 'admin' | 'moderator';
     can_stream?: boolean | null;
+    account_kind?: 'standard' | 'guest';
+    guest_expires_at?: string | null;
+    guest_created_by?: string | null;
+    guest_secured_at?: string | null;
+    guest_link_id?: string | null;
+    is_guest_hidden?: boolean | null;
     recent_searches?: string[] | null;
     stats?: {
         total_movies?: number;
@@ -35,6 +41,12 @@ const normalizePrivateProfile = (row: PrivateProfileRow): Profile => ({
     avatar_url: row.avatar_url || '',
     role: row.role,
     can_stream: row.can_stream ?? undefined,
+    account_kind: row.account_kind,
+    guest_expires_at: row.guest_expires_at ?? undefined,
+    guest_created_by: row.guest_created_by ?? undefined,
+    guest_secured_at: row.guest_secured_at ?? undefined,
+    guest_link_id: row.guest_link_id ?? undefined,
+    is_guest_hidden: row.is_guest_hidden ?? undefined,
     recent_searches: (row.recent_searches as string[] | null) || undefined,
     stats: row.stats || undefined,
     created_at: row.created_at || undefined,
@@ -86,10 +98,10 @@ export const ProfileService = {
 
     async searchUsers(query: string): Promise<Profile[]> {
         const { data, error } = await supabase
-            .from('profiles')
-            .select(PUBLIC_PROFILE_COLUMNS)
-            .ilike('username', `%${query}%`)
-            .limit(20);
+            .rpc('search_public_profiles', {
+                p_query: query,
+                p_limit: 20,
+            });
 
         if (error) {
             console.error('Error searching users:', error);

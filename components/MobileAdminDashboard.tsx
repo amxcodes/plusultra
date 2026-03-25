@@ -3,13 +3,14 @@ import { SocialService } from '../lib/social';
 import { CommunityService } from '../lib/community';
 import { Profile } from '../types';
 import type { AdminPresenceUser, AdminViewSession } from '../services/AdminService';
-import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus, MessageSquarePlus, Check, X, Trophy, RefreshCw } from 'lucide-react';
+import { Users, AlertTriangle, Activity, Settings, Power, Trash2, Search, Info, Wifi, WifiOff, LayoutDashboard, Megaphone, Database, Plus, MessageSquarePlus, Check, X, Trophy, RefreshCw, Link2 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { HealthService, HealthStatus } from '../services/health';
 import { useToast } from '../lib/ToastContext';
 import { useConfirm } from '../lib/ConfirmContext';
 import { WRAPPED_SETTING_KEY } from '../lib/wrappedSettings';
 import { ProviderManagementPanel } from './ProviderManagementPanel';
+import { GuestAccessAdminPanel } from './GuestAccessAdminPanel';
 
 interface MobileAdminDashboardProps {
     onNavigate: (page: string, params?: any) => void;
@@ -19,7 +20,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
     const { isAdmin, user } = useAuth();
     const { success, error, info } = useToast();
     const confirm = useConfirm();
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions' | 'presence' | 'providers'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'guests' | 'announcements' | 'settings' | 'requests' | 'health' | 'sessions' | 'presence' | 'providers'>('overview');
     const [stats, setStats] = useState({ totalUsers: 0, totalPlaylists: 0, activeAnnouncements: 0 });
     const [users, setUsers] = useState<Profile[]>([]);
     const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -266,6 +267,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                 {[
                     { id: 'overview', icon: LayoutDashboard },
                     { id: 'users', icon: Users },
+                    { id: 'guests', icon: Link2 },
                     { id: 'announcements', icon: Megaphone },
                     { id: 'requests', icon: MessageSquarePlus },
                     { id: 'sessions', icon: Database },
@@ -422,6 +424,10 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                 </div>
                             )})}
                         </div>
+                    )}
+
+                    {activeTab === 'guests' && (
+                        <GuestAccessAdminPanel compact />
                     )}
 
                     {/* ANNOUNCEMENTS */}
