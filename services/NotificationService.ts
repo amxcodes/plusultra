@@ -71,19 +71,13 @@ export const NotificationService = {
         };
     },
 
-    async markAnnouncementsSeen(userId: string) {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ last_seen_announcements: new Date().toISOString() })
-            .eq('id', userId);
+    async markAnnouncementsSeen(_userId: string) {
+        const { error } = await supabase.rpc('mark_announcements_seen');
         if (error) throw error;
     },
 
-    async markActivitySeen(userId: string) {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ last_seen_activity: new Date().toISOString() })
-            .eq('id', userId);
+    async markActivitySeen(_userId: string) {
+        const { error } = await supabase.rpc('mark_activity_seen');
         if (error) throw error;
     },
 

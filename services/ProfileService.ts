@@ -82,18 +82,26 @@ export const ProfileService = {
         return normalizePrivateProfile(data as PrivateProfileRow);
     },
 
-    async updateProfile(userId: string, updates: Partial<Profile>) {
-        const safeUpdates: Partial<Profile> = {};
-        if (typeof updates.username === 'string') safeUpdates.username = updates.username;
-        if (typeof updates.avatar_url === 'string') safeUpdates.avatar_url = updates.avatar_url;
-        if (Array.isArray(updates.recent_searches)) safeUpdates.recent_searches = updates.recent_searches;
-        if (Object.keys(safeUpdates).length === 0) return;
+    async updateProfile(_userId: string, updates: Partial<Profile>) {
+        const nextUsername = typeof updates.username === 'string' ? updates.username : null;
+        const nextAvatarUrl = typeof updates.avatar_url === 'string' ? updates.avatar_url : null;
 
-        const { error } = await supabase
-            .from('profiles')
-            .update(safeUpdates)
-            .eq('id', userId);
-        if (error) throw error;
+        if (nextUsername !== null || nextAvatarUrl !== null) {
+            const { error } = await supabase.rpc('update_my_profile', {
+                p_username: nextUsername,
+                p_avatar_url: nextAvatarUrl,
+            });
+
+            if (error) throw error;
+        }
+
+        if (Array.isArray(updates.recent_searches)) {
+            const { error } = await supabase.rpc('set_my_recent_searches', {
+                p_recent_searches: updates.recent_searches,
+            });
+
+            if (error) throw error;
+        }
     },
 
     async searchUsers(query: string): Promise<Profile[]> {
@@ -277,31 +285,10 @@ export const ProfileService = {
         if (error) throw error;
     },
 
-    async saveRecentSearch(userId: string, query: string) {
-        // Get current searches
-        const { data } = await supabase
-            .rpc('get_private_profile', {
-                p_user_id: userId
-            })
-            .single();
-
-        const profile = data as PrivateProfileRow | null;
-        let searches: string[] = profile?.recent_searches || [];
-
-        // Remove if already exists (dedupe)
-        searches = searches.filter(s => s.toLowerCase() !== query.toLowerCase());
-
-        // Prepend new search
-        searches.unshift(query);
-
-        // Keep only top 3
-        searches = searches.slice(0, 3);
-
-        // Update profile
-        const { error } = await supabase
-            .from('profiles')
-            .update({ recent_searches: searches })
-            .eq('id', userId);
+    async saveRecentSearch(_userId: string, query: string) {
+        const { error } = await supabase.rpc('save_recent_search', {
+            p_query: query,
+        });
 
         if (error) throw error;
     },
