@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { isGuestAccount, isGuestExpired } from '../lib/guestAccess';
+import { TurnstileWidget, type TurnstileWidgetHandle } from './TurnstileWidget';
 
 interface GuestAccessPageProps {
     token: string | null;
@@ -11,9 +12,12 @@ interface GuestAccessPageProps {
 
 export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
     const { user, profile, loading, signOut, refreshProfile } = useAuth();
+    const turnstileEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+    const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
     const [status, setStatus] = useState('Preparing your guest access...');
     const [error, setError] = useState<string | null>(null);
     const [isWorking, setIsWorking] = useState(false);
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const signInStartedRef = useRef(false);
     const redeemStartedRef = useRef(false);
     const redirectStartedRef = useRef(false);
@@ -49,15 +53,26 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
             }
 
             if (!user) {
+                if (turnstileEnabled && !captchaToken) {
+                    setStatus('Complete the security check to continue as guest.');
+                    return;
+                }
                 if (signInStartedRef.current) return;
                 signInStartedRef.current = true;
                 setIsWorking(true);
                 setStatus('Creating a guest session...');
 
-                const { error: signInError } = await supabase.auth.signInAnonymously();
+                const { error: signInError } = await supabase.auth.signInAnonymously({
+                    options: {
+                        captchaToken: captchaToken || undefined,
+                    }
+                });
                 if (signInError) {
                     setError(signInError.message);
                     setStatus('Guest access could not be started.');
+                    turnstileRef.current?.reset();
+                    setCaptchaToken(null);
+                    signInStartedRef.current = false;
                 }
                 setIsWorking(false);
                 return;
@@ -79,6 +94,9 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
             } catch (err: any) {
                 setError(err?.message || 'Guest access could not be redeemed.');
                 setStatus('This guest link could not be claimed.');
+                turnstileRef.current?.reset();
+                setCaptchaToken(null);
+                redeemStartedRef.current = false;
             } finally {
                 setIsWorking(false);
             }
@@ -102,6 +120,16 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
                 <p className="text-zinc-400 leading-relaxed">
                     {error || status}
                 </p>
+
+                {turnstileEnabled && !user && (
+                    <div className="mt-6">
+                        <TurnstileWidget
+                            ref={turnstileRef}
+                            onTokenChange={setCaptchaToken}
+                            action="guest_redeem"
+                        />
+                    </div>
+                )}
 
                 {!error && (
                     <div className="mt-6 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300">

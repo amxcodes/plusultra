@@ -4,6 +4,8 @@ import { Loader2, ArrowRight, Check } from 'lucide-react';
 import { TmdbService } from '../services/tmdb';
 import { SocialService } from '../lib/social';
 import { validateEmail } from '../lib/emailValidator';
+import { TurnstileWidget, type TurnstileWidgetHandle } from './TurnstileWidget';
+import { useRef } from 'react';
 
 
 // Fallback images in case API fails or key is missing
@@ -23,10 +25,13 @@ const FALLBACK_POSTERS = [
 ];
 
 export const AuthPage: React.FC = () => {
+    const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
+    const turnstileEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
     const [isLogin, setIsLogin] = useState(true);
     const [rememberMe, setRememberMe] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [posters, setPosters] = useState<string[]>([]);
@@ -78,10 +83,17 @@ export const AuthPage: React.FC = () => {
         setError(null);
 
         try {
+            if (turnstileEnabled && !captchaToken) {
+                throw new Error('Complete the security check first.');
+            }
+
             if (isLogin) {
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
+                    options: {
+                        captchaToken: captchaToken || undefined,
+                    }
                 });
                 if (error) throw error;
 
@@ -98,11 +110,16 @@ export const AuthPage: React.FC = () => {
                 const { error } = await supabase.auth.signUp({
                     email,
                     password,
+                    options: {
+                        captchaToken: captchaToken || undefined,
+                    }
                 });
                 if (error) throw error;
             }
         } catch (err: any) {
             setError(err.message);
+            turnstileRef.current?.reset();
+            setCaptchaToken(null);
 
             // Add cooldown on error to prevent spam
             setCooldown(true);
@@ -203,6 +220,14 @@ export const AuthPage: React.FC = () => {
                                 Keep me logged in
                             </span>
                         </div>
+                    )}
+
+                    {turnstileEnabled && (
+                        <TurnstileWidget
+                            ref={turnstileRef}
+                            onTokenChange={setCaptchaToken}
+                            action={isLogin ? 'login' : 'signup'}
+                        />
                     )}
 
                     <button
