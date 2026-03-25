@@ -236,13 +236,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         }
     };
 
+    const normalizeSearchValue = (value: unknown) => String(value ?? '').toLowerCase();
+    const playlistSearchLower = playlistSearch.toLowerCase();
+    const userSearchLower = userSearch.toLowerCase();
+
     const filteredPlaylists = allPlaylists.filter(p =>
-        p.name.toLowerCase().includes(playlistSearch.toLowerCase()) ||
-        (p.profiles?.username || '').toLowerCase().includes(playlistSearch.toLowerCase())
+        normalizeSearchValue(p.name).includes(playlistSearchLower) ||
+        normalizeSearchValue(p.profiles?.username).includes(playlistSearchLower)
     );
 
     const filteredUsers = users.filter(u => {
-        const matchesSearch = u.username.toLowerCase().includes(userSearch.toLowerCase());
+        const matchesSearch = normalizeSearchValue(u.username).includes(userSearchLower);
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
         return matchesSearch && matchesRole;
     });
