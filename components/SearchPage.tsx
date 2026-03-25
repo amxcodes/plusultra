@@ -49,17 +49,26 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
   const [showRecents, setShowRecents] = useState(false);
   const { user } = useAuth();
 
+  const sanitizeRecentSearches = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+
+    return value
+      .filter((entry): entry is string => typeof entry === 'string')
+      .map(entry => entry.trim())
+      .filter(entry => entry.length > 0);
+  };
+
   // Load recent searches on mount
   useEffect(() => {
     const loadRecents = async () => {
       // Get user-specific localStorage key
       const storageKey = user ? `recentSearches_${user.id}` : 'recentSearches_guest';
-      const localRecents = JSON.parse(localStorage.getItem(storageKey) || '[]') as string[];
+      const localRecents = sanitizeRecentSearches(JSON.parse(localStorage.getItem(storageKey) || '[]'));
 
       if (user) {
         // If logged in, merge with DB searches (DB takes priority)
         try {
-          const dbRecents = await SocialService.getRecentSearches(user.id);
+          const dbRecents = sanitizeRecentSearches(await SocialService.getRecentSearches(user.id));
           // Merge: DB first, then local (dedupe)
           const merged = [...dbRecents];
           localRecents.forEach(search => {
@@ -123,7 +132,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
 
     // Get user-specific localStorage key
     const storageKey = user ? `recentSearches_${user.id}` : 'recentSearches_guest';
-    const localRecents = JSON.parse(localStorage.getItem(storageKey) || '[]') as string[];
+    const localRecents = sanitizeRecentSearches(JSON.parse(localStorage.getItem(storageKey) || '[]'));
     const updated = [query, ...localRecents.filter(s => s.toLowerCase() !== query.toLowerCase())].slice(0, 10);
     localStorage.setItem(storageKey, JSON.stringify(updated));
 
