@@ -5,6 +5,7 @@ import { Profile, Playlist, Movie } from '../types';
 import { Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import { MovieCard } from './MovieCard';
+import { PlaylistCard } from './PlaylistCard';
 import { isGuestAccount } from '../lib/guestAccess';
 
 
@@ -336,39 +337,23 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
 
                     <div className="grid grid-cols-2 gap-x-4 gap-y-6">
                         {playlists.map(playlist => {
-                            const previewImages = playlist.items?.map(i => i.metadata?.poster_path ? `https://image.tmdb.org/t/p/w200${i.metadata.poster_path}` : null).filter(Boolean).slice(0, 4) as string[] || [];
+                            const subtitle = (
+                                <>
+                                    {!playlist.is_public && <Lock size={10} className="text-zinc-500" />}
+                                    <span className="text-xs text-zinc-600 font-medium">
+                                        {playlist.items_count || playlist.items?.length || 0} tracks
+                                    </span>
+                                </>
+                            );
 
                             return (
-                                <div
+                                <PlaylistCard
                                     key={playlist.id}
+                                    playlist={playlist}
+                                    aspectRatio="square"
                                     onClick={() => onNavigate && onNavigate('playlist', { id: playlist.id })}
-                                    className="group flex flex-col gap-3 active:scale-95 transition-transform duration-200"
-                                >
-                                    <div className="aspect-square bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden relative border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group-active:border-white/10 transition-all">
-                                        {previewImages.length > 0 ? (
-                                            <div className={`grid w-full h-full ${previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1'}`}>
-                                                {previewImages.slice(0, previewImages.length >= 4 ? 4 : 1).map((src, idx) => (
-                                                    <img key={idx} src={src} className="w-full h-full object-cover" />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900/50">
-                                                <span className="text-4xl font-black text-zinc-800">{playlist.name[0]}</span>
-                                            </div>
-                                        )}
-                                        {/* Gradient Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </div>
-                                    <div className="px-1">
-                                        <h3 className="font-bold text-white text-sm truncate leading-none mb-1.5">{playlist.name}</h3>
-                                        <div className="flex items-center gap-2">
-                                            {!playlist.is_public && <Lock size={10} className="text-zinc-500" />}
-                                            <p className="text-[10px] text-zinc-500 font-medium lowercase tracking-wide">
-                                                {playlist.items_count || playlist.items?.length || 0} tracks
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
+                                    subtitle={subtitle}
+                                />
                             );
                         })}
                     </div>

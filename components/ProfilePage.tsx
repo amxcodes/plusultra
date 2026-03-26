@@ -7,6 +7,7 @@ import { UserPlus, UserMinus, Plus, Lock, Globe, Trash2, X, Search, Sparkles, Tr
 import { useDebounce } from '../hooks/useDebounce';
 import { ContinueWatchingCard } from './ContinueWatchingCard'; // Keep if used elsewhere or remove later
 import { MovieCard } from './MovieCard';
+import { PlaylistCard } from './PlaylistCard';
 import { Movie } from '../types';
 import { isGuestAccount } from '../lib/guestAccess';
 
@@ -496,73 +497,36 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
 
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                     {playlists.map(playlist => {
-                        // Collage Logic
-                        const previewImages = playlist.items?.map(i => i.metadata?.poster_path ? `https://image.tmdb.org/t/p/w300${i.metadata.poster_path}` : null).filter(Boolean).slice(0, 4) as string[] || [];
                         const isSystem = playlist.type === 'watch_later' || playlist.type === 'favorites';
+                        const showDelete = isOwnProfile && !isSystem;
+
+                        const subtitle = (
+                            <>
+                                {playlist.user_id !== (userId || currentUser?.id) ? (
+                                    <div className="flex items-center gap-1 text-blue-400" title="Collaborative Playlist">
+                                        <Users size={12} />
+                                        <span className="text-xs font-medium">Shared</span>
+                                    </div>
+                                ) : (
+                                    playlist.is_public ?
+                                        <Globe size={12} className="text-zinc-600" /> :
+                                        <Lock size={12} className="text-zinc-600" />
+                                )}
+                                <span className="text-xs text-zinc-600 font-medium">
+                                    • {playlist.items_count || playlist.items?.length || 0} tracks
+                                </span>
+                            </>
+                        );
 
                         return (
-                            <div
+                            <PlaylistCard
                                 key={playlist.id}
+                                playlist={playlist}
+                                aspectRatio="square"
                                 onClick={() => onNavigate && onNavigate('playlist', { id: playlist.id })}
-                                className="group cursor-pointer flex flex-col gap-4 relative"
-                            >
-                                {/* Thumbnail Container */}
-                                <div className="aspect-square bg-white/5 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden relative shadow-lg transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] group-hover:border-white/10">
-                                    {previewImages.length > 0 ? (
-                                        <div className={`grid w-full h-full ${previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1'}`}>
-                                            {previewImages.slice(0, previewImages.length >= 4 ? 4 : 1).map((src, idx) => (
-                                                <img
-                                                    key={idx}
-                                                    src={src}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-zinc-900 border border-white/5">
-                                            <span className="text-4xl font-black text-zinc-800 select-none group-hover:text-zinc-700 transition-colors">
-                                                {playlist.name[0]}
-                                            </span>
-                                        </div>
-                                    )}
-
-                                    {/* Overlay  */}
-                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-                                </div>
-
-                                {/* Text Info */}
-                                <div>
-                                    <h3 className="text-sm font-bold text-gray-200 group-hover:text-white truncate transition-colors">
-                                        {playlist.name}
-                                    </h3>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        {playlist.user_id !== (userId || currentUser?.id) ? (
-                                            <div className="flex items-center gap-1 text-blue-400" title="Collaborative Playlist">
-                                                <Users size={12} />
-                                                <span className="text-xs font-medium">Shared</span>
-                                            </div>
-                                        ) : (
-                                            playlist.is_public ?
-                                                <Globe size={12} className="text-zinc-600" /> :
-                                                <Lock size={12} className="text-zinc-600" />
-                                        )}
-                                        <span className="text-xs text-zinc-600 font-medium">
-                                            • {playlist.items_count || playlist.items?.length || 0} tracks
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Delete Button (Hover) - Only for own custom playlists */}
-                                {isOwnProfile && !isSystem && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(playlist); }}
-                                        className="absolute top-2 right-2 p-2.5 bg-black/40 hover:bg-red-500/90 border border-white/5 text-white/70 hover:text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-xl translate-y-2 group-hover:translate-y-0 z-10 shadow-lg"
-                                        title="Delete Playlist"
-                                    >
-                                        <Trash2 size={16} strokeWidth={2} />
-                                    </button>
-                                )}
-                            </div>
+                                onDelete={showDelete ? (e) => { e.stopPropagation(); setDeleteTarget(playlist); } : undefined}
+                                subtitle={subtitle}
+                            />
                         );
                     })}
 

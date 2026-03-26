@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { TmdbService } from '../services/tmdb';
 import { Movie } from '../types';
 import { Play, ArrowRight } from 'lucide-react';
+import { MovieCard } from './MovieCard';
 
 interface NewsFeedProps {
     onMovieSelect: (movie: Movie) => void;
@@ -44,23 +45,23 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ onMovieSelect }) => {
     }, [activeProvider]);
 
     return (
-        <div className="pb-20 bg-[#0f1014] min-h-screen text-white font-sans selection:bg-white/20">
+        <div className="pb-20 bg-[#0f1014] min-h-screen text-white font-sans selection:bg-white/20 md:pl-[72px] lg:pl-[72px]">
 
             {/* STATIC HEADER & TABS */}
-            <div className="pt-20 px-6 md:px-12 border-b border-white/5 pb-0">
+            <div className="pt-20 px-6 md:pr-8 lg:pr-12 border-b border-white/5 pb-0">
                 <div className="flex items-center gap-3 mb-4">
                     <div className="w-1 h-6 bg-white"></div>
                     <h1 className="text-xl font-bold tracking-widest uppercase">Streaming News</h1>
                 </div>
 
-                <div className="flex items-center gap-8 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-6 pt-2 px-2 -mx-2">
                     {PROVIDERS.map((provider) => (
                         <button
                             key={provider.id}
                             onClick={() => setActiveProvider(provider)}
-                            className={`pb-4 text-sm font-bold uppercase tracking-widest border-b-2 transition-colors ${activeProvider.id === provider.id
-                                ? `${provider.border} text-white`
-                                : 'border-transparent text-zinc-500 hover:text-white'
+                            className={`px-5 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all duration-300 backdrop-blur-3xl border border-white/5 shadow-lg ${activeProvider.id === provider.id
+                                ? `bg-gradient-to-tr from-white/20 to-white/5 text-white scale-105 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]`
+                                : 'bg-white/5 text-zinc-500 hover:text-white hover:bg-white/10 active:scale-95'
                                 }`}
                         >
                             {provider.name}
@@ -71,7 +72,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ onMovieSelect }) => {
 
             {/* HERO SECTION - PURE STATIC LAYOUT */}
             {heroItem && (
-                <div className="px-6 md:px-12 py-12 border-b border-white/5">
+                <div className="px-6 md:pr-8 lg:pr-12 py-12 border-b border-white/5">
                     <div className="items-center z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-12">
                         <div className="flex flex-col justify-center">
                             <div className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${activeProvider.color}`}>
@@ -89,7 +90,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ onMovieSelect }) => {
                             <div className="flex items-center gap-4">
                                 <button
                                     onClick={() => onMovieSelect(heroItem)}
-                                    className="h-12 px-8 bg-white text-black font-bold text-sm tracking-wide uppercase flex items-center gap-2"
+                                    className="h-12 px-8 rounded-full bg-gradient-to-tr from-white/20 to-white/5 text-white font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 backdrop-blur-3xl border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
                                 >
                                     <Play size={16} fill="currentColor" /> Play Now
                                 </button>
@@ -97,7 +98,7 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ onMovieSelect }) => {
                         </div>
 
                         <div
-                            className="relative aspect-video w-full bg-zinc-900 overflow-hidden cursor-pointer"
+                            className="relative aspect-video w-full bg-white/5 backdrop-blur-md rounded-[24px] overflow-hidden cursor-pointer border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group hover:border-white/10 transition-all duration-500"
                             onClick={() => onMovieSelect(heroItem)}
                         >
                             <img
@@ -114,39 +115,16 @@ export const NewsFeed: React.FC<NewsFeedProps> = ({ onMovieSelect }) => {
             )}
 
             {/* GRID LAYOUT - CLEAN & STATIC */}
-            <div className="px-6 md:px-12 py-12">
+            <div className="px-6 md:pr-8 lg:pr-12 py-12">
                 <div className="flex items-center justify-between mb-8 border-b border-white/5 pb-4">
                     <h3 className="text-lg font-bold uppercase tracking-widest text-white">Latest Arrivals</h3>
                     <span className="text-xs font-mono text-zinc-500">UPDATED WEEKLY</span>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-y-12 gap-x-6">
+                <div className="flex flex-wrap gap-x-6 gap-y-12">
                     {movies.slice(1).map((movie) => (
-                        <div
-                            key={movie.id}
-                            className="group cursor-pointer flex flex-col gap-4"
-                            onClick={() => onMovieSelect(movie)}
-                        >
-                            <div className="relative aspect-[2/3] bg-zinc-900 overflow-hidden">
-                                <img
-                                    src={movie.imageUrl}
-                                    alt={movie.title}
-                                    className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
-                                />
-                                <div className="absolute top-2 right-2 bg-black text-white text-[10px] font-bold px-1.5 py-0.5 uppercase">
-                                    {String(movie.match).slice(0, 2)}%
-                                </div>
-                            </div>
-
-                            <div>
-                                <h4 className="text-sm font-bold text-white leading-snug mb-1 truncate">
-                                    {movie.title}
-                                </h4>
-                                <div className="flex items-center justify-between text-[11px] text-zinc-500 uppercase tracking-wider font-medium">
-                                    <span>{movie.year}</span>
-                                    <span>{movie.genre?.[0] || 'Drama'}</span>
-                                </div>
-                            </div>
+                        <div key={movie.id} className="flex justify-center">
+                            <MovieCard movie={movie} onClick={() => onMovieSelect(movie)} />
                         </div>
                     ))}
                 </div>

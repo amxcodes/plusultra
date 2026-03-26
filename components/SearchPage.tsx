@@ -388,13 +388,13 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
 
           {!hasQuery && (
             <div className="text-center mb-8 space-y-2 animate-in fade-in zoom-in-95 duration-700">
-              <h1 className="text-4xl font-black tracking-tighter text-white">Find your next obsession</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-white">Find your next obsession</h1>
               <p className="text-zinc-500">Search for movies, shows, people, or community lists.</p>
             </div>
           )}
 
           <div className={`
-            relative flex items-center bg-[#0a0a0a]/80 backdrop-blur-2xl border transition-all duration-300 mb-2 rounded-[24px] overflow-hidden shadow-xl
+            relative flex items-center bg-transparent border transition-all duration-300 mb-2 rounded-[24px] overflow-hidden
             ${isFocused ? 'border-white/10' : 'border-white/5 hover:border-white/10'}
           `}>
             <div className="pl-6 text-zinc-500">
@@ -420,9 +420,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
             )}
           </div>
 
-          {/* Recent Searches Dropdown */}
+          {/* Recent Searches Dropdown - Flattened onto surface */}
           {recentSearches.length > 0 && !hasQuery && isFocused && (
-            <div className="absolute top-full mt-2 w-full bg-[#0a0a0a]/95 backdrop-blur-3xl border border-white/10 rounded-[28px] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-200 z-50">
+            <div className="absolute top-full mt-2 w-full bg-[#0f1014] border border-white/5 rounded-[28px] p-2 animate-in fade-in zoom-in-95 duration-200 z-50">
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 mx-2">
                 <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
                   <Clock size={12} />

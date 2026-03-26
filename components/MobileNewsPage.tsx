@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { TmdbService } from '../services/tmdb';
 import { Movie } from '../types';
 import { Play } from 'lucide-react';
+import { MovieCard } from './MovieCard';
 
 interface MobileNewsPageProps {
     onMovieSelect: (movie: Movie) => void;
@@ -45,14 +46,14 @@ export const MobileNewsPage: React.FC<MobileNewsPageProps> = ({ onMovieSelect })
             {/* Header / Tabs */}
             <div className="pt-6 px-4 bg-[#0f1014] sticky top-0 z-40 border-b border-white/5">
                 <h1 className="text-2xl font-black tracking-tight mb-4">News Feed</h1>
-                <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-3">
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar pb-4 pt-2 px-2 -mx-2">
                     {PROVIDERS.map((provider) => (
                         <button
                             key={provider.id}
                             onClick={() => setActiveProvider(provider)}
-                            className={`text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-colors ${activeProvider.id === provider.id
-                                ? `${provider.color}`
-                                : 'text-zinc-600'
+                            className={`px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest whitespace-nowrap transition-all duration-300 backdrop-blur-3xl border border-white/5 shadow-lg ${activeProvider.id === provider.id
+                                ? `bg-gradient-to-tr from-white/20 to-white/5 text-white scale-105 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]`
+                                : 'bg-white/5 text-zinc-500 hover:text-white hover:bg-white/10 active:scale-95'
                                 }`}
                         >
                             {provider.name}
@@ -76,7 +77,7 @@ export const MobileNewsPage: React.FC<MobileNewsPageProps> = ({ onMovieSelect })
                                 <div className={`text-[10px] font-bold uppercase tracking-widest mb-2 ${activeProvider.color}`}>Featured on {activeProvider.name}</div>
                                 <h2 className="text-3xl font-black leading-none mb-3 line-clamp-2">{heroItem.title}</h2>
                                 <p className="text-xs text-zinc-300 line-clamp-2 mb-4 leading-relaxed opacity-80">{heroItem.description}</p>
-                                <button className="bg-white text-black px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wide flex items-center gap-2 w-fit">
+                                <button className="px-6 py-3 rounded-[18px] bg-gradient-to-tr from-white/20 to-white/5 text-white border border-white/5 backdrop-blur-3xl shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 w-fit active:scale-95 transition-all">
                                     <Play size={14} fill="currentColor" /> Watch Now
                                 </button>
                             </div>
@@ -86,16 +87,10 @@ export const MobileNewsPage: React.FC<MobileNewsPageProps> = ({ onMovieSelect })
                     {/* Latest Grid */}
                     <div className="px-4 py-8">
                         <h3 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-4">New Arrivals</h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-8">
                             {movies.slice(1).map(movie => (
-                                <div key={movie.id} onClick={() => onMovieSelect(movie)} className="flex flex-col gap-2">
-                                    <div className="aspect-[2/3] bg-zinc-900 rounded-xl overflow-hidden relative">
-                                        <img src={movie.imageUrl} className="w-full h-full object-cover" />
-                                        <div className="absolute top-2 right-2 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white border border-white/10">
-                                            {String(movie.match).slice(0, 2)}%
-                                        </div>
-                                    </div>
-                                    <div className="text-xs font-bold truncate">{movie.title}</div>
+                                <div key={movie.id} className="w-full flex justify-center">
+                                    <MovieCard movie={movie} onClick={() => onMovieSelect(movie)} />
                                 </div>
                             ))}
                         </div>

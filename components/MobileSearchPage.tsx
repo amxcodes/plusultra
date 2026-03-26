@@ -177,7 +177,7 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
             {/* Mobile Header: Input & Close */}
             <div className="pt-4 px-4 pb-2 bg-[#0f1014] z-50 sticky top-0">
                 <div className="flex items-center gap-3">
-                    <div className="flex-1 relative flex items-center bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[24px] border border-white/10 h-12 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all">
+                    <div className="flex-1 relative flex items-center bg-transparent rounded-[24px] border border-white/10 h-12 transition-all">
                         <Search size={18} strokeWidth={1.5} className="ml-4 text-zinc-500" />
                         <input
                             autoFocus
@@ -229,7 +229,7 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                 {/* 1. Empty State / Recent Searches */}
                 {!hasQuery && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Search</h1>
+                        <h1 className="text-2xl font-semibold text-white mb-2 tracking-tight">Search</h1>
                         <p className="text-zinc-500 text-sm mb-8">Find movies, people, and playlists.</p>
 
                         {recentSearches.length > 0 && (
@@ -243,9 +243,11 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                                         <button
                                             key={i}
                                             onClick={() => setQuery(term)}
-                                            className="w-full flex items-center gap-3 p-3 bg-zinc-900/30 rounded-[16px] border border-white/5 active:bg-zinc-800 transition-colors"
+                                            className="w-full flex items-center gap-3 p-3 bg-transparent border-b border-white/5 last:border-0 active:bg-white/5 transition-colors"
                                         >
-                                            <Clock size={14} strokeWidth={1.5} className="text-zinc-600" />
+                                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                                                <Clock size={14} strokeWidth={1.5} className="text-zinc-600" />
+                                            </div>
                                             <span className="text-zinc-300 text-[13px] font-medium tracking-wide">{term}</span>
                                         </button>
                                     ))}
