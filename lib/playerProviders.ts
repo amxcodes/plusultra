@@ -152,7 +152,7 @@ const DEFAULT_PROVIDER_RECORDS: PlayerProviderRecord[] = [
         tags: ['Auto Next', 'Events'],
         best_for: 'Movies & TV',
         movie_embed_template: 'https://cinesrc.st/embed/movie/{{tmdbId}}?autoplay=false&controls=true',
-        tv_embed_template: 'https://cinesrc.st/embed/tv/{{tmdbId}}?s={{season}}&e={{episode}}&autoplay=false&controls=true&autonext=true',
+        tv_embed_template: 'https://cinesrc.st/embed/tv/{{tmdbId}}?s={{season}}&e={{episode}}&autoplay=false&controls=true&autonext=false',
     },
 ];
 

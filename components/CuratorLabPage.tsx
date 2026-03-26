@@ -22,14 +22,10 @@ interface CuratorLabPageProps {
 const QUICK_CHIPS = [
     'late night',
     'comfort',
-    'trippy',
     'gems',
     '<2 hrs',
-    'no anime',
     'dark',
     'feel good',
-    'movies',
-    'series',
 ];
 
 const getMovieArt = (movie: Movie) => movie.imageUrl || movie.backdropUrl || movie.posterUrl || '';
@@ -301,27 +297,28 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
     };
 
     return (
-        <div className="fixed inset-0 z-40 bg-[#0f1014] flex flex-col md:pl-[80px] pb-[85px] md:pb-0 text-white font-sans overflow-hidden">
+        <div className="fixed inset-0 z-40 bg-[#0a0a0a] flex flex-col md:pl-[80px] pb-[85px] md:pb-0 text-white font-sans overflow-hidden">
             
             {/* Minimalist Switcher */}
-            <div className="flex justify-center gap-4 pt-4 pb-2 md:pt-6 shrink-0">
-                <button
-                    onClick={() => setMode('pick')}
-                    className={`text-[15px] font-black tracking-[0.2em] uppercase transition-colors ${
-                        mode === 'pick' ? 'text-white' : 'text-zinc-600 hover:text-zinc-400'
-                    }`}
-                >
-                    Pick One
-                </button>
-                <div className="w-px h-5 bg-zinc-800 self-center" />
-                <button
-                    onClick={() => setMode('playlist')}
-                    className={`text-[15px] font-black tracking-[0.2em] uppercase transition-colors ${
-                        mode === 'playlist' ? 'text-white' : 'text-zinc-600 hover:text-zinc-400'
-                    }`}
-                >
-                    Playlist
-                </button>
+            <div className="flex justify-center pt-4 pb-2 md:pt-6 shrink-0 z-10 w-full relative">
+                <div className="flex bg-white/5 backdrop-blur-3xl border border-white/10 rounded-full p-1.5 shadow-2xl">
+                    <button
+                        onClick={() => setMode('pick')}
+                        className={`text-[11px] md:text-[13px] font-black tracking-[0.1em] uppercase transition-all duration-300 px-6 py-2 rounded-full ${
+                            mode === 'pick' ? 'bg-gradient-to-b from-white/15 to-white/5 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] text-white' : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+                        }`}
+                    >
+                        Pick One
+                    </button>
+                    <button
+                        onClick={() => setMode('playlist')}
+                        className={`text-[11px] md:text-[13px] font-black tracking-[0.1em] uppercase transition-all duration-300 px-6 py-2 rounded-full ${
+                            mode === 'playlist' ? 'bg-gradient-to-b from-white/15 to-white/5 border border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] text-white' : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
+                        }`}
+                    >
+                        Playlist
+                    </button>
+                </div>
             </div>
 
             {/* Main Interactive Stage */}
@@ -345,27 +342,29 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
                             </div>
                             
                             {/* Right Side: Text and Actions */}
-                            <div className="flex flex-col text-left flex-1 min-w-0 max-w-[280px] md:max-w-sm shrink">
-                                <h2 className="text-lg md:text-3xl font-black text-white mb-2 line-clamp-2 leading-tight">{currentPick.title}</h2>
-                                <p className="text-[11px] md:text-sm text-zinc-400 line-clamp-4 md:line-clamp-5 mb-5 md:mb-8 leading-relaxed pr-2">{currentPick.description}</p>
+                            <div className="flex flex-col text-left flex-1 min-w-0 max-w-[280px] md:max-w-sm h-[210px] md:h-[360px]">
+                                <div className="flex-1 overflow-hidden min-h-0">
+                                    <h2 className="text-lg md:text-3xl font-black text-white mb-2 line-clamp-2 leading-tight">{currentPick.title}</h2>
+                                    <p className="text-[11px] md:text-sm text-zinc-400 line-clamp-4 md:line-clamp-6 leading-relaxed pr-2">{currentPick.description}</p>
+                                </div>
                                 
-                                <div className="space-y-2.5">
+                                <div className="space-y-2.5 shrink-0 mt-4">
                                     <div className="flex items-center gap-2 md:gap-3">
                                         <button
                                             onClick={() => handleFeedback('pass')}
-                                            className="flex-1 py-3 md:py-3.5 rounded-xl md:rounded-full bg-zinc-900/50 border border-zinc-700/50 text-zinc-400 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-zinc-800 hover:text-white transition-colors"
+                                            className="flex-1 py-3 md:py-3.5 rounded-[16px] md:rounded-[20px] bg-white/5 border border-white/5 text-zinc-400 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-lg"
                                         >
                                             Pass
                                         </button>
                                         <button
                                             onClick={() => onMovieSelect?.(currentPick)}
-                                            className="flex-[1.5] py-3 md:py-3.5 rounded-xl md:rounded-full bg-white text-black text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-zinc-200 transition-colors shadow-lg"
+                                            className="flex-[1.5] py-3 md:py-3.5 rounded-[16px] md:rounded-[20px] bg-white text-black text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-zinc-200 transition-all drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] active:scale-95"
                                         >
                                             Watch
                                         </button>
                                         <button
                                             onClick={() => handleFeedback('smash')}
-                                            className="flex-1 py-3 md:py-3.5 rounded-xl md:rounded-full bg-zinc-900/50 border border-zinc-700/50 text-zinc-400 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-zinc-800 hover:text-white transition-colors"
+                                            className="flex-1 py-3 md:py-3.5 rounded-[16px] md:rounded-[20px] bg-white/5 border border-white/5 text-zinc-400 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-white/10 hover:border-white/10 hover:text-white transition-all shadow-lg"
                                         >
                                             Smash
                                         </button>
@@ -374,9 +373,9 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
                                     <button
                                         onClick={() => void handleSaveForLater()}
                                         disabled={isInList(currentPick.id)}
-                                        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl md:rounded-full bg-zinc-900/50 border border-zinc-700/50 text-zinc-300 text-[9px] md:text-xs font-bold uppercase tracking-wider hover:bg-zinc-800 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full flex items-center justify-center gap-2 py-3 rounded-[16px] md:rounded-[20px] bg-gradient-to-b from-white/10 to-white/5 border border-white/10 text-white shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] text-[9px] md:text-xs font-bold uppercase tracking-wider hover:from-white/15 hover:to-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <BookmarkPlus size={15} />
+                                        <BookmarkPlus size={15} strokeWidth={1.5} />
                                         {isInList(currentPick.id) ? 'Already In My List' : 'Save For Later'}
                                     </button>
                                 </div>
@@ -423,17 +422,17 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
                             </div>
 
                             {/* Draft Buttons */}
-                            <div className="w-full max-w-sm shrink-0 flex gap-2">
+                            <div className="w-full max-w-sm shrink-0 flex gap-2 pt-2">
                                 <button
                                     onClick={() => void handleRedoDraft()}
-                                    className="px-6 py-3 rounded-full bg-transparent border border-zinc-700 text-zinc-400 text-[11px] font-bold uppercase tracking-wider hover:bg-zinc-800 transition-colors shrink-0"
+                                    className="px-6 py-3 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-[11px] font-bold uppercase tracking-wider hover:bg-white/10 hover:text-white transition-all shadow-lg shrink-0"
                                 >
                                     Redo
                                 </button>
                                 <button
                                     onClick={() => handleSaveDraft()}
                                     disabled={savingPlaylist}
-                                    className="flex-1 px-8 py-3 rounded-full bg-white text-black text-[11px] font-bold uppercase tracking-wider hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                                    className="flex-1 px-8 py-3 rounded-full bg-white text-black text-[11px] font-bold uppercase tracking-wider hover:bg-zinc-200 transition-all drop-shadow-[0_0_12px_rgba(255,255,255,0.3)] disabled:opacity-50 active:scale-95"
                                 >
                                     {savingPlaylist ? 'Saving...' : 'Save Playlist'}
                                 </button>
@@ -447,44 +446,47 @@ export const CuratorLabPage: React.FC<CuratorLabPageProps> = ({ onMovieSelect, o
                 )}
             </div>
 
-            {/* Bottom Form Area */}
-            <div className="shrink-0 w-full max-w-4xl mx-auto px-4 pb-2 md:pb-4 mt-auto">
-                {/* Single Visible Row Quick Chips */}
-                <div className="flex flex-nowrap justify-center items-center gap-1.5 md:gap-2 pb-3 w-full overflow-hidden">
-                    {QUICK_CHIPS.map(chip => {
-                        const active = selectedChips.includes(chip);
-                        return (
-                            <button
-                                key={chip}
-                                onClick={() => toggleChip(chip)}
-                                className={`min-w-0 shrink px-2 md:px-3 py-1.5 border text-[8.5px] md:text-[9px] font-bold uppercase tracking-wider rounded-lg transition-colors truncate ${
-                                    active
-                                        ? 'bg-white text-black border-transparent'
-                                        : 'bg-transparent border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-700'
-                                }`}
-                            >
-                                {chip}
-                            </button>
-                        );
-                    })}
-                </div>
+            {/* Bottom Form Area (Modern Chat Bar) */}
+            <div className="shrink-0 w-full max-w-4xl mx-auto px-4 pb-4 mt-auto">
+                <div className="flex flex-col gap-0 md:gap-3 bg-[#0a0a0a]/90 backdrop-blur-3xl border border-white/10 rounded-[24px] md:rounded-[28px] p-1 md:p-3 shadow-[0_20px_40px_rgba(0,0,0,0.8)]">
+                    
+                    {/* Inner Quick Chips Centered Row */}
+                    <div className="hidden md:flex flex-wrap justify-center md:justify-start gap-2 pb-1 pt-1 px-2 shrink-0 w-full">
+                        {QUICK_CHIPS.map(chip => {
+                            const active = selectedChips.includes(chip);
+                            return (
+                                <button
+                                    key={chip}
+                                    onClick={() => toggleChip(chip)}
+                                    className={`shrink-0 px-3.5 md:px-4 py-2 md:py-2.5 text-[10px] md:text-[11px] font-bold uppercase tracking-widest rounded-[14px] transition-all duration-300 border ${
+                                        active
+                                            ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/20 text-white shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]'
+                                            : 'bg-transparent border-transparent text-zinc-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                                >
+                                    {chip}
+                                </button>
+                            );
+                        })}
+                    </div>
 
-                {/* Compact Main Input Element */}
-                <div className="flex items-center bg-[#0a0a0c] border border-zinc-800 focus-within:border-zinc-600 rounded-2xl p-1 transition-colors shadow-lg">
-                    <input
-                        value={prompt}
-                        onChange={e => setPrompt(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handlePrimaryAction()}
-                        placeholder={getPromptFallback(mode, context)}
-                        className="flex-1 bg-transparent pl-4 pr-3 h-10 text-[13px] font-medium text-white focus:outline-none placeholder:text-zinc-600"
-                    />
-                    <button
-                        onClick={handlePrimaryAction}
-                        disabled={refreshing}
-                        className="h-10 px-6 bg-white text-black text-[11px] font-bold uppercase tracking-wider rounded-xl flex items-center justify-center disabled:opacity-50 hover:bg-zinc-200 transition-colors"
-                    >
-                        {refreshing ? '...' : (mode === 'pick' ? 'Find' : 'Draft')}
-                    </button>
+                    {/* Chat Input Field Container */}
+                    <div className="flex items-center px-3 py-1 md:py-0 md:pb-1 transition-all">
+                        <input
+                            value={prompt}
+                            onChange={e => setPrompt(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handlePrimaryAction()}
+                            placeholder={getPromptFallback(mode, context)}
+                            className="flex-1 bg-transparent px-2 h-10 md:h-12 text-[13px] md:text-[14px] font-medium text-white focus:outline-none placeholder:text-zinc-500 tracking-wide"
+                        />
+                        <button
+                            onClick={handlePrimaryAction}
+                            disabled={refreshing}
+                            className="h-9 md:h-11 px-4 md:px-6 bg-white text-black text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-xl md:rounded-[14px] flex items-center justify-center disabled:opacity-50 hover:bg-zinc-200 transition-all drop-shadow-[0_0_10px_rgba(255,255,255,0.15)] active:scale-95 shrink-0 ml-2"
+                        >
+                            {refreshing ? '...' : (mode === 'pick' ? 'Search' : 'Draft')}
+                        </button>
+                    </div>
                 </div>
                 
                 {/* Status Message Display */}

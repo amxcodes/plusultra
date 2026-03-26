@@ -379,12 +379,12 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
     <div className="min-h-screen w-full bg-[#0f1014] relative overflow-hidden px-4 md:pl-24 md:pr-8 selection:bg-white/20">
 
       <div className={`
-        relative w-full max-w-7xl mx-auto flex flex-col transition-all duration-700 cubic-bezier(0.16, 1, 0.3, 1)
-        ${hasQuery ? 'pt-8 items-start' : 'h-[80vh] items-center justify-center'}
+        relative w-full max-w-7xl mx-auto flex flex-col transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
+        ${hasQuery ? 'mt-8' : 'mt-[30vh]'}
       `}>
 
         {/* Search Input Container */}
-        <div className={`w-full transition-all duration-700 ${hasQuery ? 'max-w-7xl' : 'max-w-2xl scale-110'}`}>
+        <div className={`mx-auto w-full transition-all duration-700 ${hasQuery ? 'max-w-7xl scale-100' : 'max-w-3xl scale-105'}`}>
 
           {!hasQuery && (
             <div className="text-center mb-8 space-y-2 animate-in fade-in zoom-in-95 duration-700">
@@ -394,11 +394,11 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
           )}
 
           <div className={`
-            relative flex items-center bg-[#151518] ring-1 transition-all duration-300 rounded-2xl overflow-hidden shadow-2xl
-            ${isFocused ? 'ring-white/30 bg-[#1a1a1e]' : 'ring-white/10 hover:ring-white/20'}
+            relative flex items-center bg-[#0a0a0a]/80 backdrop-blur-2xl border transition-all duration-300 mb-2 rounded-[24px] overflow-hidden shadow-xl
+            ${isFocused ? 'border-white/10' : 'border-white/5 hover:border-white/10'}
           `}>
             <div className="pl-6 text-zinc-500">
-              <Search size={24} className={`transition-colors duration-300 ${isFocused ? 'text-white' : ''}`} />
+              <Search size={22} strokeWidth={1.5} className={`transition-colors duration-300 ${isFocused ? 'text-white' : ''}`} />
             </div>
             <input
               autoFocus
@@ -422,9 +422,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
 
           {/* Recent Searches Dropdown */}
           {recentSearches.length > 0 && !hasQuery && isFocused && (
-            <div className="absolute top-full mt-2 w-full bg-[#151518] border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 z-50">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-                <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold uppercase tracking-wider">
+            <div className="absolute top-full mt-2 w-full bg-[#0a0a0a]/95 backdrop-blur-3xl border border-white/10 rounded-[28px] p-2 shadow-[0_20px_40px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in-95 duration-200 z-50">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 mx-2">
+                <div className="flex items-center gap-2 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">
                   <Clock size={12} />
                   Recent Searches
                 </div>
@@ -488,246 +488,192 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
               </button>
             ))}
           </div>
-        )}
-
-        {/* Tabs (Visible when has query) */}
+        )}        {/* Unified Search Command Bar (Visible when has query) */}
         {hasQuery && (
-          <div className="flex gap-2 mt-6 animate-in fade-in zoom-in-95 duration-500">
-            {Object.values(SearchTab).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border
-                            ${activeTab === tab
-                    ? 'bg-white text-black border-white'
-                    : 'bg-transparent text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-white/5'}
-                        `}
-              >
-                {tab === SearchTab.MOVIES && <Film size={16} />}
-                {tab === SearchTab.USERS && <Users size={16} />}
-                {tab === SearchTab.PLAYLISTS && <Disc size={16} />}
-                {tab}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Detailed Filters (Only for Movies & TV tab) */}
-        {hasQuery && activeTab === SearchTab.MOVIES && (
-          <div className="flex flex-wrap items-center gap-3 mt-6 animate-in fade-in zoom-in-95 duration-500 overflow-x-auto pb-4 md:pb-0 scrollbar-hide w-full flex-nowrap md:flex-wrap">
-
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsSortOpen(!isSortOpen)}
-                className={`
-                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all whitespace-nowrap
-                  ${isSortOpen ? 'border-white/20 text-white' : 'border-white/5 hover:border-white/10 hover:text-white'}
-                `}
-              >
-                <ArrowUpDown size={12} />
-                <span>{sortBy === 'relevance' ? 'Relevance' : sortBy === 'rating' ? 'Top Rated' : sortBy === 'year' ? 'Newest' : 'Popular'}</span>
-                <ChevronDown size={12} className={`transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isSortOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsSortOpen(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-40 bg-[#1a1a1e] border border-white/10 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-98 duration-150 overflow-hidden">
-                    <div className="p-1.5 space-y-0.5">
-                      {[
-                        { id: 'relevance', name: 'Relevance' },
-                        { id: 'rating', name: 'Top Rated' },
-                        { id: 'year', name: 'Newest' },
-                        { id: 'popularity', name: 'Popular' },
-                      ].map(sort => (
-                        <button
-                          key={sort.id}
-                          onClick={() => {
-                            setSortBy(sort.id as any);
-                            setIsSortOpen(false);
-                          }}
-                          className={`
-                            w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between
-                            ${sortBy === sort.id
-                              ? 'bg-white text-black'
-                              : 'text-zinc-400 hover:text-white hover:bg-white/5'}
-                          `}
-                        >
-                          {sort.name}
-                          {sortBy === sort.id && <Sparkles size={10} className="text-black" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Genre Filter */}
-            <div className="relative">
-              <button
-                onClick={() => setIsGenreOpen(!isGenreOpen)}
-                className={`
-                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all whitespace-nowrap
-                  ${isGenreOpen ? 'border-white/20 text-white' : 'border-white/5 hover:border-white/10 hover:text-white'}
-                `}
-              >
-                {filterGenres.length > 0 ? (
-                  <>
-                    <span className="text-white">
-                      {filterGenres.length} Genre{filterGenres.length > 1 ? 's' : ''}
-                    </span>
-                    <X size={12} className="ml-1 text-zinc-500 hover:text-white" onClick={(e) => { e.stopPropagation(); setFilterGenres([]); }} />
-                  </>
-                ) : (
-                  <>
-                    <span>Genre</span>
-                    <ChevronDown size={12} className={`transition-transform duration-200 ${isGenreOpen ? 'rotate-180' : ''}`} />
-                  </>
-                )}
-              </button>
-
-              {/* Dropdown Menu */}
-              {isGenreOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsGenreOpen(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-48 bg-[#1a1a1e] border border-white/10 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-98 duration-150 overflow-hidden">
-                    <div className="max-h-80 overflow-y-auto custom-scrollbar p-1.5 space-y-0.5">
-                      {[
-                        { id: '', name: 'All Genres' },
-                        { id: '28', name: 'Action' },
-                        { id: '12', name: 'Adventure' },
-                        { id: '16', name: 'Animation' },
-                        { id: '35', name: 'Comedy' },
-                        { id: '80', name: 'Crime' },
-                        { id: '99', name: 'Documentary' },
-                        { id: '18', name: 'Drama' },
-                        { id: '10751', name: 'Family' },
-                        { id: '14', name: 'Fantasy' },
-                        { id: '36', name: 'History' },
-                        { id: '27', name: 'Horror' },
-                        { id: '10402', name: 'Music' },
-                        { id: '9648', name: 'Mystery' },
-                        { id: '10749', name: 'Romance' },
-                        { id: '878', name: 'Sci-Fi' },
-                        { id: '53', name: 'Thriller' },
-                        { id: '10752', name: 'War' },
-                        { id: '37', name: 'Western' },
-                      ].map(genre => (
-                        <button
-                          key={genre.id}
-                          onClick={() => {
-                            if (genre.id === '') {
-                              setFilterGenres([]); // Clear all
-                            } else {
-                              setFilterGenres(prev =>
-                                prev.includes(genre.id)
-                                  ? prev.filter(g => g !== genre.id) // Remove
-                                  : [...prev, genre.id] // Add
-                              );
-                            }
-                          }}
-                          className={`
-                            w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between
-                            ${filterGenres.includes(genre.id) || (genre.id === '' && filterGenres.length === 0)
-                              ? 'bg-white text-black'
-                              : 'text-zinc-400 hover:text-white hover:bg-white/5'}
-                          `}
-                        >
-                          {genre.name}
-                          {(filterGenres.includes(genre.id) || (genre.id === '' && filterGenres.length === 0)) && <Sparkles size={10} className="text-black" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Rating Filter (New Dropdown) */}
-            <div className="relative">
-              <button
-                onClick={() => setIsRatingOpen(!isRatingOpen)}
-                className={`
-                  flex items-center gap-2 bg-[#1a1a1e] text-zinc-300 text-xs font-bold px-4 py-2.5 rounded-xl border transition-all whitespace-nowrap
-                  ${isRatingOpen ? 'border-white/20 text-white' : 'border-white/5 hover:border-white/10 hover:text-white'}
-                `}
-              >
-                <span>{minRating === 0 ? 'Any Rating' : `${minRating}+ Stars`}</span>
-                <ChevronDown size={12} className={`transition-transform duration-200 ${isRatingOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              {isRatingOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsRatingOpen(false)} />
-                  <div className="absolute top-full left-0 mt-2 w-32 bg-[#1a1a1e] border border-white/10 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-98 duration-150 overflow-hidden">
-                    <div className="p-1.5 space-y-0.5">
-                      {[0, 6, 7, 8, 9].map(rating => (
-                        <button
-                          key={rating}
-                          onClick={() => {
-                            setMinRating(rating);
-                            setIsRatingOpen(false);
-                          }}
-                          className={`
-                            w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-between
-                            ${minRating === rating
-                              ? 'bg-white text-black'
-                              : 'text-zinc-400 hover:text-white hover:bg-white/5'}
-                          `}
-                        >
-                          {rating === 0 ? 'Any Rating' : `${rating}.0+`}
-                          {minRating === rating && <Sparkles size={10} className="text-black" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Year Filter */}
-            <div className="relative group">
-              <input
-                type="text"
-                placeholder="Year"
-                value={filterYear}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                  setFilterYear(val);
-                }}
-                className="w-20 bg-[#1a1a1e] border border-white/5 text-white text-xs font-bold px-3 py-2.5 rounded-xl outline-none focus:border-white/20 transition-all placeholder:text-zinc-600 text-center hover:border-white/10"
-              />
-            </div>
-
-            <div className="flex-1" /> {/* Spacer */}
-
-            {/* Type Filter */}
-            <div className="flex bg-[#1a1a1e] rounded-xl p-1 border border-white/5">
-              {(['multi', 'movie', 'tv'] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFilterType(type)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all uppercase tracking-wider ${filterType === type
-                    ? 'bg-white text-black shadow-lg'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
-                >
-                  {type === 'multi' ? 'All' : type}
-                </button>
-              ))}
-            </div>
-
-            {/* Result Count Badge */}
-            {!isSearching && results.length > 0 && (
-              <div className="animate-in fade-in duration-500">
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 bg-zinc-900/50 px-3 py-1.5 rounded-lg border border-white/5">
-                  {sortedResults.length}{hasMore ? '+' : ''} Found
-                </span>
+          <div className="w-full max-w-7xl relative mx-auto mt-6 animate-in fade-in zoom-in-95 duration-500">
+            <div className="flex flex-wrap lg:flex-nowrap items-center justify-between bg-[#0a0a0a]/60 backdrop-blur-3xl border border-white/5 rounded-[24px] lg:rounded-full p-1.5 shadow-lg relative z-50">
+              
+              {/* Primary Search Tabs */}
+              <div className="flex items-center gap-1 shrink-0 px-2 lg:px-0">
+                {Object.values(SearchTab).map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-5 py-2.5 rounded-full text-[11px] tracking-widest uppercase font-bold transition-all duration-300 flex items-center gap-2 border border-transparent whitespace-nowrap outline-none
+                                ${activeTab === tab
+                        ? 'bg-white/10 text-white shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border-white/10'
+                        : 'text-zinc-500 hover:text-white hover:bg-white/5'}
+                            `}
+                  >
+                    {tab === SearchTab.MOVIES && <Film size={14} strokeWidth={2} />}
+                    {tab === SearchTab.USERS && <Users size={14} strokeWidth={2} />}
+                    {tab === SearchTab.PLAYLISTS && <Disc size={14} strokeWidth={2} />}
+                    {tab}
+                  </button>
+                ))}
               </div>
-            )}
 
+              {/* Detailed Filters (Movies ONLY) */}
+              {activeTab === SearchTab.MOVIES && (
+                <div className="flex items-center gap-2 shrink-0 px-2 lg:px-4 ml-auto relative">
+                  <div className="hidden md:block h-6 w-px bg-white/10 mx-2" />
+                  
+                  {/* Type Filter */}
+                  <div className="flex bg-black/50 rounded-full p-1 border border-white/5 relative">
+                    {(['multi', 'movie', 'tv'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setFilterType(type)}
+                        className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all duration-300 uppercase tracking-widest border border-transparent outline-none
+                          ${filterType === type
+                            ? 'bg-white/10 text-white'
+                            : 'text-zinc-500 hover:text-white'
+                          }`}
+                      >
+                        {type === 'multi' ? 'All' : type}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="hidden md:block h-3 w-px bg-white/5" />
+
+                  {/* Rating Dropdown */}
+                  <div className="relative group/filter">
+                    <button
+                      onClick={() => { setIsRatingOpen(!isRatingOpen); setIsSortOpen(false); setIsGenreOpen(false); }}
+                      className={`
+                        flex items-center gap-2 text-[10px] tracking-widest uppercase font-bold px-4 py-2.5 rounded-full transition-all duration-300 whitespace-nowrap outline-none border border-transparent
+                        ${isRatingOpen ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}
+                      `}
+                    >
+                      <span>{minRating === 0 ? 'Any Rating' : `${minRating}+`}</span>
+                      <ChevronDown size={12} strokeWidth={2} className={`transition-transform duration-200 ${isRatingOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Popover */}
+                    {isRatingOpen && (
+                      <>
+                        <div className="fixed inset-0 z-[100]" onClick={() => setIsRatingOpen(false)} />
+                        <div className="absolute top-full -right-4 mt-3 w-36 bg-[#0a0a0a]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-xl z-[110] animate-in slide-in-from-top-2 fade-in duration-200 overflow-hidden">
+                          <div className="p-2 space-y-1">
+                            {[0, 6, 7, 8, 9].map(rating => (
+                              <button
+                                key={rating}
+                                onClick={() => { setMinRating(rating); setIsRatingOpen(false); }}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between outline-none
+                                  ${minRating === rating ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/5'}
+                                `}
+                              >
+                                {rating === 0 ? 'Any' : `${rating}.0+`}
+                                {minRating === rating && <Sparkles size={10} />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Genre Dropdown */}
+                  <div className="relative group/filter">
+                    <button
+                      onClick={() => { setIsGenreOpen(!isGenreOpen); setIsSortOpen(false); setIsRatingOpen(false); }}
+                      className={`
+                        flex items-center gap-2 text-[10px] tracking-widest uppercase font-bold px-4 py-2.5 rounded-full transition-all duration-300 whitespace-nowrap outline-none border border-transparent
+                        ${isGenreOpen ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5'}
+                      `}
+                    >
+                      {filterGenres.length > 0 ? (
+                        <>
+                          <span className="text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">{filterGenres.length} Genre{filterGenres.length > 1 ? 's' : ''}</span>
+                          <X size={12} strokeWidth={2} className="ml-1 opacity-70 hover:opacity-100" onClick={(e: any) => { e.stopPropagation(); setFilterGenres([]); }} />
+                        </>
+                      ) : (
+                        <>
+                          <span>Genre</span>
+                          <ChevronDown size={12} strokeWidth={2} className={`transition-transform duration-200 ${isGenreOpen ? 'rotate-180' : ''}`} />
+                        </>
+                      )}
+                    </button>
+
+                    {isGenreOpen && (
+                      <>
+                        <div className="fixed inset-0 z-[100]" onClick={() => setIsGenreOpen(false)} />
+                        <div className="absolute top-full -right-10 mt-3 w-48 bg-[#0a0a0a]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-xl z-[110] animate-in slide-in-from-top-2 fade-in duration-200 overflow-hidden">
+                          <div className="max-h-80 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                            {[{ id: '', name: 'All Genres' }, { id: '28', name: 'Action' }, { id: '12', name: 'Adventure' }, { id: '16', name: 'Animation' }, { id: '35', name: 'Comedy' }, { id: '80', name: 'Crime' }, { id: '99', name: 'Documentary' }, { id: '18', name: 'Drama' }, { id: '10751', name: 'Family' }, { id: '14', name: 'Fantasy' }, { id: '36', name: 'History' }, { id: '27', name: 'Horror' }, { id: '10402', name: 'Music' }, { id: '9648', name: 'Mystery' }, { id: '10749', name: 'Romance' }, { id: '878', name: 'Sci-Fi' }, { id: '53', name: 'Thriller' }, { id: '10752', name: 'War' }, { id: '37', name: 'Western' }].map(genre => (
+                              <button
+                                key={genre.id}
+                                onClick={() => {
+                                  if (genre.id === '') setFilterGenres([]);
+                                  else setFilterGenres(prev => prev.includes(genre.id) ? prev.filter(g => g !== genre.id) : [...prev, genre.id]);
+                                }}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between outline-none
+                                  ${filterGenres.includes(genre.id) || (genre.id === '' && filterGenres.length === 0) ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/5'}
+                                `}
+                              >
+                                {genre.name}
+                                {(filterGenres.includes(genre.id) || (genre.id === '' && filterGenres.length === 0)) && <Sparkles size={10} />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Year Input */}
+                  <div className="relative group">
+                    <input
+                      type="text"
+                      placeholder="Year"
+                      value={filterYear}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        setFilterYear(val);
+                      }}
+                      className="w-16 bg-transparent border border-transparent text-white text-[11px] tracking-widest font-bold px-2 py-2.5 rounded-full outline-none focus:bg-white/10 transition-all duration-300 placeholder:text-zinc-500 text-center hover:bg-white/5"
+                    />
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="relative ml-2">
+                    <button
+                      onClick={() => { setIsSortOpen(!isSortOpen); setIsRatingOpen(false); setIsGenreOpen(false); }}
+                      className={`
+                        w-10 h-10 flex items-center justify-center rounded-full border border-transparent transition-all duration-300 outline-none
+                        ${isSortOpen ? 'bg-white/10 text-white border-white/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}
+                      `}
+                    >
+                      <ArrowUpDown size={14} strokeWidth={isSortOpen ? 2.5 : 2} />
+                    </button>
+
+                    {isSortOpen && (
+                      <>
+                        <div className="fixed inset-0 z-[100]" onClick={() => setIsSortOpen(false)} />
+                        <div className="absolute top-full -right-2 mt-3 w-40 bg-[#0a0a0a]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-xl z-[110] animate-in slide-in-from-top-2 fade-in duration-200 overflow-hidden">
+                          <div className="p-2 space-y-1">
+                            {[{ id: 'relevance', name: 'Relevance' }, { id: 'rating', name: 'Top Rated' }, { id: 'year', name: 'Newest' }, { id: 'popularity', name: 'Popular' }].map(sort => (
+                              <button
+                                key={sort.id}
+                                onClick={() => { setSortBy(sort.id as any); setIsSortOpen(false); }}
+                                className={`w-full text-left px-3 py-2 rounded-xl text-[11px] uppercase tracking-wider font-bold transition-all flex items-center justify-between outline-none
+                                  ${sortBy === sort.id ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-white/5'}
+                                `}
+                              >
+                                {sort.name}
+                                {sortBy === sort.id && <Sparkles size={10} />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                </div>
+              )}
+            </div>
           </div>
         )}
 

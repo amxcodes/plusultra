@@ -168,12 +168,28 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         ? currentProvider.getDirectSources?.(providerContext) || []
         : [];
     const currentEmbedUrl = currentProvider.getEmbedUrl?.(providerContext) || '';
+    const playbackTargetKey = `${currentProvider.id}:${tmdbId}:${mediaType}:${season}:${episode}`;
 
     useEffect(() => {
         if (!availableProviders.some(item => item.id === provider)) {
             setProvider(availableProviders[0].id);
         }
     }, [availableProviders, provider]);
+
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+
+        console.info('[UnifiedPlayer] Playback target', {
+            provider: currentProvider.id,
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            url: currentProvider.renderMode === 'direct'
+                ? directSources[0]?.src || ''
+                : currentEmbedUrl,
+        });
+    }, [currentProvider.id, currentProvider.renderMode, currentEmbedUrl, directSources, tmdbId, mediaType, season, episode]);
 
     const finishProviderAttempt = (reason: string) => {
         if (providerAttemptFinishedRef.current) return;
@@ -226,10 +242,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     // Event Listener for PostMessage (P-Stream / Vidora)
     const [isProviderReady, setIsProviderReady] = useState(false);
 
-    // Reset ready state when provider changes
+    // Reset ready state whenever the playback target changes.
     useEffect(() => {
         setIsProviderReady(false);
-    }, [provider]);
+    }, [provider, currentEmbedUrl, tmdbId, mediaType, season, episode]);
 
     const markProviderReady = () => {
         if (providerReadyMarkedRef.current) return;
@@ -463,6 +479,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
             {currentProvider.renderMode === 'direct' ? (
                 <DirectMediaPlayer
+                    key={`${playbackTargetKey}:direct`}
                     sources={directSources}
                     title={`${title || tmdbId} - ${currentProvider.name}`}
                     videoRef={directVideoRef}
@@ -473,6 +490,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 />
             ) : (
                 <iframe
+                    key={currentEmbedUrl || `${playbackTargetKey}:embed`}
                     ref={iframeRef}
                     src={currentEmbedUrl}
                     width="100%"

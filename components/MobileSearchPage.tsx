@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, X, Users, Disc, Film, Sparkles, TrendingUp, Clock, Trash, ChevronDown, ArrowUpDown } from 'lucide-react';
 import { Movie, Profile, Playlist } from '../types';
@@ -95,7 +94,6 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
     // Fetch Trending
     useEffect(() => {
         const fetchTrendingTerms = async () => {
-            // ... same logic as desktop
             const CACHE_KEY = 'fuzzySearchCache';
             try {
                 const cached = localStorage.getItem(CACHE_KEY);
@@ -179,22 +177,22 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
             {/* Mobile Header: Input & Close */}
             <div className="pt-4 px-4 pb-2 bg-[#0f1014] z-50 sticky top-0">
                 <div className="flex items-center gap-3">
-                    <div className="flex-1 relative flex items-center bg-[#1a1a1e] rounded-xl border border-white/10 h-12">
-                        <Search size={18} className="ml-4 text-zinc-500" />
+                    <div className="flex-1 relative flex items-center bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[24px] border border-white/10 h-12 shadow-[0_10px_30px_rgba(0,0,0,0.8)] transition-all">
+                        <Search size={18} strokeWidth={1.5} className="ml-4 text-zinc-500" />
                         <input
                             autoFocus
                             type="text"
                             placeholder="Search..."
-                            className="flex-1 bg-transparent text-white px-3 text-sm font-medium outline-none placeholder:text-zinc-600"
+                            className="flex-1 bg-transparent text-white px-3 text-[13px] tracking-wide font-medium outline-none placeholder:text-zinc-500"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                         />
                         {hasQuery && (
-                            <button onClick={() => setQuery('')} className="p-3 text-zinc-500 active:text-white"><X size={16} /></button>
+                            <button onClick={() => setQuery('')} className="p-3 text-zinc-500 active:text-white"><X size={16} strokeWidth={1.5} /></button>
                         )}
                     </div>
                     {onClose && (
-                        <button onClick={onClose} className="text-white text-sm font-bold">Done</button>
+                        <button onClick={onClose} className="text-white text-sm font-bold opacity-80 hover:opacity-100">Done</button>
                     )}
                 </div>
 
@@ -205,7 +203,7 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${activeTab === tab ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 border border-white/5'
+                                className={`px-4 py-2.5 rounded-[12px] text-[10px] tracking-widest uppercase font-bold whitespace-nowrap transition-all duration-300 border ${activeTab === tab ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/20 text-white shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'bg-transparent text-zinc-500 border-transparent hover:text-white hover:bg-white/5'
                                     }`}
                             >
                                 {tab}
@@ -216,9 +214,9 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                         {activeTab === SearchTab.MOVIES && (
                             <button
                                 onClick={() => setSortBy(sortBy === 'relevance' ? 'year' : sortBy === 'year' ? 'rating' : 'relevance')}
-                                className="px-3 py-2 rounded-lg text-xs font-bold bg-zinc-900 text-zinc-400 border border-white/5 flex items-center gap-1"
+                                className="px-4 py-2.5 rounded-[12px] text-[10px] font-bold tracking-widest uppercase bg-white/5 text-zinc-400 border border-transparent flex items-center gap-2 transition-all duration-300 active:scale-95"
                             >
-                                <TrendingUp size={12} /> {sortBy === 'relevance' ? 'Sort' : sortBy}
+                                <TrendingUp size={12} strokeWidth={1.5} /> {sortBy === 'relevance' ? 'Sort' : sortBy}
                             </button>
                         )}
                     </div>
@@ -237,18 +235,18 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                         {recentSearches.length > 0 && (
                             <div>
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Recent</h3>
-                                    <button onClick={() => setRecentSearches([])} className="text-zinc-700 hover:text-red-500"><Trash size={14} /></button>
+                                    <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Recent</h3>
+                                    <button onClick={() => setRecentSearches([])} className="text-zinc-700 hover:text-red-500"><Trash size={14} strokeWidth={1.5} /></button>
                                 </div>
                                 <div className="space-y-1">
                                     {recentSearches.map((term, i) => (
                                         <button
                                             key={i}
                                             onClick={() => setQuery(term)}
-                                            className="w-full flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl border border-white/5 active:bg-zinc-800 transition-colors"
+                                            className="w-full flex items-center gap-3 p-3 bg-zinc-900/30 rounded-[16px] border border-white/5 active:bg-zinc-800 transition-colors"
                                         >
-                                            <Clock size={14} className="text-zinc-600" />
-                                            <span className="text-zinc-300 text-sm font-medium">{term}</span>
+                                            <Clock size={14} strokeWidth={1.5} className="text-zinc-600" />
+                                            <span className="text-zinc-300 text-[13px] font-medium tracking-wide">{term}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -256,10 +254,10 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                         )}
 
                         <div className="mt-8">
-                            <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4">Trending</h3>
+                            <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Trending</h3>
                             <div className="flex flex-wrap gap-2">
                                 {["Anime", "Action", "Romance", "Top Rated", "New Releases"].map(tag => (
-                                    <button key={tag} onClick={() => setQuery(tag)} className="px-4 py-2 bg-zinc-900 border border-white/5 rounded-full text-xs font-bold text-zinc-400">
+                                    <button key={tag} onClick={() => setQuery(tag)} className="px-4 py-2.5 bg-white/5 border border-transparent rounded-[14px] text-[10px] tracking-widest uppercase font-bold text-zinc-400 hover:text-white hover:bg-white/10 transition-all duration-300">
                                         {tag}
                                     </button>
                                 ))}
@@ -272,7 +270,9 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                 {isSearching && (
                     <div className="grid grid-cols-2 gap-4">
                         {[...Array(6)].map((_, i) => (
-                            <div key={i} className="aspect-[2/3] bg-zinc-900 rounded-xl animate-pulse" />
+                            <div key={i} className="aspect-[2/3] bg-zinc-900/50 rounded-xl animate-pulse ring-1 ring-white/5 relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_1.5s_infinite]" />
+                            </div>
                         ))}
                     </div>
                 )}
@@ -296,11 +296,11 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                         {activeTab === SearchTab.USERS && userResults.length > 0 && (
                             <div className="space-y-3 pb-12">
                                 {userResults.map(u => (
-                                    <div key={u.id} onClick={() => onNavigate && onNavigate('profile', { id: u.id })} className="flex items-center gap-3 p-3 bg-zinc-900 rounded-xl border border-white/5 active:bg-zinc-800">
-                                        <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}`} className="w-10 h-10 rounded-full" />
+                                    <div key={u.id} onClick={() => onNavigate && onNavigate('profile', { id: u.id })} className="flex items-center gap-4 p-4 bg-gradient-to-br from-white/5 to-transparent rounded-[20px] border border-white/5 active:scale-95 transition-all duration-300 hover:border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+                                        <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}`} className="w-10 h-10 rounded-full border border-white/10" />
                                         <div>
-                                            <div className="text-sm font-bold text-white">{u.username}</div>
-                                            <div className="text-[10px] text-zinc-500 uppercase">{u.role}</div>
+                                            <div className="text-[14px] font-bold text-white tracking-wide">{u.username}</div>
+                                            <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">{u.role}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -310,7 +310,7 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                         {/* Load More */}
                         {hasMore && activeTab === SearchTab.MOVIES && !isSearching && results.length > 0 && (
                             <div className="flex justify-center pb-8 pt-4">
-                                <button onClick={loadMore} disabled={isLoadingMore} className="bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                <button onClick={loadMore} disabled={isLoadingMore} className="bg-white/5 text-white border border-transparent hover:bg-white/10 px-6 py-3 rounded-full text-[11px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all duration-300">
                                     {isLoadingMore ? 'Loading...' : 'Load More'}
                                 </button>
                             </div>
@@ -319,8 +319,8 @@ export const MobileSearchPage: React.FC<MobileSearchPageProps> = ({ onMovieSelec
                         {/* No Results */}
                         {!isSearching && ((activeTab === SearchTab.MOVIES && results.length === 0) || (activeTab === SearchTab.USERS && userResults.length === 0)) && (
                             <div className="text-center py-20 text-zinc-500">
-                                <Search size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No results found for "{query}"</p>
+                                <Search size={48} strokeWidth={1.5} className="mx-auto mb-4 opacity-20" />
+                                <p className="text-sm font-medium tracking-wide">No results found for "{query}"</p>
                             </div>
                         )}
                     </div>

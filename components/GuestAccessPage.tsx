@@ -13,6 +13,7 @@ interface GuestAccessPageProps {
 export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
     const { user, profile, loading, signOut, refreshProfile } = useAuth();
     const turnstileEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+    const missingTurnstileConfig = import.meta.env.DEV && !turnstileEnabled;
     const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
     const [status, setStatus] = useState('Use the link below to open a temporary guest account.');
     const [error, setError] = useState<string | null>(null);
@@ -93,6 +94,11 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
             return;
         }
 
+        if (missingTurnstileConfig) {
+            setStatus('Turnstile is not configured for local development. Add VITE_TURNSTILE_SITE_KEY to .env.local or disable captcha in Supabase Auth for local guest testing.');
+            return;
+        }
+
         if (!user && turnstileEnabled && !captchaToken) {
             setStatus('Complete the security check first.');
             return;
@@ -161,6 +167,12 @@ export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
                 <p className="text-zinc-400 leading-relaxed text-sm">
                     {error || status}
                 </p>
+
+                {missingTurnstileConfig && !user && (
+                    <div className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+                        Add <code>VITE_TURNSTILE_SITE_KEY</code> to <code>.env.local</code> or disable Supabase captcha while testing guest access locally.
+                    </div>
+                )}
 
                 {turnstileEnabled && !user && (
                     <div className="mt-5">

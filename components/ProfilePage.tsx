@@ -161,7 +161,7 @@ const AvatarSelectorModal = ({ isOpen, onClose, onSelect, currentAvatar }: { isO
                                         <button
                                             key={char.mal_id}
                                             onClick={() => onSelect(char.images.jpg.image_url)}
-                                            className={`group relative aspect-[3/4] rounded-xl overflow-hidden bg-zinc-800 transition-all duration-300 ${isActive ? 'ring-2 ring-white scale-95 shadow-xl shadow-white/10' : 'hover:scale-105 hover:shadow-lg hover:z-10'}`}
+                                            className={`group relative aspect-[3/4] rounded-2xl overflow-hidden bg-white/5 backdrop-blur-md border border-transparent transition-all duration-300 ${isActive ? 'border-white/20 scale-95 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]' : 'hover:scale-105 hover:border-white/10 hover:shadow-xl hover:z-10'}`}
                                         >
                                             <img
                                                 src={char.images.jpg.image_url}
@@ -233,14 +233,14 @@ const CreatePlaylistModal = ({ isOpen, onClose, onSubmit }: { isOpen: boolean; o
                     </span>
                 </div>
 
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 text-zinc-400 font-medium hover:bg-zinc-900 rounded-xl transition-colors">
+                <div className="flex gap-3 mt-4">
+                    <button onClick={onClose} className="flex-1 py-3 text-zinc-400 font-bold uppercase tracking-widest text-[11px] hover:bg-white/5 rounded-[18px] transition-colors border border-transparent hover:border-white/10">
                         Cancel
                     </button>
                     <button
                         onClick={() => onSubmit(name, isPublic)}
                         disabled={!name.trim()}
-                        className="flex-1 py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex-1 py-3 bg-gradient-to-tr from-white/20 to-white/5 backdrop-blur-3xl border border-white/5 text-white font-bold tracking-widest text-[11px] uppercase rounded-[18px] hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]"
                     >
                         Create
                     </button>
@@ -265,13 +265,13 @@ const DeleteConfirmModal = ({ isOpen, playlistName, onClose, onConfirm }: { isOp
                     Are you sure you want to delete <span className="text-white font-medium">"{playlistName}"</span>? This action cannot be undone.
                 </p>
 
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-2.5 text-zinc-400 font-medium hover:bg-zinc-900 rounded-xl transition-colors">
+                <div className="flex gap-3 mt-6">
+                    <button onClick={onClose} className="flex-1 py-3 text-zinc-400 font-bold uppercase tracking-widest text-[11px] hover:bg-white/5 rounded-[18px] transition-colors border border-transparent hover:border-white/10">
                         Cancel
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="flex-1 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 font-bold rounded-xl hover:bg-red-500 hover:text-white transition-all"
+                        className="flex-1 py-3 bg-red-500/10 text-red-500 border border-red-500/20 font-bold tracking-widest uppercase text-[11px] rounded-[18px] hover:bg-red-500 hover:text-white transition-all hover:scale-105 active:scale-95 shadow-xl hover:shadow-[0_10px_30px_rgba(239,68,68,0.3)]"
                     >
                         Delete
                     </button>
@@ -468,10 +468,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                             <button
                                 onClick={handleFollow}
                                 className={`
-                                    min-w-[140px] px-6 py-2.5 rounded-lg text-sm font-bold tracking-wide transition-all duration-300
+                                    min-w-[140px] px-8 py-3.5 rounded-[20px] text-[11px] font-bold tracking-widest uppercase transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 backdrop-blur-3xl shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] mx-auto md:mx-0
                                     ${isFollowing
-                                        ? 'bg-zinc-900 text-white hover:bg-red-500/10 hover:text-red-400 border border-zinc-800'
-                                        : 'bg-white text-black hover:bg-gray-200 shadow-lg shadow-white/5'}
+                                        ? 'bg-white/5 border-white/5 text-zinc-300 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/10'
+                                        : 'bg-gradient-to-tr from-white/20 to-white/5 border border-white/5 text-white'}
                                 `}
                             >
                                 {isFollowing ? 'Unfollow' : 'Follow'}
@@ -481,9 +481,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                         {isOwnProfile && (
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="px-6 py-2.5 bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 rounded-lg text-sm font-medium transition-all flex items-center gap-2 mx-auto md:mx-0"
+                                className="px-8 py-3.5 bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 border border-white/5 hover:border-white/10 text-white rounded-[20px] text-[11px] font-bold tracking-widest uppercase transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-center gap-2 mx-auto md:mx-0 backdrop-blur-3xl"
                             >
-                                <Plus size={16} /> New Playlist
+                                <Plus size={16} strokeWidth={2.5} /> New Playlist
                             </button>
                         )}
                     </div>
@@ -504,10 +504,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                             <div
                                 key={playlist.id}
                                 onClick={() => onNavigate && onNavigate('playlist', { id: playlist.id })}
-                                className="group cursor-pointer flex flex-col gap-3 relative"
+                                className="group cursor-pointer flex flex-col gap-4 relative"
                             >
                                 {/* Thumbnail Container */}
-                                <div className="aspect-square bg-zinc-900 rounded-lg overflow-hidden relative shadow-lg transition-transform duration-500 group-hover:-translate-y-1">
+                                <div className="aspect-square bg-white/5 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden relative shadow-lg transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-[0_10px_30px_rgba(0,0,0,0.5)] group-hover:border-white/10">
                                     {previewImages.length > 0 ? (
                                         <div className={`grid w-full h-full ${previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1'}`}>
                                             {previewImages.slice(0, previewImages.length >= 4 ? 4 : 1).map((src, idx) => (
@@ -556,10 +556,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                                 {isOwnProfile && !isSystem && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setDeleteTarget(playlist); }}
-                                        className="absolute top-2 right-2 p-2 bg-black/40 hover:bg-red-500/90 text-white/50 hover:text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all backdrop-blur-md translate-y-2 group-hover:translate-y-0 z-10"
+                                        className="absolute top-2 right-2 p-2.5 bg-black/40 hover:bg-red-500/90 border border-white/5 text-white/70 hover:text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-xl translate-y-2 group-hover:translate-y-0 z-10 shadow-lg"
                                         title="Delete Playlist"
                                     >
-                                        <Trash2 size={14} />
+                                        <Trash2 size={16} strokeWidth={2} />
                                     </button>
                                 )}
                             </div>

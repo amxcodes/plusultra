@@ -27,6 +27,8 @@ export interface Movie {
   time?: number; // Current position in seconds
   progress?: number; // Progress percentage (0-100)
   timeLeft?: number; // Time remaining in seconds
+  season?: number;
+  episode?: number;
 }
 
 export interface HeroMovie extends Movie {

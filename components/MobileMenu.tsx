@@ -43,18 +43,18 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
     const MenuItem = ({ icon: Icon, label, tab, badge }: { icon: any, label: string, tab: NavItem, badge?: string }) => (
         <button
             onClick={() => handleNav(tab)}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all active:scale-95 border ${activeTab === tab
-                ? 'bg-white text-black border-transparent shadow-md'
-                : 'bg-zinc-800/40 hover:bg-zinc-800/80 text-zinc-300 border-white/5'
+            className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-300 active:scale-95 border ${activeTab === tab
+                ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/20 text-white shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]'
+                : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border-transparent'
                 }`}
         >
             <div className="flex items-center gap-3">
-                <Icon size={18} strokeWidth={activeTab === tab ? 2.5 : 2} />
-                <span className="font-bold text-sm leading-none">{label}</span>
+                <Icon size={18} strokeWidth={1.5} className={activeTab === tab ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
+                <span className="font-bold text-[13px] leading-none">{label}</span>
             </div>
             <div className="flex items-center gap-2">
                 {badge && <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-full leading-none">{badge}</span>}
-                <ChevronRight size={14} className="opacity-40" />
+                <ChevronRight size={14} strokeWidth={1.5} className="opacity-40" />
             </div>
         </button>
     );
@@ -68,16 +68,16 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
             />
 
             {/* Modular Floating Panel */}
-            <div className="fixed left-1/2 -translate-x-1/2 bottom-[90px] w-full max-w-[calc(100%-2rem)] sm:max-w-[360px] max-h-[75vh] z-[70] bg-[#121316]/95 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-8 fade-in duration-300 flex flex-col overflow-hidden">
+            <div className="fixed left-1/2 -translate-x-1/2 bottom-[90px] w-full max-w-[calc(100%-2rem)] sm:max-w-[360px] max-h-[75vh] z-[70] bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-8 fade-in duration-300 flex flex-col overflow-hidden">
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 pb-4 border-b border-white/5 bg-white/5">
-                    <h2 className="text-lg font-bold text-white tracking-tight">Menu</h2>
+                <div className="flex items-center justify-between p-5 pb-4 border-b border-white/5 bg-transparent">
+                    <h2 className="text-lg font-black text-white tracking-widest uppercase">Menu</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 bg-zinc-800/50 hover:bg-zinc-700/50 rounded-full text-zinc-400 border border-white/10 active:bg-zinc-700/80 transition-colors"
+                        className="p-2 bg-white/5 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white border border-transparent transition-colors"
                     >
-                        <X size={18} />
+                        <X size={18} strokeWidth={1.5} />
                     </button>
                 </div>
 
@@ -87,17 +87,17 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
                     {/* Profile Section */}
                     <div
                         onClick={() => handleNav(NavItem.PROFILE)}
-                        className="flex items-center gap-4 p-4 bg-gradient-to-br from-zinc-800 to-zinc-900 rounded-2xl border border-white/10 cursor-pointer active:scale-95 transition-transform"
+                        className="flex items-center gap-4 p-4 bg-gradient-to-br from-white/10 to-transparent rounded-2xl border border-white/5 cursor-pointer active:scale-95 transition-all duration-300 hover:border-white/20 shadow-lg"
                     >
-                        <div className="w-12 h-12 rounded-full bg-black border-2 border-white/10 overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-black border border-white/20 overflow-hidden flex-shrink-0 shadow-[0_0_12px_rgba(255,255,255,0.1)]">
                             <img
                                 src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}`}
                                 className="w-full h-full object-cover"
                             />
                         </div>
                         <div className="min-w-0">
-                            <div className="text-base font-bold text-white truncate mb-0.5">{profile?.username || 'Guest'}</div>
-                            <div className="text-[11px] text-zinc-400 font-medium uppercase tracking-wider">View Profile</div>
+                            <div className="text-[15px] font-bold text-white truncate mb-0.5 tracking-wide">{profile?.username || 'Guest'}</div>
+                            <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">View Profile</div>
                         </div>
                     </div>
 
@@ -146,10 +146,10 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
 
                             <button
                                 onClick={signOut}
-                                className="w-full flex items-center justify-center gap-3 p-3.5 rounded-2xl border border-red-500/10 bg-red-500/5 text-red-500 active:bg-red-500/10 transition-colors mt-4 mx-auto"
+                                className="w-full flex items-center justify-center gap-3 p-3.5 rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all duration-300 mt-4 mx-auto"
                             >
-                                <LogOut size={16} strokeWidth={2.5} />
-                                <span className="font-bold text-sm">Sign Out</span>
+                                <LogOut size={16} strokeWidth={1.5} />
+                                <span className="font-bold text-[13px] tracking-wide">Sign Out</span>
                             </button>
                         </div>
                     </div>

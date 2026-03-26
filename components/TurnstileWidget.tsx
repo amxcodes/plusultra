@@ -52,10 +52,13 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
         const containerRef = useRef<HTMLDivElement | null>(null);
         const widgetIdRef = useRef<string | null>(null);
         const [loadError, setLoadError] = useState<string | null>(null);
+        const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
 
         useImperativeHandle(ref, () => ({
             reset: () => {
                 onTokenChange(null);
+                setLoadError(null);
+                setLastErrorCode(null);
                 if (widgetIdRef.current && window.turnstile) {
                     window.turnstile.reset(widgetIdRef.current);
                 }
@@ -76,12 +79,17 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
                         sitekey: siteKey,
                         theme: 'dark',
                         action,
+                        retry: 'auto',
+                        'retry-interval': 8000,
                         callback: (token: string) => onTokenChange(token),
                         'expired-callback': () => onTokenChange(null),
                         'timeout-callback': () => onTokenChange(null),
-                        'error-callback': () => {
+                        'error-callback': (errorCode: string | number) => {
                             onTokenChange(null);
-                            setLoadError('Security check failed. Please reload and try again.');
+                            const formattedCode = String(errorCode);
+                            console.error('Turnstile error:', formattedCode);
+                            setLastErrorCode(formattedCode);
+                            setLoadError(`Security check failed${formattedCode ? ` (${formattedCode})` : ''}. Try refreshing the widget or using a different browser/network.`);
                         },
                     });
                 } catch (error) {
@@ -111,9 +119,32 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
             <div className="space-y-2">
                 <div ref={containerRef} className="min-h-[65px]" />
                 {loadError && (
-                    <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
-                        {loadError}
-                    </p>
+                    <div className="space-y-2">
+                        <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                            {loadError}
+                        </p>
+                        <div className="flex items-center justify-between gap-3">
+                            {lastErrorCode && (
+                                <span className="text-[10px] text-zinc-500">
+                                    Turnstile code: <code>{lastErrorCode}</code>
+                                </span>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setLoadError(null);
+                                    setLastErrorCode(null);
+                                    onTokenChange(null);
+                                    if (widgetIdRef.current && window.turnstile) {
+                                        window.turnstile.reset(widgetIdRef.current);
+                                    }
+                                }}
+                                className="text-[11px] text-white/80 hover:text-white underline underline-offset-2"
+                            >
+                                Retry security check
+                            </button>
+                        </div>
+                    </div>
                 )}
             </div>
         );

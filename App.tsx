@@ -503,6 +503,13 @@ function StreamApp() {
     }), 'push', { scrollToTop: false });
   };
 
+  const handleContinueWatchingSelect = (movie: Movie) => {
+    const season = typeof movie.season === 'number' ? movie.season : undefined;
+    const episode = typeof movie.episode === 'number' ? movie.episode : undefined;
+
+    handlePlay(movie, season, episode);
+  };
+
   const handlePlaylistSelect = (playlist: Playlist) => {
     commitSnapshot(buildSnapshot({
       selectedPlaylistId: playlist.id,
@@ -662,6 +669,7 @@ function StreamApp() {
                     activeTab={activeTab}
                     viewAllCategory={viewAllCategory}
                     onPlay={(m) => handlePlay(m)}
+                    onContinueWatchingSelect={handleContinueWatchingSelect}
                     onMovieSelect={handleMovieSelect}
                     onPlaylistSelect={handlePlaylistSelect}
                     onAddToPlaylist={(m) => openPlaylistModal(m)}
@@ -680,7 +688,7 @@ function StreamApp() {
                       initialMovies={viewAllCategory.movies}
                       forcedMediaType={viewAllCategory.forcedMediaType}
                       onBack={closeViewAll}
-                      onMovieSelect={handleMovieSelect}
+                      onMovieSelect={viewAllCategory.title === 'Continue Watching' ? handleContinueWatchingSelect : handleMovieSelect}
                     />
                   </div>
                   <div className="md:hidden fixed inset-0 z-50 bg-[#0f1014] overflow-y-auto w-full">
@@ -690,7 +698,7 @@ function StreamApp() {
                       initialMovies={viewAllCategory.movies}
                       forcedMediaType={viewAllCategory.forcedMediaType}
                       onBack={closeViewAll}
-                      onMovieSelect={handleMovieSelect}
+                      onMovieSelect={viewAllCategory.title === 'Continue Watching' ? handleContinueWatchingSelect : handleMovieSelect}
                     />
                   </div>
                 </>
@@ -703,7 +711,7 @@ function StreamApp() {
                     <Row
                       title="Continue Watching"
                       movies={continueWatching}
-                      onMovieSelect={handleMovieSelect}
+                      onMovieSelect={handleContinueWatchingSelect}
                       variant="continue-watching"
                       onViewAll={() => openViewAll({ title: "Continue Watching", movies: continueWatching })}
                     />

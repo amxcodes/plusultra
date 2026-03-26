@@ -76,10 +76,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
 
   // DRY helper for adaptive button styles on short screens
   const getNavButtonClass = (isActive: boolean) => 
-    `p-2 [@media(max-height:850px)]:p-1.5 [@media(max-height:750px)]:p-1 rounded-2xl transition-all duration-300 relative flex justify-center items-center ${
+    `p-2.5 [@media(max-height:850px)]:p-2 [@media(max-height:750px)]:p-1.5 rounded-[14px] transition-all duration-300 relative flex justify-center items-center border ${
       isActive 
-        ? 'bg-white text-black shadow-xl shadow-white/10 scale-105' 
-        : 'text-zinc-400 hover:text-white hover:bg-white/5'
+        ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/10 text-white shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] scale-[1.02]' 
+        : 'border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/5'
     }`;
 
   const getIconSize = () => {
@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   const iconSize = getIconSize();
 
   return (
-    <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-4 bg-[#0a0a0a]/60 backdrop-blur-2xl rounded-[24px] border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]">
+    <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-4 bg-[#0a0a0a]/80 backdrop-blur-2xl rounded-[24px] border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
 
       {/* Top: Home/Logo */}
       <div className="mb-2 [@media(max-height:850px)]:mb-1 [@media(max-height:750px)]:mb-0">
@@ -100,7 +100,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           onClick={() => setActiveTab(NavItem.DASHBOARD)}
           className={getNavButtonClass(activeTab === NavItem.DASHBOARD)}
         >
-          <LayoutGrid size={iconSize} strokeWidth={activeTab === NavItem.DASHBOARD ? 2.5 : 2} />
+          <LayoutGrid size={iconSize} strokeWidth={activeTab === NavItem.DASHBOARD ? 2 : 1.5} className={activeTab === NavItem.DASHBOARD ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
         </button>
       </div>
 
@@ -113,7 +113,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             onClick={onSearchClick}
             className={getNavButtonClass(false)}
           >
-            <Search size={iconSize} strokeWidth={2} />
+            <Search size={iconSize} strokeWidth={1.5} />
           </button>
 
           {/* Tooltip */}
@@ -133,7 +133,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           >
             <Newspaper
               size={iconSize}
-              strokeWidth={activeTab === NavItem.NEWS ? 2.5 : 2}
+              strokeWidth={activeTab === NavItem.NEWS ? 2 : 1.5}
+              className={activeTab === NavItem.NEWS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""}
             />
           </button>
 
@@ -166,7 +167,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
               >
                 <Icon
                   size={iconSize}
-                  strokeWidth={isActive ? 2.5 : 2}
+                  strokeWidth={isActive ? 2 : 1.5}
+                  className={isActive ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""}
                 />
               </button>
 
@@ -191,7 +193,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             }}
             className={getNavButtonClass(activeTab === NavItem.ANNOUNCEMENTS)}
           >
-            <Bell size={iconSize} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2.5 : 2} />
+            <Bell size={iconSize} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2 : 1.5} className={activeTab === NavItem.ANNOUNCEMENTS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
           </button>
           {unreadCounts.announcementsCount > 0 && (
             <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse pointer-events-none" />
@@ -206,7 +208,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             }}
             className={getNavButtonClass(activeTab === NavItem.ACTIVITY)}
           >
-            <Activity size={iconSize} strokeWidth={activeTab === NavItem.ACTIVITY ? 2.5 : 2} />
+            <Activity size={iconSize} strokeWidth={activeTab === NavItem.ACTIVITY ? 2 : 1.5} className={activeTab === NavItem.ACTIVITY ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
           </button>
           {unreadCounts.activityCount > 0 && (
             <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse pointer-events-none" />
@@ -217,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           onClick={() => setActiveTab(NavItem.PLAYLISTS)}
           className={getNavButtonClass(activeTab === NavItem.PLAYLISTS)}
         >
-          <ListVideo size={iconSize} strokeWidth={activeTab === NavItem.PLAYLISTS ? 2.5 : 2} />
+          <ListVideo size={iconSize} strokeWidth={activeTab === NavItem.PLAYLISTS ? 2 : 1.5} className={activeTab === NavItem.PLAYLISTS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
         </button>
 
         {canStream && (
@@ -225,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             onClick={() => setActiveTab(NavItem.STATS)}
             className={getNavButtonClass(activeTab === NavItem.STATS)}
           >
-            <BarChart2 size={iconSize} strokeWidth={activeTab === NavItem.STATS ? 2.5 : 2} />
+            <BarChart2 size={iconSize} strokeWidth={activeTab === NavItem.STATS ? 2 : 1.5} className={activeTab === NavItem.STATS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
           </button>
         )}
 
@@ -233,7 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           onClick={() => setActiveTab(NavItem.SETTINGS)}
           className={getNavButtonClass(activeTab === NavItem.SETTINGS)}
         >
-          <Settings size={iconSize} strokeWidth={activeTab === NavItem.SETTINGS ? 2.5 : 2} />
+          <Settings size={iconSize} strokeWidth={activeTab === NavItem.SETTINGS ? 2 : 1.5} className={activeTab === NavItem.SETTINGS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
         </button>
 
         {/* Profile */}

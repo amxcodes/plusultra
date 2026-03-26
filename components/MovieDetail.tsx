@@ -18,6 +18,17 @@ interface MovieDetailProps {
 export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay, onMovieSelect }) => {
     const { profile } = useAuth(); // NEW
     const canStream = profile?.can_stream || profile?.role === 'admin'; // Authorization check
+    const getInitialSeason = (input: Movie) => (
+        input.mediaType === 'tv' && typeof input.season === 'number' && input.season > 0
+            ? input.season
+            : 1
+    );
+    const getInitialEpisode = (input: Movie) => (
+        input.mediaType === 'tv' && typeof input.episode === 'number' && input.episode > 0
+            ? input.episode
+            : 1
+    );
+    const getEpisodePageForEpisode = (episodeNumber: number) => Math.max(1, Math.floor((episodeNumber - 1) / 50) + 1);
 
     const [isVisible, setIsVisible] = useState(false);
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
@@ -29,8 +40,8 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
     const [recommendations, setRecommendations] = useState<Movie[]>([]);
 
     // TV Show State
-    const [currentSeason, setCurrentSeason] = useState(1);
-    const [currentEpisode, setCurrentEpisode] = useState(1);
+    const [currentSeason, setCurrentSeason] = useState(getInitialSeason(movie));
+    const [currentEpisode, setCurrentEpisode] = useState(getInitialEpisode(movie));
     const [episodePage, setEpisodePage] = useState(1); // 50 eps per page
     const [episodes, setEpisodes] = useState<{ episode_number: number; id: number; name?: string; overview?: string; still_path?: string; air_date?: string; vote_average?: number; runtime?: number }[]>([]);
     const [isLoading, setIsLoading] = useState(false); // UI Loader State
@@ -50,9 +61,9 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
         // Reset state
         setActiveMovie(movie);
-        setCurrentSeason(1);
-        setCurrentEpisode(1);
-        setEpisodePage(1);
+        setCurrentSeason(getInitialSeason(movie));
+        setCurrentEpisode(getInitialEpisode(movie));
+        setEpisodePage(getEpisodePageForEpisode(getInitialEpisode(movie)));
         setEpisodes([]);
         setRecommendations([]);
         setSeasonList(Array.isArray(movie.seasons) ? movie.seasons : []);
@@ -81,7 +92,8 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                     setSeasonList(validSeasons);
 
-                    const preferredSeason = validSeasons.find((season: any) => season.season_number === 1)
+                    const preferredSeason = validSeasons.find((season: any) => season.season_number === movie.season)
+                        || validSeasons.find((season: any) => season.season_number === 1)
                         || validSeasons.find((season: any) => season.season_number > 0)
                         || validSeasons[0];
 
@@ -121,6 +133,32 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                     const data = await TmdbService.getSeasonDetails(activeMovie.id.toString(), currentSeason);
                     if (isMounted && data?.episodes) {
                         setEpisodes(data.episodes);
+
+                        if (import.meta.env.DEV) {
+                            console.info('[MovieDetail] Season episodes loaded', {
+                                tmdbId: activeMovie.id,
+                                title: activeMovie.title,
+                                season: currentSeason,
+                                episodes: data.episodes.map(ep => ({
+                                    id: ep.id,
+                                    episodeNumber: ep.episode_number,
+                                    name: ep.name,
+                                })),
+                            });
+                        }
+
+                        if (data.episodes.length === 0) {
+                            setCurrentEpisode(1);
+                            setEpisodePage(1);
+                            return;
+                        }
+
+                        const episodeExists = data.episodes.some(ep => ep.episode_number === currentEpisode);
+                        if (!episodeExists) {
+                            const fallbackEpisode = data.episodes[0].episode_number;
+                            setCurrentEpisode(fallbackEpisode);
+                            setEpisodePage(getEpisodePageForEpisode(fallbackEpisode));
+                        }
                     }
                 } catch (error) {
                     console.error("Error fetching TMDB season:", error);
@@ -141,9 +179,25 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         setTimeout(onClose, 300);
     };
 
+    const playSelectedEpisode = (seasonNumber: number, episodeNumber: number, source: string) => {
+        if (import.meta.env.DEV) {
+            console.info('[MovieDetail] Play request', {
+                source,
+                tmdbId: activeMovie.id,
+                title: activeMovie.title,
+                season: seasonNumber,
+                episode: episodeNumber,
+                savedSeason: movie.season,
+                savedEpisode: movie.episode,
+            });
+        }
+
+        onPlay(activeMovie, seasonNumber, episodeNumber);
+    };
+
     const handleEpisodeSelect = (epNum: number) => {
         setCurrentEpisode(epNum);
-        onPlay(activeMovie, currentSeason, epNum);
+        playSelectedEpisode(currentSeason, epNum, 'episode-card');
     }
 
     const handlePlayRandom = () => {
@@ -157,7 +211,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         const randomSeason = validSeasons[Math.floor(Math.random() * validSeasons.length)];
         const randomEpisode = Math.floor(Math.random() * randomSeason.episode_count) + 1;
 
-        onPlay(activeMovie, randomSeason.season_number, randomEpisode);
+        playSelectedEpisode(randomSeason.season_number, randomEpisode, 'random-button');
     };
 
     // Handle switching to a recommended movie
@@ -238,49 +292,49 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 {activeMovie.title}
                             </h1>
 
-                            <div className="flex flex-wrap items-center gap-4 md:gap-6 text-sm font-medium text-gray-300">
-                                <span className="text-green-400 font-bold flex items-center gap-1">
-                                    <ThumbsUp size={14} className="fill-green-400" /> {activeMovie.match}% Rating
+                            <div className="flex flex-wrap items-center gap-2 md:gap-3 text-[10px] md:text-[11px] font-bold text-gray-300 tracking-widest uppercase">
+                                <span className="text-green-400 drop-shadow-sm bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 flex items-center gap-1.5">
+                                    <ThumbsUp size={12} className="fill-green-400" /> {activeMovie.match}% Rating
                                 </span>
-                                <span className="flex items-center gap-1">
-                                    <Calendar size={14} /> {activeMovie.year}
+                                <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-white/90 flex items-center gap-1.5">
+                                    <Calendar size={12} /> {activeMovie.year}
                                 </span>
-                                <span className="flex items-center gap-1">
-                                    <Clock size={14} /> {activeMovie.duration || "2h 15m"}
+                                <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-white/80 flex items-center gap-1.5">
+                                    <Clock size={12} /> {activeMovie.duration || "2h 15m"}
                                 </span>
                                 {activeMovie.mediaType === 'tv' && (
-                                    <span className="bg-white/20 px-2 py-0.5 rounded text-xs">TV Series</span>
+                                    <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-zinc-300">TV Series</span>
                                 )}
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-2">
+                            <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-4">
                                 {canStream && (
                                     <button
-                                        onClick={() => onPlay(activeMovie, currentSeason, currentEpisode)}
-                                        className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-white hover:bg-zinc-200 text-black px-6 md:px-8 py-3 md:py-3.5 rounded-full font-bold tracking-wide transition-colors whitespace-nowrap"
+                                        onClick={() => playSelectedEpisode(currentSeason, currentEpisode, 'hero-play-button')}
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-gradient-to-tr from-white/20 to-white/5 hover:from-white/30 hover:to-white/10 backdrop-blur-3xl text-white px-8 md:px-10 py-3.5 md:py-4 rounded-[20px] font-bold tracking-widest uppercase text-[11px] md:text-[12px] transition-all duration-300 hover:scale-105 active:scale-95 border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] outline-none whitespace-nowrap"
                                     >
-                                        <Play size={20} className="fill-black" />
-                                        <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E1` : 'Play Movie'}</span>
+                                        <Play size={18} strokeWidth={2.5} className="fill-white" />
+                                        <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E${currentEpisode}` : 'Play Movie'}</span>
                                     </button>
                                 )}
 
                                 {activeMovie.mediaType === 'tv' && canStream && (
                                     <button
                                         onClick={handlePlayRandom}
-                                        className="h-12 px-6 rounded-full border border-white/10 hover:border-white/30 hover:bg-white/5 text-white/80 hover:text-white font-medium text-sm flex items-center gap-2 transition-all group"
+                                        className="group h-12 md:h-14 px-6 md:px-8 border border-white/5 bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 backdrop-blur-3xl text-white rounded-[18px] font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] hover:border-white/10"
                                         title="Watch Random Episode"
                                     >
-                                        <Shuffle size={16} className="group-hover:rotate-180 transition-transform duration-500" />
+                                        <Shuffle size={16} strokeWidth={2} className="group-hover:rotate-180 transition-transform duration-500" />
                                         <span className="hidden md:inline">Random</span>
                                     </button>
                                 )}
 
                                 <button
                                     onClick={() => setShowPlaylistModal(true)}
-                                    className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                                    className="group w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-[18px] bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 border border-white/5 hover:border-white/10 backdrop-blur-3xl transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] text-white"
                                     title="Add to Playlist"
                                 >
-                                    <ListPlus size={22} className="text-white" />
+                                    <ListPlus size={22} strokeWidth={2} className="transition-transform duration-300 group-hover:scale-110" />
                                 </button>
                             </div>
                         </div>
@@ -349,7 +403,11 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                                 {seasonList.map(s => (
                                                     <div
                                                         key={s.id}
-                                                        onClick={() => setCurrentSeason(s.season_number)}
+                                                        onClick={() => {
+                                                            setCurrentSeason(s.season_number);
+                                                            setCurrentEpisode(1);
+                                                            setEpisodePage(1);
+                                                        }}
                                                         className={`group relative aspect-[3/4] sm:aspect-video rounded-md overflow-hidden cursor-pointer transition-all duration-500 ease-out
                                     ${currentSeason === s.season_number
                                                                 ? 'opacity-100'
@@ -418,10 +476,26 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                         <div className="flex flex-col gap-6">
                                             {episodes
                                                 .slice((episodePage - 1) * 50, episodePage * 50)
-                                                .map((ep) => (
+                                                .map((ep, index) => (
                                                     <div
                                                         key={ep.id}
-                                                        onClick={() => canStream ? handleEpisodeSelect(ep.episode_number) : null}
+                                                        onClick={() => {
+                                                            if (!canStream) return;
+
+                                                            if (import.meta.env.DEV) {
+                                                                console.info('[MovieDetail] Episode card click', {
+                                                                    tmdbId: activeMovie.id,
+                                                                    title: activeMovie.title,
+                                                                    season: currentSeason,
+                                                                    renderedIndex: index,
+                                                                    episodeId: ep.id,
+                                                                    episodeNumber: ep.episode_number,
+                                                                    episodeName: ep.name,
+                                                                });
+                                                            }
+
+                                                            handleEpisodeSelect(ep.episode_number);
+                                                        }}
                                                         className={`group flex flex-col sm:flex-row items-center sm:items-start gap-6 transition-all duration-500 ${canStream ? 'cursor-pointer' : 'cursor-default opacity-80'}`}
                                                     >
                                                         {/* Episode Image - Pure Art */}

@@ -52,8 +52,8 @@ const MobileCreatePlaylistModal = ({ isOpen, onClose, onSubmit }: { isOpen: bool
                     </div>
                 </div>
 
-                <div className="flex gap-3">
-                    <button onClick={onClose} className="flex-1 py-3 text-zinc-400 font-bold hover:bg-zinc-900 rounded-xl transition-colors">
+                <div className="flex gap-3 mt-4">
+                    <button onClick={onClose} className="flex-1 py-3 text-zinc-400 font-bold uppercase tracking-widest text-[11px] hover:bg-white/5 rounded-[18px] transition-colors border border-transparent hover:border-white/10">
                         Cancel
                     </button>
                     <button
@@ -63,7 +63,7 @@ const MobileCreatePlaylistModal = ({ isOpen, onClose, onSubmit }: { isOpen: bool
                             setIsPublic(true);
                         }}
                         disabled={!name.trim()}
-                        className="flex-1 py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                        className="flex-1 py-3 bg-gradient-to-tr from-white/20 to-white/5 backdrop-blur-3xl border border-white/5 text-white font-bold tracking-widest text-[11px] uppercase rounded-[18px] hover:scale-105 active:scale-95 disabled:hover:scale-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]"
                     >
                         Create
                     </button>
@@ -129,7 +129,7 @@ const MobileAvatarModal = ({ isOpen, onClose, onSelect, currentAvatar }: { isOpe
                         <button
                             key={char.mal_id}
                             onClick={() => onSelect(char.images.jpg.image_url)}
-                            className={`relative aspect-[3/4] rounded-xl overflow-hidden bg-zinc-800 ${currentAvatar === char.images.jpg.image_url ? 'ring-2 ring-white' : ''}`}
+                            className={`relative aspect-[3/4] rounded-2xl overflow-hidden bg-white/5 border border-white/5 transition-all duration-300 ${currentAvatar === char.images.jpg.image_url ? 'border-white/30 scale-95 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]' : ''}`}
                         >
                             <img src={char.images.jpg.image_url} alt={char.name} className="w-full h-full object-cover" />
                             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-1">
@@ -308,10 +308,7 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                 {!isOwnProfile && currentUser && canFollowProfiles && (
                     <button
                         onClick={handleFollow}
-                        className={`w-full max-w-[320px] py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all shadow-lg ${isFollowing
-                            ? 'bg-zinc-900 text-white border border-zinc-800'
-                            : 'bg-white text-black shadow-white/10'
-                            }`}
+                        className={`w-full max-w-[320px] py-4 rounded-[20px] font-bold text-[11px] uppercase tracking-widest transition-all duration-300 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-95 backdrop-blur-3xl border ${isFollowing ? 'bg-white/5 border-white/5 text-zinc-300 hover:text-red-400' : 'bg-gradient-to-tr from-white/20 to-white/5 border-white/5 text-white'}`}
                     >
                         {isFollowing ? 'Following' : 'Follow'}
                     </button>
@@ -330,9 +327,9 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                         {isOwnProfile && (
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-full shadow-lg shadow-white/10 active:scale-90 transition-transform"
+                                className="w-9 h-9 flex items-center justify-center bg-white/5 border border-white/10 text-white rounded-[18px] shadow-xl backdrop-blur-3xl active:scale-90 transition-all"
                             >
-                                <Plus size={16} strokeWidth={3} />
+                                <Plus size={16} strokeWidth={2.5} />
                             </button>
                         )}
                     </div>
@@ -347,7 +344,7 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                                     onClick={() => onNavigate && onNavigate('playlist', { id: playlist.id })}
                                     className="group flex flex-col gap-3 active:scale-95 transition-transform duration-200"
                                 >
-                                    <div className="aspect-square bg-zinc-900 rounded-2xl overflow-hidden relative border border-white/5 shadow-2xl shadow-black/50 group-hover:border-white/20 transition-colors">
+                                    <div className="aspect-square bg-white/5 backdrop-blur-md rounded-2xl overflow-hidden relative border border-white/5 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group-active:border-white/10 transition-all">
                                         {previewImages.length > 0 ? (
                                             <div className={`grid w-full h-full ${previewImages.length >= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-1'}`}>
                                                 {previewImages.slice(0, previewImages.length >= 4 ? 4 : 1).map((src, idx) => (

@@ -60,44 +60,42 @@ export const MobileHero: React.FC<MobileHeroProps> = ({ movie, onPlay, onAddToPl
                     ))}
                 </div>
 
-                <h1 className="text-4xl font-bold text-white leading-[0.9] tracking-tighter drop-shadow-2xl">
+                <h1 className="text-4xl sm:text-5xl font-black text-white leading-tight tracking-tighter drop-shadow-2xl w-full text-balance break-words mb-2">
                     {movie.title}
                 </h1>
 
-                <div className="flex items-center gap-3 text-xs font-medium text-gray-300 tracking-wide">
-                    <span className="text-green-400 font-bold">{movie.match}% Match</span>
-                    <span>•</span>
-                    <span className="text-white/90">{movie.year}</span>
-                    <span>•</span>
-                    <span className="text-white/80">{movie.duration || "2h 15m"}</span>
-                    <span className="ml-auto text-[10px] font-bold text-zinc-400 border border-white/10 px-1 rounded uppercase">HD</span>
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold text-gray-300 tracking-widest uppercase">
+                    <span className="text-green-400 bg-white/5 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5">{movie.match}% Match</span>
+                    <span className="bg-white/5 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5 text-white/90">{movie.year}</span>
+                    <span className="bg-white/5 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5 text-white/80">{movie.duration || "2h 15m"}</span>
+                    <span className="ml-auto text-[9px] font-bold text-zinc-400 border border-white/10 px-1 py-0.5 rounded uppercase">4K UHD</span>
                 </div>
 
                 {/* Mobile Horizontal Buttons layout */}
-                <div className="flex items-center gap-3 pt-3">
+                <div className="flex items-center gap-3 pt-4">
                     {canStream ? (
                         <button
                             onClick={() => onPlay?.(movie)}
-                            className="flex-1 h-12 flex items-center justify-center gap-2 bg-white text-black rounded-xl font-bold text-sm tracking-wide active:scale-95 transition-transform"
+                            className="flex-1 h-14 flex items-center justify-center gap-2 bg-gradient-to-tr from-white/20 to-white/5 hover:from-white/30 hover:to-white/10 backdrop-blur-3xl text-white rounded-[20px] font-bold text-[12px] tracking-widest uppercase active:scale-95 transition-all outline-none border border-white/5 shadow-[0_10px_20px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)]"
                         >
-                            <Play size={18} className="fill-black" />
+                            <Play size={18} strokeWidth={2.5} className="fill-white" />
                             Play
                         </button>
                     ) : (
                         <button
                             disabled
-                            className="flex-1 h-12 flex items-center justify-center gap-2 bg-white/10 text-zinc-500 rounded-xl font-bold text-sm tracking-wide opacity-50 cursor-not-allowed"
+                            className="flex-1 h-14 flex items-center justify-center gap-2 bg-white/5 border border-white/5 backdrop-blur-md text-zinc-500 rounded-[20px] font-bold text-[11px] tracking-widest uppercase opacity-50 cursor-not-allowed"
                         >
                             <Play size={18} className="fill-zinc-500" />
-                            Preview Only
+                            Preview
                         </button>
                     )}
 
                     <button
                         onClick={() => onAddToPlaylist?.(movie)}
-                        className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/10 border border-white/10 backdrop-blur-md active:scale-95 transition-transform"
+                        className="group w-14 h-14 flex items-center justify-center rounded-[18px] bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 border border-white/5 hover:border-white/10 backdrop-blur-3xl active:scale-95 transition-all outline-none hover:shadow-[0_10px_20px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)]"
                     >
-                        <Plus size={24} className="text-white" />
+                        <Plus size={22} strokeWidth={2} className="text-white" />
                     </button>
                 </div>
             </div>

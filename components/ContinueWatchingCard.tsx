@@ -8,17 +8,7 @@ interface ContinueWatchingCardProps {
 }
 
 export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ movie, onClick }) => {
-    // Derive progress info
-    // In App.tsx we should map history data to movie.meta or similar, but simplified:
-    // We already passed `match` in App.tsx as a rough proxy or we can use the `duration` vs `time` if we extended the type.
-    // For now, let's assume `movie` has extra properties injected by our App.tsx mapping.
-
-    // We need to type-cast or assume these exist because we injected them in App.tsx
-    // Or better: pass them explicitly? 
-    // Let's assume the passed `movie` object has these fields from the history mapper.
-
-    const season = (movie as any).season;
-    const episode = (movie as any).episode;
+    const { season, episode } = movie;
 
     // Use the specific episode image or backdrop, falling back to poster
     // Note: App.tsx mapping puts the backdrop/still into `imageUrl` for this row??
@@ -29,36 +19,38 @@ export const ContinueWatchingCard: React.FC<ContinueWatchingCardProps> = ({ movi
     return (
         <div
             onClick={onClick}
-            className="group relative w-[280px] md:w-[320px] aspect-video rounded-2xl overflow-hidden cursor-pointer bg-zinc-900 ring-1 ring-white/10 hover:ring-white/40 transition-all duration-300 shadow-lg"
+            className="group/cwcard relative w-[280px] md:w-[320px] aspect-video rounded-[24px] overflow-hidden cursor-pointer bg-[#0a0a0a] border border-white/5 group-hover/cwcard:border-white/10 group-hover/cwcard:shadow-[0_10px_40px_rgba(0,0,0,0.5)] transform-gpu transition-all duration-500 group-hover/cwcard:-translate-y-2"
         >
-            {/* Image Container (Static, Brightness change) */}
             <div className="absolute inset-0 overflow-hidden">
                 <img
                     src={image}
                     alt={movie.title}
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:brightness-110 transition-all duration-300"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/cwcard:scale-105"
                 />
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity duration-300" />
-            </div>
-
-            {/* Center Play Button (Static Fade) */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-lg">
-                    <Play className="w-5 h-5 fill-black text-black ml-1" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 pointer-events-none" />
+                
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover/cwcard:opacity-100 transition-all duration-500 flex flex-col items-center justify-center gap-4 z-10">
+                  <div className="flex items-center gap-3">
+                    {/* Play Button */}
+                    <div className="w-12 h-12 rounded-[18px] bg-gradient-to-tr from-white/20 to-white/5 hover:from-white/30 hover:to-white/10 backdrop-blur-xl border border-white/5 flex items-center justify-center transform translate-y-4 opacity-0 group-hover/cwcard:translate-y-0 group-hover/cwcard:opacity-100 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] delay-75 shadow-[0_10px_20px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] hover:border-white/10 text-white">
+                      <Play className="fill-white ml-0.5" size={20} strokeWidth={1.5} />
+                    </div>
+                  </div>
                 </div>
             </div>
 
-            {/* Bottom Content */}
-            <div className="absolute bottom-0 left-0 w-full p-5 flex flex-col justify-end translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+            {/* Bottom Content Area */}
+            <div className="absolute bottom-0 left-0 w-full p-5 flex flex-col justify-end translate-y-2 group-hover/cwcard:translate-y-0 transition-transform duration-500 opacity-80 group-hover/cwcard:opacity-100 z-20 pointer-events-none">
+                <h4 className="text-white font-bold text-[15px] tracking-wide leading-tight drop-shadow-md line-clamp-1 mb-1.5">
+                    {movie.title}
+                </h4>
+                
                 {movie.mediaType === 'tv' && season && episode && (
-                    <div className="self-start px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold bg-white/10 backdrop-blur-md rounded-md text-white/90 mb-2 border border-white/10 shadow-lg">
+                    <div className="self-start px-3 py-1 text-[10px] tracking-widest uppercase font-bold text-zinc-400 bg-white/5 backdrop-blur-md rounded-[10px] border border-white/5">
                         S{season} E{episode}
                     </div>
                 )}
-                <h4 className="text-white font-bold text-lg leading-tight drop-shadow-xl line-clamp-1 group-hover:text-white transition-colors">
-                    {movie.title}
-                </h4>
             </div>
         </div>
     );

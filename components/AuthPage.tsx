@@ -27,6 +27,7 @@ const FALLBACK_POSTERS = [
 export const AuthPage: React.FC = () => {
     const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
     const turnstileEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+    const missingTurnstileConfig = import.meta.env.DEV && !turnstileEnabled;
     const [isLogin, setIsLogin] = useState(true);
     const [rememberMe, setRememberMe] = useState(true);
     const [email, setEmail] = useState('');
@@ -83,6 +84,10 @@ export const AuthPage: React.FC = () => {
         setError(null);
 
         try {
+            if (missingTurnstileConfig) {
+                throw new Error('Turnstile is not configured for local development. Add VITE_TURNSTILE_SITE_KEY to .env.local or disable captcha in Supabase Auth for local testing.');
+            }
+
             if (turnstileEnabled && !captchaToken) {
                 throw new Error('Complete the security check first.');
             }
@@ -172,6 +177,12 @@ export const AuthPage: React.FC = () => {
                 {error && (
                     <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 text-red-200 text-xs rounded-md text-center">
                         {error}
+                    </div>
+                )}
+
+                {missingTurnstileConfig && (
+                    <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-100 text-xs rounded-md">
+                        Local auth captcha is not configured. Add <code>VITE_TURNSTILE_SITE_KEY</code> to <code>.env.local</code> or disable Supabase captcha while testing locally.
                     </div>
                 )}
 

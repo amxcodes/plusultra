@@ -16,6 +16,7 @@ interface MobileHomeProps {
     activeTab: NavItem;
     viewAllCategory: any; // Using exact type from App used is complex, any for simplicity in this separation
     onPlay: (movie: Movie) => void;
+    onContinueWatchingSelect: (movie: Movie) => void;
     onMovieSelect: (movie: Movie) => void;
     onPlaylistSelect: (playlist: Playlist) => void;
     onAddToPlaylist: (movie: Movie) => void;
@@ -31,6 +32,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
     activeTab,
     viewAllCategory,
     onPlay,
+    onContinueWatchingSelect,
     onMovieSelect,
     onPlaylistSelect,
     onAddToPlaylist,
@@ -61,7 +63,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
                     <MobileRow
                         title="Continue Watching"
                         movies={continueWatching}
-                        onMovieSelect={onMovieSelect}
+                        onMovieSelect={onContinueWatchingSelect}
                         variant="continue-watching"
                         onViewAll={() => onViewAll({ title: "Continue Watching", movies: continueWatching })}
                     />
