@@ -34,6 +34,7 @@ export const SettingsPage: React.FC = () => {
     const [showClearModal, setShowClearModal] = useState(false);
     const [wrappedUnlocked, setWrappedUnlocked] = useState(false);
     const [showWrapped, setShowWrapped] = useState(false);
+    const [activeTab, setActiveTab] = useState<'overview' | 'data'>('overview');
     const currentYear = new Date().getFullYear();
 
     useEffect(() => {
@@ -135,7 +136,7 @@ export const SettingsPage: React.FC = () => {
     };
 
     return (
-        <div className="w-full pl-24 pr-12 pt-6 min-h-screen animate-in fade-in duration-700">
+        <div className="w-full pl-24 pr-8 pt-8 h-screen flex flex-col overflow-hidden bg-[#0f1014] animate-in fade-in duration-700">
             {showWrapped && <WrappedPage onClose={() => setShowWrapped(false)} />}
 
             <ClearHistoryModal
@@ -143,214 +144,198 @@ export const SettingsPage: React.FC = () => {
                 onClose={() => setShowClearModal(false)}
                 onConfirm={handleClearHistory}
             />
-            {/* Premium Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-                <div>
-                    <div className="flex items-center gap-3 mb-2 text-zinc-500 uppercase tracking-[0.2em] text-[10px] font-bold">
-                        <Cpu size={14} className="text-zinc-600" />
-                        Account Control
+
+            {/* Header & Tab Switcher */}
+            <div className="flex items-center justify-between mb-8 shrink-0 pr-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-zinc-900 rounded-xl flex items-center justify-center border border-white/5">
+                        <Cpu size={20} className="text-zinc-400" />
                     </div>
-                    <h1 className="text-5xl font-black text-white tracking-tighter">
-                        User <span className="text-zinc-500">Settings</span>
-                    </h1>
+                    <div>
+                        <h1 className="text-xl font-bold text-white tracking-tight">Settings</h1>
+                        <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Preferences</div>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-zinc-900/40 border border-white/5 p-2 rounded-2xl backdrop-blur-xl">
+                {/* Navbar-style Glass Pill Switcher */}
+                <div className="flex p-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/5 z-10 shadow-2xl relative">
                     <button
-                        onClick={signOut}
-                        className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 rounded-xl text-xs font-medium text-zinc-400 hover:text-white transition-colors"
+                        onClick={() => setActiveTab('overview')}
+                        className={`px-8 py-2 rounded-full text-xs uppercase tracking-widest font-bold transition-all duration-300 transform active:scale-95 ${
+                            activeTab === 'overview'
+                                ? 'bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] backdrop-blur-3xl relative z-10'
+                                : 'bg-transparent text-zinc-500 hover:text-zinc-300 border border-transparent'
+                        }`}
                     >
-                        <LogOut size={14} />
-                        Sign Out
+                        Overview
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('data')}
+                        className={`px-8 py-2 rounded-full text-xs uppercase tracking-widest font-bold transition-all duration-300 transform active:scale-95 ${
+                            activeTab === 'data'
+                                ? 'bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] backdrop-blur-3xl relative z-10'
+                                : 'bg-transparent text-zinc-500 hover:text-zinc-300 border border-transparent'
+                        }`}
+                    >
+                        Privacy & Data
                     </button>
                 </div>
+
+                <button
+                    onClick={signOut}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-white/5 rounded-full text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                >
+                    <LogOut size={14} />
+                    Sign Out
+                </button>
             </div>
 
-            {/* Grid Layout */}
-            <div className="grid grid-cols-12 gap-8 pb-20">
+            {/* Scrollable Content Area */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 pb-12">
+                
+                {activeTab === 'overview' ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        {/* Guest Security Card is naturally compact now */}
+                        <div className="lg:col-span-2">
+                            <GuestSecurityCard compact />
+                        </div>
 
-                {/* Main Content Area */}
-                <div className="col-span-12 space-y-8">
+                        {/* Usage Stats Script - Compact & Solid */}
+                        {canStream && (
+                            <section className="bg-[#121214] border border-white/5 p-6 rounded-[24px] flex flex-col justify-between hover:border-white/10 transition-colors">
+                                <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <History size={14} /> Account Activity
+                                </h3>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-purple-500" />
+                                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">History</div>
+                                        </div>
+                                        <div className="text-3xl font-bold text-white tracking-tight">{stats?.historyCount || 0}</div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Playlists</div>
+                                        </div>
+                                        <div className="text-3xl font-bold text-white tracking-tight">{stats?.playlistsCount || 0}</div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <GuestSecurityCard />
+                        {/* Engagement Stats - Compact & Solid */}
+                        {canStream && (
+                            <section className="bg-[#121214] border border-white/5 p-6 rounded-[24px] flex flex-col justify-between hover:border-white/10 transition-colors">
+                                <h3 className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+                                    <Film size={14} /> Engagement Reach
+                                </h3>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-pink-500" />
+                                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Liked</div>
+                                        </div>
+                                        <div className="text-3xl font-bold text-white tracking-tight">{stats?.likedPlaylistsCount || 0}</div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Views</div>
+                                        </div>
+                                        <div className="text-3xl font-bold text-white tracking-tight">{stats?.totalPlaylistViews || 0}</div>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
 
-                        {/* Wrapped Card */}
+                        {/* Wrapped Card - Compact version */}
                         <section
-                            onClick={() => {
-                                if (wrappedUnlocked) {
-                                    setShowWrapped(true);
-                                }
-                            }}
-                            className={`relative border rounded-[32px] p-8 overflow-hidden group transition-all duration-500 ${wrappedUnlocked
-                                ? 'bg-zinc-950 border-white/20 hover:border-white/40 cursor-pointer'
-                                : 'bg-zinc-950/50 border-white/5 opacity-60 grayscale'
-                                }`}
+                            onClick={() => { if (wrappedUnlocked) setShowWrapped(true); }}
+                            className={`lg:col-span-2 relative border rounded-[24px] p-6 overflow-hidden group transition-all duration-300 ${
+                                wrappedUnlocked
+                                    ? 'bg-[#151518] border-white/10 hover:border-white/30 cursor-pointer shadow-xl'
+                                    : 'bg-[#0f1014] border-white/5 opacity-60 grayscale'
+                            }`}
                         >
-                            <h3 className={`text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2 ${wrappedUnlocked ? 'text-white' : 'text-zinc-600'}`}>
-                                {wrappedUnlocked ? <Trophy size={14} /> : <Lock size={14} />}
-                                {wrappedUnlocked ? 'Your Year In Review' : 'Locked'}
-                            </h3>
-
-                            <div className="relative z-10">
-                                <div className="flex items-baseline gap-2 mb-2">
-                                    <span className={`text-6xl font-black tracking-tighter ${wrappedUnlocked ? 'text-white' : 'text-zinc-700'}`}>
-                                        {currentYear}
-                                    </span>
+                            <div className="flex items-center justify-between relative z-10">
+                                <div>
+                                    <h3 className={`text-[10px] font-bold uppercase tracking-widest mb-2 flex items-center gap-2 ${wrappedUnlocked ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                                        {wrappedUnlocked ? <Trophy size={14} className="text-yellow-500" /> : <Lock size={14} />}
+                                        {wrappedUnlocked ? 'Your Year In Review' : 'Locked'}
+                                    </h3>
+                                    <div className={`text-2xl font-bold tracking-tight ${wrappedUnlocked ? 'text-white' : 'text-zinc-600'}`}>
+                                        {currentYear} Wrapped
+                                    </div>
+                                    <p className={`text-xs mt-1 font-medium ${wrappedUnlocked ? 'text-zinc-500' : 'text-zinc-700'}`}>
+                                        {wrappedUnlocked
+                                            ? `Your ${currentYear} Wrapped is ready from this year's qualified sessions.`
+                                            : `Unlocks automatically on Dec 20, ${currentYear}, unless an admin override is enabled.`}
+                                    </p>
                                 </div>
-                                <div className={`text-2xl font-bold mb-4 font-mono uppercase tracking-widest ${wrappedUnlocked ? 'text-zinc-400' : 'text-zinc-800'}`}>
-                                    Wrapped
-                                </div>
-                                <p className={`text-sm mb-8 max-w-[90%] font-medium ${wrappedUnlocked ? 'text-zinc-500' : 'text-zinc-800'}`}>
-                                    {wrappedUnlocked
-                                        ? `Your ${currentYear} Wrapped is ready from this year's qualified sessions.`
-                                        : `Unlocks automatically on Dec 20, ${currentYear}, unless an admin override is enabled.`}
-                                </p>
-
-                                {/* Unlocked Action / Locked status */}
                                 {wrappedUnlocked ? (
-                                    <div className="flex items-center gap-3 text-black bg-white px-5 py-2 rounded-full w-fit font-bold text-xs uppercase tracking-wider group-hover:scale-105 transition-transform">
-                                        <Play size={12} fill="currentColor" />
-                                        <span>Play Wrapped</span>
+                                    <div className="flex shrink-0 items-center justify-center w-12 h-12 bg-white text-black rounded-full group-hover:scale-105 transition-transform shadow-lg">
+                                        <Play size={20} fill="currentColor" className="ml-1" />
                                     </div>
                                 ) : (
-                                    <div className="flex items-center gap-2 mt-4">
+                                    <div className="hidden md:flex items-center gap-2">
                                         <div className="h-1.5 w-24 bg-zinc-800 rounded-full overflow-hidden">
                                             <div className="h-full bg-zinc-700 w-[70%]" />
                                         </div>
-                                        <span className="text-[10px] font-bold uppercase text-zinc-600">
-                                            Collecting Session Data...
-                                        </span>
                                     </div>
                                 )}
                             </div>
                         </section>
-
-                        {/* Usage Stats Script - Only for streaming users */}
-                        {canStream && (
-                            <section className="bg-gradient-to-b from-zinc-900/40 to-black border border-white/5 p-8 rounded-[32px] flex flex-col justify-between">
-                                <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-                                    <History size={14} /> Account Activity
-                                </h3>
-
-                                <div className="grid grid-cols-2 gap-12">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-purple-500/10 rounded-lg text-purple-500">
-                                                <Film size={18} />
-                                            </div>
-                                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">History</div>
-                                        </div>
-                                        <div className="text-4xl font-black text-white">{stats?.historyCount || 0}</div>
-                                        <p className="text-xs text-zinc-600">Recent history entries</p>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500">
-                                                <Bookmark size={18} />
-                                            </div>
-                                            <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Playlists</div>
-                                        </div>
-                                        <div className="text-4xl font-black text-white">{stats?.playlistsCount || 0}</div>
-                                        <p className="text-xs text-zinc-600">Playlists created</p>
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* Liked Playlists Card - Only for streaming users */}
-                        {canStream && (
-                            <section className="bg-gradient-to-b from-zinc-900/40 to-black border border-white/5 p-8 rounded-[32px] flex flex-col justify-between">
-                                <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-                                    <Film size={14} /> Engagement
-                                </h3>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-pink-500/10 rounded-lg text-pink-500">
-                                            <Film size={18} />
-                                        </div>
-                                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Liked</div>
-                                    </div>
-                                    <div className="text-4xl font-black text-white">{stats?.likedPlaylistsCount || 0}</div>
-                                    <p className="text-xs text-zinc-600">Playlists liked</p>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* Total Views Card - Only for streaming users */}
-                        {canStream && (
-                            <section className="bg-gradient-to-b from-zinc-900/40 to-black border border-white/5 p-8 rounded-[32px] flex flex-col justify-between">
-                                <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-                                    <Tv size={14} /> Reach
-                                </h3>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-500">
-                                            <Tv size={18} />
-                                        </div>
-                                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Views</div>
-                                    </div>
-                                    <div className="text-4xl font-black text-white">{stats?.totalPlaylistViews || 0}</div>
-                                    <p className="text-xs text-zinc-600">Total playlist views</p>
-                                </div>
-                            </section>
-                        )}
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {/* Data Privacy Info */}
-                        <div className="bg-zinc-900/40 border border-white/5 p-6 rounded-[24px] flex items-center gap-5 md:col-span-2">
-                            <div className="p-4 bg-zinc-800 rounded-2xl text-zinc-400">
-                                <ShieldCheck size={24} />
+                        <div className="bg-[#121214] border border-white/5 p-6 rounded-[24px] flex items-start gap-4 md:col-span-2">
+                            <div className="p-3 bg-zinc-900 rounded-2xl text-blue-400 border border-white/5 shrink-0 mt-1">
+                                <ShieldCheck size={20} />
                             </div>
                             <div>
-                                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Privacy & Security</div>
                                 <div className="text-lg font-bold text-white tracking-tight">End-to-End Synced</div>
-                                <p className="text-xs text-zinc-600 mt-1">Your data belongs to you. You can export it or clear it at any time.</p>
-                                <p className="text-[10px] text-zinc-700 mt-2">Wrapped and stats are based on recent activity plus qualified viewing sessions, not exact embedded-player telemetry.</p>
+                                <p className="text-sm text-zinc-500 mt-1 leading-relaxed">
+                                    Your data belongs to you. You can export it or clear it at any time. Embedded-player telemetry is strictly obfuscated and only anonymized session qualities are aggregated.
+                                </p>
                             </div>
                         </div>
 
                         {/* Export Card */}
                         <button
                             onClick={handleExport}
-                            className="group bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/5 p-6 rounded-[24px] transition-all flex items-center gap-5 text-left"
+                            className="bg-[#121214] hover:bg-[#1a1a1d] border border-white/5 p-6 rounded-[24px] transition-all flex flex-col items-start text-left focus:outline-none"
                         >
-                            <div className="p-4 bg-white/5 rounded-2xl text-zinc-400 group-hover:text-white group-hover:bg-white/10 transition-all">
-                                <Download size={24} />
+                            <div className="p-3 bg-white/5 rounded-full text-zinc-300 mb-4">
+                                <Download size={20} />
                             </div>
-                            <div>
-                                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Backup</div>
-                                <div className="text-lg font-bold text-white tracking-tight">Export Data</div>
-                            </div>
+                            <div className="text-base font-bold text-white tracking-tight mb-1">Export Data</div>
+                            <div className="text-xs text-zinc-500 font-medium">Download full account backup including watch history, interactions, and settings JSON bundle.</div>
                         </button>
 
-                        {/* Clear History Card - Only if enabled */}
+                        {/* Clear History Card */}
                         <button
                             onClick={() => setShowClearModal(true)}
-                            className="group bg-zinc-900/60 hover:bg-red-500/10 hover:border-red-500/20 border border-white/5 p-6 rounded-[24px] transition-all flex items-center gap-5 text-left"
+                            className="bg-[#121214] hover:bg-red-500/10 hover:border-red-500/20 border border-white/5 p-6 rounded-[24px] transition-all flex flex-col items-start text-left focus:outline-none group"
                         >
-                            <div className="p-4 bg-white/5 rounded-2xl text-zinc-400 group-hover:text-red-500 group-hover:bg-red-500/10 transition-all">
-                                <Trash2 size={24} />
+                            <div className="p-3 bg-white/5 group-hover:bg-red-500/20 group-hover:text-red-500 transition-colors rounded-full text-zinc-300 mb-4">
+                                <Trash2 size={20} />
                             </div>
-                            <div>
-                                <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest group-hover:text-red-500/50">Danger Zone</div>
-                                <div className="text-lg font-bold text-white tracking-tight group-hover:text-red-500">Clear History</div>
-                            </div>
+                            <div className="text-base font-bold text-white tracking-tight group-hover:text-red-500 transition-colors mb-1">Clear History</div>
+                            <div className="text-xs text-zinc-500 font-medium group-hover:text-red-400/70 transition-colors">Permanently delete your watch history. This action cannot be reversed and immediately invalidates active Wrapped sessions.</div>
                         </button>
                     </div>
-                </div>
-            </div >
+                )}
+            </div>
 
             {statusMessage && (
-                <div className="fixed bottom-12 right-12 bg-white text-black px-6 py-3 rounded-full font-bold text-sm shadow-2xl animate-in slide-in-from-bottom-8 duration-500 flex items-center gap-3">
+                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-full font-bold text-sm shadow-[0_10px_40px_rgba(255,255,255,0.2)] animate-in slide-in-from-bottom-8 duration-500 flex items-center gap-3 z-[100]">
                     <ShieldCheck size={18} />
                     {statusMessage}
                 </div>
             )}
-        </div >
+        </div>
     );
 };
