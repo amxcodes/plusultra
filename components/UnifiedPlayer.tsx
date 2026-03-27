@@ -502,7 +502,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     id="unified-iframe"
                     onLoad={markProviderReady}
                     referrerPolicy="no-referrer"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
                 />
             )}
 
