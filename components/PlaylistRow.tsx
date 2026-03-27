@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Globe, Lock, Heart } from 'lucide-react';
 import { Playlist } from '../types';
 import { PlaylistCard } from './PlaylistCard';
+import { getDisplayName } from '../lib/displayName';
 
 interface PlaylistRowProps {
     title: string;
@@ -48,8 +49,9 @@ export const PlaylistRow: React.FC<PlaylistRowProps> = ({ title, playlists, onPl
 
                 <div ref={rowRef} onScroll={handleScroll} className="flex items-center space-x-4 overflow-x-scroll scrollbar-hide md:space-x-6 px-4 py-8" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                     {playlists.map((playlist) => {
+                        const ownerName = getDisplayName(playlist.profiles?.username);
                         const subtitle = (
-                            <span className="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-widest">by <span className="text-zinc-400 font-bold">{playlist.profiles?.username || 'Unknown'}</span></span>
+                            <span className="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-widest">by <span className="text-zinc-400 font-bold">{ownerName}</span></span>
                         );
                         
                         return (

@@ -31,14 +31,14 @@ export const StatsDashboard = () => {
             {/* Cards Grid Skeleton */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-56 bg-zinc-900/40 rounded-[28px] border border-white/5 p-6 flex flex-col justify-between animate-pulse">
+                    <div key={i} className="h-56 bg-gradient-to-tr from-white/10 to-white/5 backdrop-blur-3xl rounded-[32px] border border-white/10 p-6 flex flex-col justify-between animate-pulse">
                         <div className="flex justify-between items-start">
-                            <div className="h-3 w-16 bg-zinc-800 rounded" />
-                            <div className="w-8 h-8 bg-zinc-800 rounded-full" />
+                            <div className="h-3 w-16 bg-white/10 rounded" />
+                            <div className="w-8 h-8 bg-white/10 rounded-full" />
                         </div>
                         <div>
-                            <div className="h-12 w-24 bg-zinc-800 rounded mb-4" />
-                            <div className="h-2 w-full bg-zinc-800 rounded-full" />
+                            <div className="h-12 w-24 bg-white/10 rounded mb-4" />
+                            <div className="h-2 w-full bg-white/5 rounded-full" />
                         </div>
                     </div>
                 ))}
@@ -47,31 +47,31 @@ export const StatsDashboard = () => {
             {/* Bottom Grid Skeleton */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-20">
                 {/* Genres Skeleton */}
-                <div className="lg:col-span-2 bg-[#08080a]/50 border border-white/5 rounded-[28px] p-8 h-[300px] animate-pulse">
+                <div className="lg:col-span-2 bg-black/40 backdrop-blur-xl border border-white/5 rounded-[32px] p-8 h-[300px] animate-pulse">
                     <div className="flex items-center gap-3 mb-8">
-                        <div className="w-8 h-8 bg-zinc-800 rounded-full" />
-                        <div className="h-6 w-32 bg-zinc-800 rounded" />
+                        <div className="w-8 h-8 bg-white/5 rounded-full" />
+                        <div className="h-6 w-32 bg-white/5 rounded" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
                         {[1, 2, 3, 4].map((i) => (
                             <div key={i}>
                                 <div className="flex justify-between items-end mb-2">
-                                    <div className="h-4 w-24 bg-zinc-800 rounded" />
-                                    <div className="h-3 w-8 bg-zinc-800 rounded" />
+                                    <div className="h-4 w-24 bg-white/5 rounded" />
+                                    <div className="h-3 w-8 bg-white/5 rounded" />
                                 </div>
-                                <div className="h-[2px] w-full bg-zinc-800 rounded-full" />
+                                <div className="h-[2px] w-full bg-white/5 rounded-full" />
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* Wrapped Card Skeleton */}
-                <div className="bg-[#08080a]/50 border border-white/5 rounded-[28px] p-8 h-[300px] flex flex-col justify-center items-center animate-pulse">
-                    <div className="h-3 w-20 bg-zinc-800 rounded mb-4" />
-                    <div className="h-12 w-32 bg-zinc-800 rounded mb-2" />
-                    <div className="h-6 w-24 bg-zinc-800 rounded mb-6" />
-                    <div className="w-10 h-10 bg-zinc-800 rounded-full mb-4" />
-                    <div className="h-3 w-24 bg-zinc-800 rounded" />
+                <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[32px] p-8 h-[300px] flex flex-col justify-center items-center animate-pulse">
+                    <div className="h-3 w-20 bg-white/5 rounded mb-4" />
+                    <div className="h-12 w-32 bg-white/10 rounded mb-2" />
+                    <div className="h-6 w-24 bg-white/5 rounded mb-6" />
+                    <div className="w-10 h-10 bg-white/10 rounded-full mb-4" />
+                    <div className="h-3 w-24 bg-white/5 rounded" />
                 </div>
             </div>
         </div>
@@ -79,8 +79,8 @@ export const StatsDashboard = () => {
 
     if (!stats) return (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] text-center px-4">
-            <div className="w-24 h-24 bg-zinc-900/50 rounded-full flex items-center justify-center mb-6 border border-white/5 shadow-2xl shadow-black/50 backdrop-blur-md animate-float">
-                <BarChart2 size={32} className="text-zinc-600" />
+            <div className="w-24 h-24 bg-black/40 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-2xl backdrop-blur-xl animate-float">
+                <BarChart2 size={32} className="text-zinc-500" />
             </div>
             <h2 className="text-3xl font-light text-white mb-2 tracking-tight">No Data Available</h2>
             <p className="text-zinc-500 max-w-md font-light">
@@ -115,7 +115,7 @@ export const StatsDashboard = () => {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="px-4 py-2 rounded-full bg-zinc-900/30 border border-white/5 text-[10px] font-medium text-zinc-400 backdrop-blur-md">
+                    <div className="px-4 py-2 rounded-full bg-black/40 border border-white/5 text-[10px] font-medium text-zinc-400 backdrop-blur-xl">
                         {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
                     </div>
                 </div>
@@ -124,76 +124,64 @@ export const StatsDashboard = () => {
             {/* Faded Gradient Cards Grid - Ultra Compact Aspect Ratios */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
 
-                {/* 1. Day Streak (Faded Magma) - Rotating Ring Animation */}
-                <div className="group relative h-56 bg-zinc-900/20 rounded-[28px] border border-white/5 overflow-hidden transition-all duration-700 hover:border-white/10 hover:shadow-2xl hover:shadow-orange-900/10">
-                    <div className="absolute inset-0 bg-[#050505]">
-                        <div className="absolute -bottom-1/2 -left-1/4 w-[150%] h-[150%] bg-gradient-to-t from-orange-600/20 via-orange-900/5 to-transparent blur-[80px] opacity-60 group-hover:opacity-80 transition-opacity duration-1000" />
-                    </div>
-
+                {/* 1. Day Streak - Glass Pill Nav Style */}
+                <div className="group relative h-56 bg-gradient-to-tr from-white/20 to-white/5 rounded-[32px] border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] backdrop-blur-3xl overflow-hidden transition-all duration-700 hover:border-white/30">
                     <div className="relative z-10 h-full p-6 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
                             <div className="flex flex-col gap-1">
-                                <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">Streak</span>
-                                <div className="flex items-center gap-2 text-orange-400/80">
+                                <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em] group-hover:text-zinc-300 transition-colors">Streak</span>
+                                <div className="flex items-center gap-2 text-orange-400 group-hover:text-orange-300 transition-colors">
                                     <Flame size={12} fill="currentColor" className="animate-pulse" />
                                     <span className="text-[10px] font-medium tracking-wide">Active</span>
                                 </div>
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/5 backdrop-blur-sm group-hover:bg-white/10 transition-colors">
-                                <ArrowUpRight size={14} className="text-zinc-400" />
+                            <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10 backdrop-blur-sm group-hover:bg-white/20 transition-colors">
+                                <ArrowUpRight size={14} className="text-zinc-300" />
                             </div>
                         </div>
 
                         <div>
-                            <div className="text-5xl font-thin tracking-tighter text-white/90 group-hover:text-white transition-colors cursor-default group-hover:scale-105 origin-left duration-500">
+                            <div className="text-5xl font-thin tracking-tighter text-white cursor-default group-hover:scale-105 origin-left duration-500">
                                 {stats.streak_days}
                             </div>
                             {/* Animated Loading Bar */}
-                            <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full w-full bg-gradient-to-r from-orange-500/50 to-orange-200/50 blur-[1px] -translate-x-full group-hover:translate-x-0 transition-transform duration-[1.5s] ease-out" />
+                            <div className="mt-4 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full w-full bg-white/40 group-hover:bg-orange-400 blur-[1px] -translate-x-full group-hover:translate-x-0 transition-all duration-[1.5s] ease-out" />
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. Movies (Deep Ocean) - Floating Bubble Animation */}
-                <div className="group relative h-56 bg-zinc-900/20 rounded-[28px] border border-white/5 overflow-hidden transition-all duration-700 hover:border-white/10 hover:shadow-2xl hover:shadow-blue-900/10">
-                    <div className="absolute inset-0 bg-[#050505]">
-                        <div className="absolute -bottom-1/2 -right-1/4 w-[150%] h-[150%] bg-gradient-to-t from-blue-900/30 via-blue-950/10 to-transparent blur-[100px] opacity-60 group-hover:opacity-80 transition-opacity duration-1000" />
-                    </div>
-
+                {/* 2. Movies - Glass Pill Nav Style */}
+                <div className="group relative h-56 bg-gradient-to-tr from-white/20 to-white/5 rounded-[32px] border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] backdrop-blur-3xl overflow-hidden transition-all duration-700 hover:border-white/30">
                     <div className="relative z-10 h-full p-6 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
-                            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">Movies</span>
-                            <Film size={16} className="text-blue-500/50" />
+                            <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors text-[10px] font-bold uppercase tracking-[0.2em]">Movies</span>
+                            <Film size={16} className="text-blue-400 group-hover:text-blue-300 transition-colors" />
                         </div>
 
                         <div className="relative">
-                            <div className="text-5xl font-thin tracking-tighter text-white/90 group-hover:text-white transition-colors cursor-default group-hover:scale-105 origin-left duration-500">
+                            <div className="text-5xl font-thin tracking-tighter text-white cursor-default group-hover:scale-105 origin-left duration-500">
                                 {stats.total_movies}
                             </div>
-                            <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Qualified movie sessions</p>
+                            <p className="text-[10px] text-zinc-400 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Qualified movie sessions</p>
                         </div>
                     </div>
                 </div>
 
-                {/* 3. Shows (Midnight Purple) - Pulse Wave Animation */}
-                <div className="group relative h-56 bg-zinc-900/20 rounded-[28px] border border-white/5 overflow-hidden transition-all duration-700 hover:border-white/10 hover:shadow-2xl hover:shadow-purple-900/10">
-                    <div className="absolute inset-0 bg-[#050505]">
-                        <div className="absolute bottom-[-50%] left-[-20%] w-[140%] h-[140%] bg-gradient-to-tr from-purple-900/30 via-black to-transparent blur-[100px] opacity-60 group-hover:opacity-80 transition-opacity duration-1000" />
-                    </div>
-
+                {/* 3. Shows - Glass Pill Nav Style */}
+                <div className="group relative h-56 bg-gradient-to-tr from-white/20 to-white/5 rounded-[32px] border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] backdrop-blur-3xl overflow-hidden transition-all duration-700 hover:border-white/30">
                     <div className="relative z-10 h-full p-6 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
-                            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.2em]">TV Episodes</span>
-                            <Tv size={16} className="text-purple-500/50" />
+                            <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors text-[10px] font-bold uppercase tracking-[0.2em]">TV Episodes</span>
+                            <Tv size={16} className="text-purple-400 group-hover:text-purple-300 transition-colors" />
                         </div>
 
                         <div>
-                            <div className="text-5xl font-thin tracking-tighter text-white/90 group-hover:text-white transition-colors cursor-default group-hover:scale-105 origin-left duration-500">
+                            <div className="text-5xl font-thin tracking-tighter text-white cursor-default group-hover:scale-105 origin-left duration-500">
                                 {stats.total_shows}
                             </div>
-                            <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Qualified episode sessions</p>
+                            <p className="text-[10px] text-zinc-400 font-medium tracking-wide mt-2 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">+ Qualified episode sessions</p>
                         </div>
                     </div>
                 </div>
@@ -203,13 +191,13 @@ export const StatsDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pb-20">
 
                 {/* Minimalist Top Genres - Staggered Bar Animation */}
-                <div className="lg:col-span-2 relative bg-[#08080a]/50 border border-white/5 rounded-[28px] p-8 overflow-hidden hover:bg-[#08080a] transition-colors duration-500">
+                <div className="lg:col-span-2 relative bg-black/40 backdrop-blur-xl border border-white/5 rounded-[32px] p-8 overflow-hidden hover:bg-black/60 hover:border-white/10 transition-all duration-500 group">
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-white/5 rounded-full">
-                                <TrendingUp size={14} className="text-zinc-400" />
+                            <div className="p-2 bg-gradient-to-tr from-white/20 to-white/5 backdrop-blur-md rounded-full border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]">
+                                <TrendingUp size={14} className="text-white" />
                             </div>
-                            <span className="text-base font-light tracking-tight text-white">Top Genres</span>
+                            <span className="text-base font-light tracking-tight text-white group-hover:scale-105 origin-left transition-transform">Top Genres</span>
                         </div>
                     </div>
 
@@ -229,9 +217,9 @@ export const StatsDashboard = () => {
                                     </div>
 
                                     {/* Ultra-thin progress bar with staggered fill animation */}
-                                    <div className="h-[2px] w-full bg-zinc-900 rounded-full overflow-hidden">
+                                    <div className="h-[2px] w-full bg-white/5 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-white/40 group-hover/bar:bg-orange-500/80 transition-all duration-1000 ease-out w-0 group-hover/bar:w-full"
+                                            className="h-full bg-white/40 group-hover/bar:bg-white transition-all duration-1000 ease-out w-0 group-hover/bar:w-full"
                                             style={{ width: `${percentage}%`, transitionDelay: `${idx * 100}ms` }}
                                         />
                                     </div>
@@ -248,7 +236,7 @@ export const StatsDashboard = () => {
                 </div>
 
                 {/* Year Progress Tracker */}
-                <div className="relative bg-[#08080a]/50 border border-white/5 rounded-[28px] p-8 overflow-hidden flex flex-col justify-center items-center text-center hover:bg-[#08080a] transition-colors duration-500 group">
+                <div className="relative bg-black/40 backdrop-blur-xl border border-white/5 rounded-[32px] p-8 overflow-hidden flex flex-col justify-center items-center text-center hover:bg-black/60 hover:border-white/10 transition-all duration-500 group">
                     {(() => {
                         const now = new Date();
                         const start = new Date(now.getFullYear(), 0, 0);
@@ -259,14 +247,14 @@ export const StatsDashboard = () => {
 
                         return (
                             <>
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px] bg-blue-500/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-blue-500/10 transition-colors duration-700" />
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150px] h-[150px] bg-blue-500/5 blur-[60px] rounded-full pointer-events-none transition-colors duration-700" />
 
                                 <div className="relative z-10 w-full">
-                                    <span className="inline-block mb-6 text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-600 group-hover:text-zinc-500 transition-colors">Year Progress</span>
+                                    <span className="inline-block mb-6 text-[9px] font-bold uppercase tracking-[0.3em] text-zinc-500 group-hover:text-zinc-400 transition-colors">Year Progress</span>
 
                                     <div className="relative w-32 h-32 mx-auto mb-6 flex items-center justify-center">
                                         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                            <circle cx="50" cy="50" r="45" fill="none" stroke="#1f1f22" strokeWidth="6" />
+                                            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
                                             <circle
                                                 cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="6"
                                                 className="text-white/20 group-hover:text-white/40 transition-colors duration-700"
@@ -282,7 +270,7 @@ export const StatsDashboard = () => {
 
                                     <div className="flex flex-col gap-1">
                                         <h3 className="text-xl font-light text-white tracking-wide">{now.getFullYear()}</h3>
-                                        <p className="text-[10px] text-zinc-500 font-medium tracking-wider uppercase">is passing by</p>
+                                        <p className="text-[10px] text-zinc-500 font-medium tracking-wider uppercase group-hover:text-zinc-400">is passing by</p>
                                     </div>
                                 </div>
                             </>

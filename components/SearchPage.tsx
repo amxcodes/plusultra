@@ -7,6 +7,7 @@ import { TmdbService } from '../services/tmdb';
 import { SocialService } from '../lib/social';
 import { useDebounce } from '../hooks/useDebounce';
 import { useAuth } from '../lib/AuthContext';
+import { getDisplayName } from '../lib/displayName';
 
 enum SearchTab {
   MOVIES = 'Movies & TV',
@@ -760,29 +761,35 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onMovieSelect, onNavigat
             {activeTab === SearchTab.PLAYLISTS && playlistResults.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pb-20 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 {playlistResults.map(list => (
-                  <div
-                    key={list.id}
-                    onClick={() => handlePlaylistClick(list.id)}
-                    className="bg-[#151518] border border-white/5 rounded-3xl overflow-hidden hover:border-white/20 transition-all cursor-pointer group hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 duration-500"
-                  >
-                    <div className="aspect-video bg-zinc-900 group-hover:bg-zinc-800 transition-colors flex items-center justify-center relative overflow-hidden">
-                      {/* Placeholder Art */}
-                      <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[100px] font-black text-white mix-blend-overlay select-none">
-                        {list.name[0]}
+                  (() => {
+                    const ownerName = getDisplayName(list.profiles?.username);
+
+                    return (
+                      <div
+                        key={list.id}
+                        onClick={() => handlePlaylistClick(list.id)}
+                        className="bg-[#151518] border border-white/5 rounded-3xl overflow-hidden hover:border-white/20 transition-all cursor-pointer group hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 duration-500"
+                      >
+                        <div className="aspect-video bg-zinc-900 group-hover:bg-zinc-800 transition-colors flex items-center justify-center relative overflow-hidden">
+                          {/* Placeholder Art */}
+                          <div className="absolute inset-0 flex items-center justify-center opacity-20 text-[100px] font-black text-white mix-blend-overlay select-none">
+                            {list.name[0]}
+                          </div>
+                          <Disc size={48} className="text-zinc-700 group-hover:text-white transition-colors relative z-10" />
+                        </div>
+                        <div className="p-6">
+                          <h3 className="font-bold text-lg text-white truncate">{list.name}</h3>
+                          <div className="flex items-center gap-2 mt-3">
+                            <img
+                              src={list.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${ownerName}&background=random`}
+                              className="w-5 h-5 rounded-full"
+                            />
+                            <span className="text-xs text-zinc-500 group-hover:text-zinc-300 transition-colors">By {ownerName}</span>
+                          </div>
+                        </div>
                       </div>
-                      <Disc size={48} className="text-zinc-700 group-hover:text-white transition-colors relative z-10" />
-                    </div>
-                    <div className="p-6">
-                      <h3 className="font-bold text-lg text-white truncate">{list.name}</h3>
-                      <div className="flex items-center gap-2 mt-3">
-                        <img
-                          src={list.profiles?.avatar_url || `https://ui-avatars.com/api/?name=${list.profiles?.username}&background=random`}
-                          className="w-5 h-5 rounded-full"
-                        />
-                        <span className="text-xs text-zinc-500 group-hover:text-zinc-300 transition-colors">By {list.profiles?.username || 'Unknown'}</span>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()
                 ))}
               </div>
             )}

@@ -5,6 +5,7 @@ import { PlaylistEngagement } from '../lib/playlistEngagement';
 import { ChevronLeft } from 'lucide-react';
 import { PlaylistRow } from './PlaylistRow';
 import { PlaylistCard } from './PlaylistCard';
+import { getDisplayName } from '../lib/displayName';
 /* 
   Reusing the MovieCard style for playlists (vertical cards) 
   But since we have a PlaylistRow component that handles cards well, 
@@ -60,8 +61,9 @@ export const LikedPlaylistsPage: React.FC<LikedPlaylistsPageProps> = ({ onBack, 
                 ) : (
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-10">
                         {playlists.map((playlist) => {
+                            const ownerName = getDisplayName(playlist.profiles?.username);
                             const subtitle = (
-                                <span className="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-widest">by <span className="text-zinc-400 font-bold">{playlist.profiles?.username || 'Unknown'}</span></span>
+                                <span className="text-[10px] text-zinc-500 flex items-center gap-1 uppercase tracking-widest">by <span className="text-zinc-400 font-bold">{ownerName}</span></span>
                             );
                             
                             return (
