@@ -503,14 +503,20 @@ function StreamApp() {
     }), 'push', { scrollToTop: false });
   };
 
+  const handlePlayerEpisodeChange = (season: number, episode: number) => {
+    if (!playerState) return;
+
+    commitSnapshot(buildSnapshot({
+      playerState: {
+        movie: playerState.movie,
+        season,
+        episode,
+      },
+      isMobileMenuOpen: false,
+    }), 'replace', { scrollToTop: false });
+  };
+
   const handleContinueWatchingSelect = (movie: Movie) => {
-    const isSeries = movie.mediaType === 'tv' || typeof movie.season === 'number' || typeof movie.episode === 'number';
-
-    if (isSeries) {
-      handleMovieSelect(movie);
-      return;
-    }
-
     const season = typeof movie.season === 'number' ? movie.season : undefined;
     const episode = typeof movie.episode === 'number' ? movie.episode : undefined;
 
@@ -582,6 +588,7 @@ function StreamApp() {
         movie={playerState.movie}
         season={playerState.season}
         episode={playerState.episode}
+        onPlayEpisode={handlePlayerEpisodeChange}
         onBack={() => navigateBack(buildSnapshot({ playerState: null }), { scrollToTop: false })}
       />
     );

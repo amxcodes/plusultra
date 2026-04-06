@@ -9,9 +9,10 @@ interface PlayerPageProps {
     season?: number;
     episode?: number;
     onBack: () => void;
+    onPlayEpisode?: (season: number, episode: number) => void;
 }
 
-export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episode = 1, onBack }) => {
+export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episode = 1, onBack, onPlayEpisode }) => {
     return (
         <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-500">
             {/* Back Button */}
@@ -33,6 +34,7 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episo
                         mediaType={movie.mediaType || "movie"}
                         season={season}
                         episode={episode}
+                        onPlayEpisode={onPlayEpisode}
                         title={movie.title}
                         posterUrl={movie.imageUrl}
                         voteAverage={movie.match / 10}

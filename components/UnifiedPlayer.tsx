@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
-import { Settings, Check, Users, Download, ExternalLink, ThumbsUp, X } from 'lucide-react';
+import { Settings, Check, Users, Download, ExternalLink, ThumbsUp, X, SkipForward } from 'lucide-react';
 import { CommunityService, RequestReply } from '../lib/community';
 import { TmdbService } from '../services/tmdb';
 import { WatchPartyModal } from './WatchPartyModal';
@@ -16,6 +16,7 @@ interface UnifiedPlayerProps {
     mediaType: 'movie' | 'tv';
     season?: number;
     episode?: number;
+    onPlayEpisode?: (season: number, episode: number) => void;
     title?: string;
     posterUrl?: string;
     voteAverage?: number;
@@ -31,6 +32,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     mediaType,
     season = 1,
     episode = 1,
+    onPlayEpisode,
     title = '',
     posterUrl = '',
     voteAverage = 0,
@@ -75,6 +77,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [showWatchPartyModal, setShowWatchPartyModal] = useState(false);
     const [showVotingModal, setShowVotingModal] = useState(false);
     const [genres, setGenres] = useState<string[]>([]);
+    const [nextEpisodeTarget, setNextEpisodeTarget] = useState<{ season: number; episode: number } | null>(null);
+    const [isResolvingNextEpisode, setIsResolvingNextEpisode] = useState(false);
     const sessionIdRef = useRef<string>('');
     const providerAttemptIdRef = useRef<string>('');
     const providerAttemptStartedAtRef = useRef<number>(0);
@@ -149,6 +153,73 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             });
         }
     }, [tmdbId, mediaType, season, episode, providers]);
+
+    useEffect(() => {
+        if (mediaType !== 'tv' || !onPlayEpisode) {
+            setNextEpisodeTarget(null);
+            setIsResolvingNextEpisode(false);
+            return;
+        }
+
+        let cancelled = false;
+
+        const resolveNextEpisode = async () => {
+            setIsResolvingNextEpisode(true);
+
+            try {
+                const currentSeasonData = await TmdbService.getSeasonDetails(tmdbId, season);
+                if (cancelled) return;
+
+                const sortedCurrentEpisodes = (currentSeasonData?.episodes || [])
+                    .slice()
+                    .sort((left, right) => left.episode_number - right.episode_number);
+                const nextInCurrentSeason = sortedCurrentEpisodes.find(item => item.episode_number > episode);
+
+                if (nextInCurrentSeason) {
+                    setNextEpisodeTarget({ season, episode: nextInCurrentSeason.episode_number });
+                    return;
+                }
+
+                const showDetails = await TmdbService.getDetails(tmdbId, 'tv');
+                if (cancelled) return;
+
+                const upcomingSeasons = (showDetails.seasons || [])
+                    .filter((item) => typeof item?.season_number === 'number' && typeof item?.episode_count === 'number')
+                    .filter((item) => item.season_number > season && item.episode_count > 0)
+                    .sort((left, right) => left.season_number - right.season_number);
+
+                for (const nextSeason of upcomingSeasons) {
+                    const nextSeasonData = await TmdbService.getSeasonDetails(tmdbId, nextSeason.season_number);
+                    if (cancelled) return;
+
+                    const firstEpisode = (nextSeasonData?.episodes || [])
+                        .slice()
+                        .sort((left, right) => left.episode_number - right.episode_number)[0];
+
+                    if (firstEpisode) {
+                        setNextEpisodeTarget({ season: nextSeason.season_number, episode: firstEpisode.episode_number });
+                        return;
+                    }
+                }
+
+                setNextEpisodeTarget(null);
+            } catch (err) {
+                if (!cancelled) {
+                    setNextEpisodeTarget(null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsResolvingNextEpisode(false);
+                }
+            }
+        };
+
+        void resolveNextEpisode();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [tmdbId, mediaType, season, episode, onPlayEpisode]);
 
     useEffect(() => {
         sessionIdRef.current = crypto.randomUUID();
@@ -512,6 +583,32 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
             {/* Controls Overlay (Top Right) */}
             <div className="absolute top-6 right-6 z-50 flex gap-4">
+                {mediaType === 'tv' && onPlayEpisode && (
+                    <button
+                        onClick={() => {
+                            if (nextEpisodeTarget) {
+                                onPlayEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
+                            }
+                        }}
+                        disabled={isResolvingNextEpisode || !nextEpisodeTarget}
+                        className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all ${isResolvingNextEpisode || !nextEpisodeTarget
+                            ? 'bg-black/30 text-white/50 cursor-not-allowed'
+                            : 'bg-black/50 text-white hover:bg-white/20'
+                            }`}
+                        title={nextEpisodeTarget
+                            ? `Play S${nextEpisodeTarget.season} E${nextEpisodeTarget.episode}`
+                            : 'No next episode available'}
+                    >
+                        <SkipForward size={16} />
+                        <span className="text-sm font-medium hidden md:inline">
+                            {isResolvingNextEpisode
+                                ? 'Finding Next'
+                                : nextEpisodeTarget
+                                    ? `Next S${nextEpisodeTarget.season}E${nextEpisodeTarget.episode}`
+                                    : 'No Next'}
+                        </span>
+                    </button>
+                )}
 
                 {/* Community / Downloads Button */}
                 <div className="relative">
