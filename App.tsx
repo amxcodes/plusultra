@@ -504,6 +504,13 @@ function StreamApp() {
   };
 
   const handleContinueWatchingSelect = (movie: Movie) => {
+    const isSeries = movie.mediaType === 'tv' || typeof movie.season === 'number' || typeof movie.episode === 'number';
+
+    if (isSeries) {
+      handleMovieSelect(movie);
+      return;
+    }
+
     const season = typeof movie.season === 'number' ? movie.season : undefined;
     const episode = typeof movie.episode === 'number' ? movie.episode : undefined;
 
