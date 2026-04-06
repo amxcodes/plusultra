@@ -582,7 +582,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
 
             {/* Controls Overlay (Top Right) */}
-            <div className="absolute top-6 right-6 z-50 flex gap-4">
+            <div className="absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4">
                 {mediaType === 'tv' && onPlayEpisode && (
                     <button
                         onClick={() => {
