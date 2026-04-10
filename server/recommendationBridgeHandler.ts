@@ -3,8 +3,8 @@ type BridgeRequestBody =
     | { action: 'similar'; seedTitle: string; preferredType?: 'movie' | 'tv' | 'mixed'; seedMediaType?: 'movie' | 'tv' };
 
 type EnvLike = {
-    VITE_TASTEDIVE_API_KEY?: string;
-    VITE_OMDB_API_KEY?: string;
+    TASTEDIVE_API_KEY?: string;
+    OMDB_API_KEY?: string;
 };
 
 const json = (status: number, body: unknown) => ({
@@ -61,9 +61,42 @@ const mapTasteDiveType = (type?: string) => {
     return 'mixed';
 };
 
-export async function handleRecommendationBridge(requestBody: BridgeRequestBody, env: EnvLike) {
+const isBridgeRequestBody = (value: unknown): value is BridgeRequestBody => {
+    if (!value || typeof value !== 'object') return false;
+
+    const candidate = value as Record<string, unknown>;
+    const preferredType = candidate.preferredType;
+    const seedMediaType = candidate.seedMediaType;
+
+    const hasValidPreferredType =
+        preferredType === undefined || preferredType === 'movie' || preferredType === 'tv' || preferredType === 'mixed';
+    const hasValidSeedMediaType =
+        seedMediaType === undefined || seedMediaType === 'movie' || seedMediaType === 'tv';
+
+    if (!hasValidPreferredType || !hasValidSeedMediaType) {
+        return false;
+    }
+
+    if (candidate.action === 'resolve-seed') {
+        return typeof candidate.query === 'string' && candidate.query.trim().length > 0 && candidate.query.length <= 160;
+    }
+
+    if (candidate.action === 'similar') {
+        return typeof candidate.seedTitle === 'string'
+            && candidate.seedTitle.trim().length > 0
+            && candidate.seedTitle.length <= 160;
+    }
+
+    return false;
+};
+
+export async function handleRecommendationBridge(requestBody: unknown, env: EnvLike) {
+    if (!isBridgeRequestBody(requestBody)) {
+        return json(400, { error: 'Invalid recommendation request' });
+    }
+
     if (requestBody.action === 'resolve-seed') {
-        if (!env.VITE_OMDB_API_KEY) {
+        if (!env.OMDB_API_KEY) {
             return json(200, { item: null });
         }
 
@@ -75,7 +108,7 @@ export async function handleRecommendationBridge(requestBody: BridgeRequestBody,
                     : '';
 
         const params = new URLSearchParams({
-            apikey: env.VITE_OMDB_API_KEY,
+            apikey: env.OMDB_API_KEY,
             s: requestBody.query,
             ...(typeParam ? { type: typeParam } : {}),
         });
@@ -90,7 +123,7 @@ export async function handleRecommendationBridge(requestBody: BridgeRequestBody,
         return json(200, { item: best });
     }
 
-    if (!env.VITE_TASTEDIVE_API_KEY) {
+    if (!env.TASTEDIVE_API_KEY) {
         return json(200, { results: [] });
     }
 
@@ -109,7 +142,7 @@ export async function handleRecommendationBridge(requestBody: BridgeRequestBody,
         type,
         limit: '8',
         info: '0',
-        k: env.VITE_TASTEDIVE_API_KEY,
+        k: env.TASTEDIVE_API_KEY,
     });
 
     const response = await fetch(`https://tastedive.com/api/similar?${params.toString()}`);

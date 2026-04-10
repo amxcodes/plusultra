@@ -49,18 +49,19 @@ describe('CommunityService', () => {
 
         it('should call rate limiter', async () => {
             (supabase.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'u1' } } });
-
-            // Mock supabase insert success
-            const mockChain = {
-                insert: vi.fn().mockReturnThis(),
-                select: vi.fn().mockReturnThis(),
+            (supabase.rpc as any).mockReturnValue({
                 single: vi.fn().mockResolvedValue({ data: { id: 'r1' }, error: null })
-            };
-            (supabase.from as any).mockReturnValue(mockChain);
+            });
 
             await CommunityService.createRequest('123', 'movie', 'Test', '/path.jpg');
 
             expect(rateLimiter.check).toHaveBeenCalledWith('createRequest', expect.any(Number), expect.any(Number));
+            expect(supabase.rpc).toHaveBeenCalledWith('create_movie_request_secure', {
+                p_tmdb_id: '123',
+                p_media_type: 'movie',
+                p_title: 'Test',
+                p_poster_path: '/path.jpg',
+            });
         });
     });
 
@@ -71,24 +72,66 @@ describe('CommunityService', () => {
             await expect(CommunityService.submitReply('r1', '123', 'not-a-url'))
                 .rejects.toThrow(/Invalid link format/);
 
-            // Valid URL should proceed (mocking successful db call)
-            const mockChain = {
-                insert: vi.fn().mockReturnThis(),
-                select: vi.fn().mockReturnThis(),
-                single: vi.fn().mockResolvedValue({ data: { id: 'rep1' }, error: null })
-            };
-            (supabase.from as any).mockReturnValue(mockChain);
-            (supabase.from as any).mockImplementation((table: string) => {
-                if (table === 'movie_requests') {
+            (supabase.rpc as any).mockImplementation((fnName: string) => {
+                if (fnName === 'submit_request_reply_secure') {
                     return {
-                        update: vi.fn().mockReturnThis(),
-                        eq: vi.fn().mockResolvedValue({ error: null })
-                    }
+                        single: vi.fn().mockResolvedValue({ data: { id: 'rep1' }, error: null })
+                    };
                 }
-                return mockChain;
+
+                return {
+                    single: vi.fn().mockResolvedValue({ data: null, error: null })
+                };
             });
 
             await expect(CommunityService.submitReply('r1', '123', 'https://example.com')).resolves.not.toThrow();
+
+            expect(supabase.rpc).toHaveBeenCalledWith('submit_request_reply_secure', {
+                p_request_id: 'r1',
+                p_tmdb_id: '123',
+                p_content: 'https://example.com',
+                p_instructions: null,
+            });
+        });
+
+        it('should pass instructions through the secure RPC', async () => {
+            (supabase.auth.getUser as any).mockResolvedValue({ data: { user: { id: 'u1' } } });
+            (supabase.rpc as any).mockImplementation((fnName: string) => {
+                if (fnName === 'submit_request_reply_secure') {
+                    return {
+                        single: vi.fn().mockResolvedValue({ data: { id: 'rep1' }, error: null })
+                    };
+                }
+
+                return {
+                    single: vi.fn().mockResolvedValue({ data: null, error: null })
+                };
+            });
+
+            await expect(
+                CommunityService.submitReply('r1', '123', 'https://example.com', 'Mirror link')
+            ).resolves.not.toThrow();
+
+            expect(supabase.rpc).toHaveBeenCalledWith('submit_request_reply_secure', {
+                p_request_id: 'r1',
+                p_tmdb_id: '123',
+                p_content: 'https://example.com',
+                p_instructions: 'Mirror link',
+            });
+        });
+    });
+
+    describe('voteReply', () => {
+        it('should call the vote RPC', async () => {
+            (supabase.rpc as any).mockResolvedValue({ data: 4, error: null });
+
+            await expect(CommunityService.voteReply('reply-1', 1)).resolves.toBe(4);
+
+            expect(rateLimiter.check).toHaveBeenCalledWith('voteReply', expect.any(Number), expect.any(Number));
+            expect(supabase.rpc).toHaveBeenCalledWith('handle_reply_vote', {
+                p_reply_id: 'reply-1',
+                p_vote: 1
+            });
         });
     });
 

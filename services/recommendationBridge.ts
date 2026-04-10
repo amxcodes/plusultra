@@ -2,8 +2,6 @@ import { Movie } from '../types';
 import { isLikelyNetworkError } from '../lib/network';
 import { TmdbService } from './tmdb';
 
-const TASTEDIVE_API_KEY = import.meta.env.VITE_TASTEDIVE_API_KEY;
-const OMDB_API_KEY = import.meta.env.VITE_OMDB_API_KEY;
 const BRIDGE_ENDPOINT = import.meta.env.DEV ? '/api/recommendation-bridge' : '/.netlify/functions/recommendation-bridge';
 
 type BridgeMediaType = 'movie' | 'tv' | 'mixed';
@@ -95,36 +93,6 @@ const findBestTmdbMatch = (query: string, results: Movie[], preferredType: Bridg
         ))[0] || null;
 };
 
-const fetchOmdbBestMatch = async (query: string, preferredType: BridgeMediaType): Promise<OmdbSearchItem | null> => {
-    if (!OMDB_API_KEY) return null;
-
-    try {
-        const typeParam = preferredType === 'tv' ? 'series' : preferredType === 'movie' ? 'movie' : '';
-        const params = new URLSearchParams({
-            apikey: OMDB_API_KEY,
-            s: query,
-            ...(typeParam ? { type: typeParam } : {}),
-        });
-
-        const response = await fetch(`https://www.omdbapi.com/?${params.toString()}`);
-        const data = await response.json();
-        const results = (data.Search || []) as OmdbSearchItem[];
-
-        if (!results.length) return null;
-
-        return [...results]
-            .sort((left, right) => (
-                scoreTitleMatch(query, right.Title || '') -
-                scoreTitleMatch(query, left.Title || '')
-            ))[0] || null;
-    } catch (error) {
-        if (!isLikelyNetworkError(error)) {
-            console.error('OMDb seed lookup failed:', error);
-        }
-        return null;
-    }
-};
-
 const mapTasteDiveType = (type?: string): BridgeMediaType => {
     if (type === 'movie') return 'movie';
     if (type === 'show') return 'tv';
@@ -135,7 +103,10 @@ const bridgeRequest = async <TBody extends Record<string, unknown>, TResponse>(b
     try {
         const response = await fetch(BRIDGE_ENDPOINT, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'plusultra-web',
+            },
             body: JSON.stringify(body),
         });
 
@@ -151,11 +122,11 @@ const bridgeRequest = async <TBody extends Record<string, unknown>, TResponse>(b
 
 export const RecommendationBridge = {
     hasTasteDive() {
-        return Boolean(TASTEDIVE_API_KEY);
+        return true;
     },
 
     hasOmdb() {
-        return Boolean(OMDB_API_KEY);
+        return true;
     },
 
     async resolveExactSeed(query: string, preferredType: BridgeMediaType): Promise<Movie | null> {
@@ -169,7 +140,7 @@ export const RecommendationBridge = {
             preferredType,
         });
 
-        const omdbMatch = omdbResponse?.item || await fetchOmdbBestMatch(query, preferredType);
+        const omdbMatch = omdbResponse?.item || null;
         const omdbYear = omdbMatch?.Year ? parseInt(omdbMatch.Year.slice(0, 4), 10) : undefined;
         const omdbPreferredType = omdbMatch ? mapOmdbTypeToMediaType(omdbMatch.Type) : preferredType;
 
@@ -194,8 +165,6 @@ export const RecommendationBridge = {
     },
 
     async getTasteDiveMatches(seed: Movie, preferredType: BridgeMediaType): Promise<Movie[]> {
-        if (!TASTEDIVE_API_KEY) return [];
-
         try {
             const response = await bridgeRequest<
                 { action: 'similar'; seedTitle: string; preferredType: BridgeMediaType; seedMediaType?: 'movie' | 'tv' },

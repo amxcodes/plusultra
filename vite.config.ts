@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { handleRecommendationBridge } from './server/recommendationBridgeHandler';
+import { verifyRecommendationBridgeAccess } from './server/recommendationBridgeSecurity';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
@@ -39,10 +40,39 @@ export default defineConfig(({ mode }) => {
             }
 
             const rawBody = Buffer.concat(chunks).toString('utf8');
+            const access = verifyRecommendationBridgeAccess({
+              headers: Object.fromEntries(
+                Object.entries(req.headers).map(([key, value]) => [
+                  key,
+                  Array.isArray(value) ? value[0] : value
+                ])
+              ),
+              ip: req.socket.remoteAddress,
+              env: {
+                URL: env.URL,
+                DEPLOY_PRIME_URL: env.DEPLOY_PRIME_URL,
+                RECOMMENDATION_BRIDGE_ALLOWED_ORIGIN: env.RECOMMENDATION_BRIDGE_ALLOWED_ORIGIN,
+              },
+            });
+
+            if (access.ok === false) {
+              res.statusCode = access.status;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: access.error }));
+              return;
+            }
+
+            if (rawBody.length > 2048) {
+              res.statusCode = 413;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Recommendation request too large' }));
+              return;
+            }
+
             const body = rawBody ? JSON.parse(rawBody) : null;
             const response = await handleRecommendationBridge(body, {
-              VITE_TASTEDIVE_API_KEY: env.VITE_TASTEDIVE_API_KEY,
-              VITE_OMDB_API_KEY: env.VITE_OMDB_API_KEY,
+              TASTEDIVE_API_KEY: env.TASTEDIVE_API_KEY || env.VITE_TASTEDIVE_API_KEY,
+              OMDB_API_KEY: env.OMDB_API_KEY || env.VITE_OMDB_API_KEY,
             });
 
             res.statusCode = response.status;
@@ -90,10 +120,6 @@ export default defineConfig(({ mode }) => {
         }
       })
     ],
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -67,22 +67,16 @@ export const CommunityService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Must be logged in to request');
 
-        // Atomic insert - if duplicate exists, Supabase will return error
-        // This prevents race conditions where two users submit simultaneously
         const { data, error } = await supabase
-            .from('movie_requests')
-            .insert({
-                tmdb_id: tmdbId.toString(),
-                media_type: mediaType,
-                title,
-                poster_path: posterPath,
-                created_by: user.id
+            .rpc('create_movie_request_secure', {
+                p_tmdb_id: tmdbId.toString(),
+                p_media_type: mediaType,
+                p_title: title,
+                p_poster_path: posterPath,
             })
-            .select()
             .single();
 
         if (error) {
-            // Check if it's a unique constraint violation (duplicate)
             if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
                 throw new Error('This movie has already been requested!');
             }
@@ -163,28 +157,16 @@ export const CommunityService = {
             throw new Error('Instructions are too long (max 500 characters).');
         }
 
-        const linkType = this.detectLinkType(trimmedContent);
-
         const { data, error } = await supabase
-            .from('request_replies')
-            .insert({
-                request_id: requestId,
-                tmdb_id: tmdbId.toString(),
-                content: trimmedContent,
-                link_type: linkType,
-                instructions: trimmedInstructions,
-                created_by: user.id
+            .rpc('submit_request_reply_secure', {
+                p_request_id: requestId,
+                p_tmdb_id: tmdbId.toString(),
+                p_content: trimmedContent,
+                p_instructions: trimmedInstructions || null,
             })
-            .select()
             .single();
 
         if (error) throw error;
-
-        // Auto-update request status to 'fulfilled'
-        await supabase
-            .from('movie_requests')
-            .update({ status: 'fulfilled' })
-            .eq('id', requestId);
 
         return data;
     },
