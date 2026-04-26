@@ -25,6 +25,25 @@ let localServer = null;
 let localServerUrl = null;
 let turnstileRequests = new Map();
 
+const mapDesktopUpdateErrorMessage = (error) => {
+    const rawMessage = error instanceof Error ? error.message : String(error || 'Update check failed.');
+    const normalized = rawMessage.toLowerCase();
+
+    if (
+        normalized.includes('releases.atom') ||
+        normalized.includes('/releases/latest') ||
+        normalized.includes('unable to find latest version on github') ||
+        normalized.includes('cannot parse releases feed') ||
+        normalized.includes('authentication token is correct') ||
+        normalized.includes('httperror: 404') ||
+        normalized.includes('httperror: 406')
+    ) {
+        return 'Updates are unavailable right now. Ask an admin for the latest desktop build.';
+    }
+
+    return rawMessage;
+};
+
 const MIME_TYPES = {
     '.css': 'text/css; charset=utf-8',
     '.html': 'text/html; charset=utf-8',
@@ -521,7 +540,7 @@ ipcMain.handle('desktop:check-for-updates', async () => {
     } catch (error) {
         return {
             ok: false,
-            message: error instanceof Error ? error.message : 'Update check failed.',
+            message: mapDesktopUpdateErrorMessage(error),
         };
     }
 });
