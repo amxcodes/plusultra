@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Copy, Download, ExternalLink, Info } from 'lucide-react';
 import { useToast } from '../lib/ToastContext';
-import { buildStreamDownloadCandidates } from '../lib/streamDownloads';
+import { buildStreamDownloadCandidates, type StreamDownloadCandidate } from '../lib/streamDownloads';
 import { DirectPlaybackSource, MediaType, Provider } from '../lib/playerProviders';
 
 interface StreamDownloadPanelProps {
@@ -11,10 +11,15 @@ interface StreamDownloadPanelProps {
     mediaType: MediaType;
     season?: number;
     episode?: number;
-    title?: string;
     desktopCaptureKey?: string | null;
     currentEmbedUrl?: string;
     directSources?: DirectPlaybackSource[];
+    title?: string;
+    imageUrl?: string;
+    backdropUrl?: string;
+    description?: string;
+    year?: number;
+    genre?: string[];
 }
 
 export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
@@ -24,6 +29,12 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
     mediaType,
     season,
     episode,
+    title,
+    imageUrl,
+    backdropUrl,
+    description,
+    year,
+    genre = [],
     desktopCaptureKey,
     currentEmbedUrl,
     directSources = [],
@@ -87,10 +98,10 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         };
     }, [desktopCaptureKey]);
 
-    const desktopCandidates = useMemo(() => (
+    const desktopCandidates = useMemo<StreamDownloadCandidate[]>(() => (
         desktopCapturedMedia.map((item) => ({
             id: `desktop:${item.url}`,
-            label: 'Captured by desktop session',
+            label: 'Captured desktop stream',
             url: item.url,
             kind: item.url.toLowerCase().includes('.m3u8') ? 'playlist' : 'video',
             source: 'detected' as const,
@@ -98,9 +109,43 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         }))
     ), [desktopCapturedMedia]);
 
-    const allCandidates = [...desktopCandidates, ...candidates].filter((candidate, index, list) => (
-        list.findIndex((entry) => entry.url === candidate.url) === index
-    ));
+    const getCandidateRank = (candidate: StreamDownloadCandidate) => {
+        const url = candidate.url.toLowerCase();
+
+        if (candidate.kind === 'video' && candidate.source === 'detected' && candidate.label === 'Captured desktop stream') {
+            return 0;
+        }
+
+        if (candidate.kind === 'video' && candidate.source === 'detected') {
+            return 1;
+        }
+
+        if (candidate.kind === 'video') {
+            return 2;
+        }
+
+        if (candidate.kind === 'playlist') {
+            return url.includes('.m3u8') ? 3 : 4;
+        }
+
+        return 5;
+    };
+
+    const allCandidates = useMemo(() => (
+        [...desktopCandidates, ...candidates]
+            .filter((candidate, index, list) => (
+                list.findIndex((entry) => entry.url === candidate.url) === index
+            ))
+            .sort((left, right) => getCandidateRank(left) - getCandidateRank(right))
+    ), [desktopCandidates, candidates]);
+
+    const canSaveOffline = (candidate: StreamDownloadCandidate) => {
+        if (!window.desktop?.isDesktop) {
+            return false;
+        }
+
+        return candidate.kind === 'video';
+    };
 
     const handleCopy = async (url: string) => {
         try {
@@ -152,6 +197,11 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                         <div key={candidate.id} className="rounded-lg border border-white/10 bg-black/20 p-3">
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className="text-xs font-semibold text-white">{candidate.label}</span>
+                                {canSaveOffline(candidate) && getCandidateRank(candidate) === 0 && (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold bg-white/10 text-zinc-200">
+                                        Recommended
+                                    </span>
+                                )}
                                 <span className={`text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold ${candidate.source === 'detected'
                                         ? 'bg-emerald-500/15 text-emerald-300'
                                         : 'bg-amber-500/15 text-amber-300'
@@ -166,6 +216,11 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                             <p className="text-[11px] text-zinc-500 break-all">{candidate.url}</p>
                             {candidate.note && (
                                 <p className="text-[11px] text-zinc-600 mt-1">{candidate.note}</p>
+                            )}
+                            {candidate.kind === 'playlist' && (
+                                <p className="text-[11px] text-zinc-600 mt-1">
+                                    Playlist links usually need a stream-aware downloader. Prefer a direct video link for offline saves.
+                                </p>
                             )}
 
                             <div className="mt-3 flex gap-2">
@@ -183,6 +238,45 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                                     <Copy size={12} />
                                     Copy
                                 </button>
+                                {canSaveOffline(candidate) && (
+                                    <button
+                                        onClick={() => {
+                                            if (!window.desktop || !title || !imageUrl) {
+                                                error('Offline download metadata is incomplete.');
+                                                return;
+                                            }
+
+                                            void window.desktop.downloadOfflineMedia({
+                                                title,
+                                                tmdbId: Number(tmdbId),
+                                                mediaType,
+                                                sourceUrl: candidate.url,
+                                                imageUrl,
+                                                backdropUrl,
+                                                description,
+                                                year,
+                                                genre,
+                                                season,
+                                                episode,
+                                                providerId,
+                                                providerName,
+                                            }).then((result) => {
+                                                if (!result.ok) {
+                                                    error(result.message || 'Failed to start offline download.');
+                                                    return;
+                                                }
+
+                                                success('Offline download started');
+                                            }).catch(() => {
+                                                error('Failed to start offline download.');
+                                            });
+                                        }}
+                                        className="px-3 flex items-center justify-center gap-2 bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-100 py-2 rounded-lg text-xs font-bold transition-colors"
+                                    >
+                                        <Download size={12} />
+                                        Save Offline
+                                    </button>
+                                )}
                             </div>
                         </div>
                     ))}

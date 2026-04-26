@@ -23,6 +23,9 @@ interface UnifiedPlayerProps {
     voteAverage?: number;
     backdropUrl?: string;
     episodeImage?: string;
+    description?: string;
+    year?: number;
+    genre?: string[];
 }
 
 export type { Provider } from '../lib/playerProviders';
@@ -38,7 +41,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     posterUrl = '',
     voteAverage = 0,
     backdropUrl = '',
-    episodeImage = ''
+    episodeImage = '',
+    description = '',
+    year,
+    genre = [],
 }) => {
     // ... existing state ...
     // ... existing state ...
@@ -701,6 +707,11 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                                 season={season}
                                 episode={episode}
                                 title={title}
+                                imageUrl={posterUrl}
+                                backdropUrl={backdropUrl}
+                                description={description}
+                                year={year}
+                                genre={genre}
                                 desktopCaptureKey={desktopCaptureKey}
                                 currentEmbedUrl={currentEmbedUrl}
                                 directSources={directSources}

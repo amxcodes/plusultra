@@ -24,6 +24,7 @@ import {
   Download,
   ArrowUpRight,
   CheckCircle2,
+  HardDriveDownload,
   RefreshCw,
   X
 } from 'lucide-react';
@@ -37,6 +38,7 @@ interface NavbarProps {
 
 const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.DASHBOARD]: LayoutGrid,
+  [NavItem.DOWNLOAD_QUEST]: HardDriveDownload,
   [NavItem.NEWS]: Newspaper, // High priority
   [NavItem.MOVIES]: Clapperboard,
   [NavItem.SERIES]: MonitorPlay,
@@ -298,6 +300,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           item !== NavItem.PLAYLISTS &&
           item !== NavItem.STATS &&
           item !== NavItem.NEWS && // Exclude News from generic loop if we want to place it specifically, OR format if we want it in loop. Let's keep it in loop for now, but user "latest" might be different?
+          (item !== NavItem.DOWNLOAD_QUEST || isDesktop) &&
           (item !== NavItem.ADMIN || profile?.role === 'admin') &&
           (item !== NavItem.REQUESTS || canStream)
         ).map((item) => {

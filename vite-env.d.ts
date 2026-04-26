@@ -38,6 +38,24 @@ interface DesktopBridge {
     getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;
     startTurnstileCheck: (payload: { action: string; siteKey: string }) => Promise<{ ok: boolean; requestId?: string; message?: string }>;
     openExternal: (targetUrl: string) => Promise<void>;
+    downloadOfflineMedia: (payload: {
+        title: string;
+        tmdbId: number;
+        mediaType: 'movie' | 'tv';
+        sourceUrl: string;
+        imageUrl: string;
+        backdropUrl?: string;
+        description?: string;
+        year?: number;
+        genre?: string[];
+        season?: number;
+        episode?: number;
+        providerId?: string;
+        providerName?: string;
+    }) => Promise<{ ok: boolean; entry?: import('./types').OfflineDownloadEntry; message?: string }>;
+    getOfflineDownloads: () => Promise<import('./types').OfflineDownloadEntry[]>;
+    removeOfflineDownload: (downloadId: string) => Promise<{ ok: boolean; message?: string }>;
+    getOfflinePlaybackUrl: (downloadId: string) => Promise<{ ok: boolean; url?: string; message?: string }>;
     checkForUpdates: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null; downloadProgress?: number | null }>;
     downloadUpdate: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null; downloadProgress?: number | null }>;
     installUpdate: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null; downloadProgress?: number | null }>;
@@ -46,6 +64,7 @@ interface DesktopBridge {
     onCapturedMediaReset: (listener: (payload: { captureKey: string }) => void) => () => void;
     onTurnstileToken: (listener: (payload: { requestId: string; token: string; action: string }) => void) => () => void;
     onUpdateState: (listener: (payload: { status: string; currentVersion: string; latestVersion: string | null; message: string | null; downloadProgress: number | null }) => void) => () => void;
+    onOfflineDownloadsChanged: (listener: (payload: import('./types').OfflineDownloadEntry[]) => void) => () => void;
 }
 
 interface Window {

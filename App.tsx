@@ -55,6 +55,8 @@ import { CuratorLabPage } from './components/CuratorLabPage';
 import { GuestAccessPage } from './components/GuestAccessPage';
 import { GuestExpiredPage } from './components/GuestExpiredPage';
 import { isGuestExpired } from './lib/guestAccess';
+import { DownloadQuestPage, type OfflineDownloadGroup } from './components/DownloadQuestPage';
+import type { OfflineDownloadEntry } from './types';
 
 type ViewAllCategoryState = {
   title: string;
@@ -74,6 +76,8 @@ type NavigationSnapshot = {
   isSearchOpen: boolean;
   isMobileMenuOpen: boolean;
   selectedMovie: Movie | null;
+  selectedOfflineDownloads: OfflineDownloadEntry[] | null;
+  offlinePlaybackUrl: string | null;
   selectedProfileId?: string;
   selectedPlaylistId?: string;
   playlistModalMovie: Movie | null;
@@ -133,6 +137,8 @@ function StreamApp() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
+  const [selectedOfflineDownloads, setSelectedOfflineDownloads] = useState<OfflineDownloadEntry[] | null>(null);
+  const [offlinePlaybackUrl, setOfflinePlaybackUrl] = useState<string | null>(null);
   const [selectedProfileId, setSelectedProfileId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | undefined>(undefined);
   const [playlistModalMovie, setPlaylistModalMovie] = useState<Movie | null>(null);
@@ -262,6 +268,8 @@ function StreamApp() {
     isSearchOpen,
     isMobileMenuOpen,
     selectedMovie,
+    selectedOfflineDownloads,
+    offlinePlaybackUrl,
     selectedProfileId,
     selectedPlaylistId,
     playlistModalMovie,
@@ -275,6 +283,8 @@ function StreamApp() {
     setIsSearchOpen(snapshot.isSearchOpen);
     setIsMobileMenuOpen(snapshot.isMobileMenuOpen);
     setSelectedMovie(snapshot.selectedMovie);
+    setSelectedOfflineDownloads(snapshot.selectedOfflineDownloads);
+    setOfflinePlaybackUrl(snapshot.offlinePlaybackUrl);
     setSelectedProfileId(snapshot.selectedProfileId);
     setSelectedPlaylistId(snapshot.selectedPlaylistId);
     setPlaylistModalMovie(snapshot.playlistModalMovie);
@@ -291,6 +301,8 @@ function StreamApp() {
     left.isSearchOpen === right.isSearchOpen &&
     left.isMobileMenuOpen === right.isMobileMenuOpen &&
     left.selectedMovie === right.selectedMovie &&
+    left.selectedOfflineDownloads === right.selectedOfflineDownloads &&
+    left.offlinePlaybackUrl === right.offlinePlaybackUrl &&
     left.selectedProfileId === right.selectedProfileId &&
     left.selectedPlaylistId === right.selectedPlaylistId &&
     left.playlistModalMovie === right.playlistModalMovie &&
@@ -439,6 +451,8 @@ function StreamApp() {
     isSearchOpen,
     isMobileMenuOpen,
     selectedMovie,
+    selectedOfflineDownloads,
+    offlinePlaybackUrl,
     selectedProfileId,
     selectedPlaylistId,
     playlistModalMovie,
@@ -451,6 +465,8 @@ function StreamApp() {
     if (!user) {
       setActiveTab(NavItem.DASHBOARD);
       setSelectedMovie(null);
+      setSelectedOfflineDownloads(null);
+      setOfflinePlaybackUrl(null);
       setPlayerState(null);
       setIsSearchOpen(false);
       setSelectedPlaylistId(undefined);
@@ -472,6 +488,8 @@ function StreamApp() {
   const handleMovieSelect = (movie: Movie) => {
     commitSnapshot(buildSnapshot({
       selectedMovie: movie,
+      selectedOfflineDownloads: null,
+      offlinePlaybackUrl: null,
       isMobileMenuOpen: false,
     }), 'push', { scrollToTop: false });
   };
@@ -479,6 +497,7 @@ function StreamApp() {
   const handlePlay = (movie: Movie, season?: number, episode?: number) => {
     commitSnapshot(buildSnapshot({
       playerState: { movie, season, episode },
+      offlinePlaybackUrl: null,
       isMobileMenuOpen: false,
     }), 'push', { scrollToTop: false });
   };
@@ -512,12 +531,70 @@ function StreamApp() {
   };
 
   const handleCloseDetail = () => {
-    navigateBack(buildSnapshot({ selectedMovie: null }), { scrollToTop: false });
+    navigateBack(buildSnapshot({
+      selectedMovie: null,
+      selectedOfflineDownloads: null,
+      offlinePlaybackUrl: null,
+    }), { scrollToTop: false });
+  };
+
+  const handleOfflineGroupSelect = (group: OfflineDownloadGroup) => {
+    commitSnapshot(buildSnapshot({
+      selectedMovie: group.movie,
+      selectedOfflineDownloads: group.entries,
+      offlinePlaybackUrl: null,
+      isMobileMenuOpen: false,
+    }), 'push', { scrollToTop: false });
+  };
+
+  const handlePlayOffline = async (download: OfflineDownloadEntry) => {
+    if (!window.desktop) return;
+
+    const playback = await window.desktop.getOfflinePlaybackUrl(download.id);
+    if (!playback.ok || !playback.url) {
+      return;
+    }
+
+    commitSnapshot(buildSnapshot({
+      selectedMovie: {
+        id: download.tmdbId,
+        tmdbId: download.tmdbId,
+        title: download.title,
+        imageUrl: download.imageUrl,
+        backdropUrl: download.backdropUrl,
+        description: download.description,
+        genre: download.genre,
+        year: download.year,
+        match: 100,
+        mediaType: download.mediaType,
+      },
+      selectedOfflineDownloads,
+      offlinePlaybackUrl: playback.url,
+      playerState: {
+        movie: {
+          id: download.tmdbId,
+          tmdbId: download.tmdbId,
+          title: download.title,
+          imageUrl: download.imageUrl,
+          backdropUrl: download.backdropUrl,
+          description: download.description,
+          genre: download.genre,
+          year: download.year,
+          match: 100,
+          mediaType: download.mediaType,
+        },
+        season: download.season,
+        episode: download.episode,
+      },
+      isMobileMenuOpen: false,
+    }), 'push', { scrollToTop: false });
   };
 
   const handleTabChange = (tab: NavItem, params?: any) => {
     commitSnapshot(buildSnapshot({
       activeTab: tab,
+      selectedOfflineDownloads: null,
+      offlinePlaybackUrl: null,
       selectedProfileId: tab === NavItem.PROFILE ? params?.id : undefined,
       selectedPlaylistId: undefined,
       viewAllCategory: null,
@@ -533,6 +610,8 @@ function StreamApp() {
     if (page === 'profile') {
       commitSnapshot(buildSnapshot({
         activeTab: NavItem.PROFILE,
+        selectedOfflineDownloads: null,
+        offlinePlaybackUrl: null,
         selectedProfileId: params?.id,
         selectedPlaylistId: undefined,
         viewAllCategory: null,
@@ -543,6 +622,8 @@ function StreamApp() {
       }));
     } else if (page === 'playlist') {
       commitSnapshot(buildSnapshot({
+        selectedOfflineDownloads: null,
+        offlinePlaybackUrl: null,
         selectedPlaylistId: params?.id,
         selectedMovie: null,
         isSearchOpen: false,
@@ -568,8 +649,14 @@ function StreamApp() {
         movie={playerState.movie}
         season={playerState.season}
         episode={playerState.episode}
+        offlinePlaybackUrl={offlinePlaybackUrl}
         onPlayEpisode={handlePlayerEpisodeChange}
-        onBack={() => navigateBack(buildSnapshot({ playerState: null }), { scrollToTop: false })}
+        onBack={() => {
+          navigateBack(buildSnapshot({
+            playerState: null,
+            offlinePlaybackUrl: null,
+          }), { scrollToTop: false });
+        }}
       />
     );
   }
@@ -604,6 +691,8 @@ function StreamApp() {
           movie={selectedMovie}
           onClose={handleCloseDetail}
           onPlay={handlePlay}
+          onPlayOffline={handlePlayOffline}
+          offlineDownloads={selectedOfflineDownloads}
           similarMovies={[]}
           onMovieSelect={handleMovieSelect}
         />
@@ -696,6 +785,10 @@ function StreamApp() {
                     />
                   </div>
                 </>
+              )}
+
+              {activeTab === NavItem.DOWNLOAD_QUEST && window.desktop?.isDesktop && !viewAllCategory && !selectedPlaylistId && (
+                <DownloadQuestPage onSelectGroup={handleOfflineGroupSelect} />
               )}
 
               {/* DASHBOARD VIEW (Desktop) */}

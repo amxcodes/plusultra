@@ -31,6 +31,32 @@ export interface Movie {
   episode?: number;
 }
 
+export interface OfflineDownloadEntry {
+  id: string;
+  tmdbId: number;
+  title: string;
+  mediaType: 'movie' | 'tv';
+  season?: number;
+  episode?: number;
+  year?: number;
+  imageUrl: string;
+  backdropUrl?: string;
+  description?: string;
+  genre?: string[];
+  fileName: string;
+  filePath: string;
+  fileSize?: number;
+  mimeType?: string;
+  sourceUrl: string;
+  status: 'downloading' | 'completed' | 'failed' | 'cancelled';
+  providerId?: string;
+  providerName?: string;
+  createdAt: string;
+  completedAt?: string;
+  bytesReceived?: number;
+  totalBytes?: number;
+}
+
 export interface HeroMovie extends Movie {
   tagline?: string;
   genre?: string[];
@@ -41,6 +67,7 @@ export interface HeroMovie extends Movie {
 
 export enum NavItem {
   DASHBOARD = 'Dashboard',
+  DOWNLOAD_QUEST = 'Download Quest',
   MOVIES = 'Movies',
   SERIES = 'Series',
   ANIME = 'Anime',

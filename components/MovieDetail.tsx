@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Movie } from '../types';
-import { Play, Plus, ChevronLeft, ThumbsUp, Volume2, Clock, Calendar, Star, ChevronRight, ListPlus, Shuffle, Lock } from 'lucide-react';
+import { Movie, OfflineDownloadEntry } from '../types';
+import { Play, HardDriveDownload, ChevronLeft, ThumbsUp, Clock, Calendar, ListPlus, Shuffle, Lock } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { MobileAddToPlaylistModal } from './MobileAddToPlaylistModal';
@@ -11,11 +11,13 @@ interface MovieDetailProps {
     movie: Movie & { numberOfSeasons?: number; seasons?: any[] };
     onClose: () => void;
     onPlay: (movie: Movie, season?: number, episode?: number) => void;
+    onPlayOffline?: (download: OfflineDownloadEntry) => void;
+    offlineDownloads?: OfflineDownloadEntry[] | null;
     similarMovies?: Movie[];
     onMovieSelect?: (movie: Movie) => void;
 }
 
-export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay, onMovieSelect }) => {
+export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay, onPlayOffline, offlineDownloads = null, onMovieSelect }) => {
     const { profile } = useAuth();
     const canStream = profile?.can_stream || profile?.role === 'admin';
     const getInitialSeason = (input: Movie) => (
@@ -42,6 +44,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
     // TV Show State
     const [currentSeason, setCurrentSeason] = useState(getInitialSeason(movie));
     const [currentEpisode, setCurrentEpisode] = useState(getInitialEpisode(movie));
+    const [showDownloadedOnly, setShowDownloadedOnly] = useState(false);
     const [episodePage, setEpisodePage] = useState(1); // 50 eps per page
     const [episodes, setEpisodes] = useState<{ episode_number: number; id: number; name?: string; overview?: string; still_path?: string; air_date?: string; vote_average?: number; runtime?: number }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +65,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         setActiveMovie(movie);
         setCurrentSeason(getInitialSeason(movie));
         setCurrentEpisode(getInitialEpisode(movie));
+        setShowDownloadedOnly(false);
         setEpisodePage(getEpisodePageForEpisode(getInitialEpisode(movie)));
         setEpisodes([]);
         setRecommendations([]);
@@ -194,6 +198,22 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         playSelectedEpisode(currentSeason, epNum, 'episode-card');
     }
 
+    const downloadedEpisodesForCurrentSeason = (offlineDownloads || []).filter((entry) => (
+        entry.mediaType === 'tv' &&
+        entry.status === 'completed' &&
+        entry.season === currentSeason &&
+        typeof entry.episode === 'number'
+    ));
+    const downloadedEpisodeNumbers = new Set(downloadedEpisodesForCurrentSeason.map((entry) => entry.episode));
+    const currentOfflineDownload = (offlineDownloads || []).find((entry) => (
+        entry.status === 'completed' &&
+        entry.mediaType === activeMovie.mediaType &&
+        (entry.mediaType === 'movie' || (entry.season === currentSeason && entry.episode === currentEpisode))
+    )) || null;
+    const visibleEpisodes = showDownloadedOnly
+        ? episodes.filter((ep) => downloadedEpisodeNumbers.has(ep.episode_number))
+        : episodes;
+
     const handlePlayRandom = () => {
         if (!seasonList || seasonList.length === 0) return;
 
@@ -274,6 +294,16 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                     >
                                         <Play size={18} strokeWidth={2.5} className="fill-white" />
                                         <span>{activeMovie.mediaType === 'tv' ? `Play S${currentSeason} E${currentEpisode}` : 'Play Movie'}</span>
+                                    </button>
+                                )}
+
+                                {currentOfflineDownload && onPlayOffline && (
+                                    <button
+                                        onClick={() => onPlayOffline(currentOfflineDownload)}
+                                        className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-white text-black hover:bg-zinc-200 px-8 md:px-10 py-3.5 md:py-4 rounded-[20px] font-bold tracking-widest uppercase text-[11px] md:text-[12px] transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap"
+                                    >
+                                        <HardDriveDownload size={18} strokeWidth={2.2} />
+                                        <span>{activeMovie.mediaType === 'tv' ? `Play Offline S${currentSeason} E${currentEpisode}` : 'Play Offline'}</span>
                                     </button>
                                 )}
 
@@ -367,9 +397,9 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 {activeMovie.mediaType === 'tv' && (
                                     <div className="mt-12 space-y-6">
                                         <div className="bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-10">
-                                            <div className="flex items-center justify-between mb-8">
-                                                <h3 className="text-xl font-bold text-white tracking-tight">Seasons</h3>
-                                            </div>
+                                        <div className="flex items-center justify-between mb-8">
+                                            <h3 className="text-xl font-bold text-white tracking-tight">Seasons</h3>
+                                        </div>
 
                                             {/* Season Selector - Grid Layout */}
                                             {seasonList.length > 0 ? (
@@ -420,14 +450,29 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                         </div>
 
                                         <div className="bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-10">
-                                            <h3 className="text-xl font-bold text-white mb-6 tracking-tight">Episodes</h3>
+                                            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                                                <h3 className="text-xl font-bold text-white tracking-tight">Episodes</h3>
+                                                {offlineDownloads && offlineDownloads.some((entry) => entry.mediaType === 'tv' && entry.status === 'completed') && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowDownloadedOnly((current) => !current)}
+                                                        className={`rounded-full border px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] transition-all ${
+                                                            showDownloadedOnly
+                                                                ? 'border-white/20 bg-white/10 text-white'
+                                                                : 'border-white/10 bg-black/20 text-zinc-400 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        {showDownloadedOnly ? 'Showing Downloaded Only' : 'Show Downloaded Only'}
+                                                    </button>
+                                                )}
+                                            </div>
 
                                             {/* Episode Pagination Controls */}
-                                            {episodes.length > 50 && (
+                                            {visibleEpisodes.length > 50 && (
                                                 <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
-                                                    {Array.from({ length: Math.ceil(episodes.length / 50) }, (_, i) => {
+                                                    {Array.from({ length: Math.ceil(visibleEpisodes.length / 50) }, (_, i) => {
                                                         const start = i * 50 + 1;
-                                                        const end = Math.min((i + 1) * 50, episodes.length);
+                                                        const end = Math.min((i + 1) * 50, visibleEpisodes.length);
                                                         return (
                                                             <button
                                                                 key={i}
@@ -445,7 +490,12 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                             )}
 
                                             <div className="flex flex-col gap-3">
-                                                {episodes
+                                                {visibleEpisodes.length === 0 && showDownloadedOnly && (
+                                                    <div className="rounded-[24px] border border-white/5 bg-white/5 px-6 py-5 text-sm text-zinc-400">
+                                                        No downloaded episodes are available for this season yet.
+                                                    </div>
+                                                )}
+                                                {visibleEpisodes
                                                     .slice((episodePage - 1) * 50, episodePage * 50)
                                                     .map((ep, index) => (
                                                         <div
@@ -493,9 +543,17 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                                                     <span className={`text-2xl font-light tracking-tighter transition-colors duration-300 font-mono ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
                                                                         {ep.episode_number.toString().padStart(2, '0')}
                                                                     </span>
-                                                                    <h4 className={`text-lg font-bold tracking-tight transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
-                                                                        {ep.name || `Episode ${ep.episode_number}`}
-                                                                    </h4>
+                                                                    <div className="min-w-0">
+                                                                        <h4 className={`text-lg font-bold tracking-tight transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
+                                                                            {ep.name || `Episode ${ep.episode_number}`}
+                                                                        </h4>
+                                                                        {downloadedEpisodeNumbers.has(ep.episode_number) && (
+                                                                            <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200">
+                                                                                <HardDriveDownload size={10} />
+                                                                                Offline Ready
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
 
                                                                 <p className={`text-sm font-light leading-relaxed line-clamp-2 transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-zinc-300' : 'text-zinc-500 group-hover:text-zinc-400'}`}>

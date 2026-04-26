@@ -7,6 +7,10 @@ contextBridge.exposeInMainWorld('desktop', {
     getCapturedMedia: (captureKey) => ipcRenderer.invoke('desktop:get-captured-media', captureKey),
     startTurnstileCheck: (payload) => ipcRenderer.invoke('desktop:start-turnstile-check', payload),
     openExternal: (targetUrl) => ipcRenderer.invoke('desktop:open-external', targetUrl),
+    downloadOfflineMedia: (payload) => ipcRenderer.invoke('desktop:download-offline-media', payload),
+    getOfflineDownloads: () => ipcRenderer.invoke('desktop:get-offline-downloads'),
+    removeOfflineDownload: (downloadId) => ipcRenderer.invoke('desktop:remove-offline-download', downloadId),
+    getOfflinePlaybackUrl: (downloadId) => ipcRenderer.invoke('desktop:get-offline-playback-url', downloadId),
     checkForUpdates: () => ipcRenderer.invoke('desktop:check-for-updates'),
     downloadUpdate: () => ipcRenderer.invoke('desktop:download-update'),
     installUpdate: () => ipcRenderer.invoke('desktop:install-update'),
@@ -30,5 +34,10 @@ contextBridge.exposeInMainWorld('desktop', {
         const wrapped = (_event, payload) => listener(payload);
         ipcRenderer.on('desktop:update-state', wrapped);
         return () => ipcRenderer.removeListener('desktop:update-state', wrapped);
+    },
+    onOfflineDownloadsChanged: (listener) => {
+        const wrapped = (_event, payload) => listener(payload);
+        ipcRenderer.on('desktop:offline-downloads-changed', wrapped);
+        return () => ipcRenderer.removeListener('desktop:offline-downloads-changed', wrapped);
     },
 });
