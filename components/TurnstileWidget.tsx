@@ -50,6 +50,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
     ({ onTokenChange, action = 'auth' }, ref) => {
         const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
         const isDesktop = Boolean(window.desktop?.isDesktop);
+        const desktopTurnstileDisabled = isDesktop && import.meta.env.VITE_DESKTOP_DISABLE_TURNSTILE === 'true';
         const containerRef = useRef<HTMLDivElement | null>(null);
         const widgetIdRef = useRef<string | null>(null);
         const desktopRequestIdRef = useRef<string | null>(null);
@@ -71,7 +72,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
         }), [onTokenChange]);
 
         useEffect(() => {
-            if (isDesktop) {
+            if (isDesktop || desktopTurnstileDisabled) {
                 return;
             }
             if (!siteKey || !containerRef.current) return;
@@ -117,10 +118,10 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
                     widgetIdRef.current = null;
                 }
             };
-        }, [action, isDesktop, onTokenChange, siteKey]);
+        }, [action, desktopTurnstileDisabled, isDesktop, onTokenChange, siteKey]);
 
         useEffect(() => {
-            if (!isDesktop || !window.desktop) {
+            if (!isDesktop || !window.desktop || desktopTurnstileDisabled) {
                 return;
             }
 
@@ -129,6 +130,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
                     return;
                 }
 
+                desktopRequestIdRef.current = null;
                 onTokenChange(payload.token);
                 setLoadError(null);
                 setLastErrorCode(null);
@@ -138,7 +140,15 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
             return () => {
                 unsubscribe();
             };
-        }, [isDesktop, onTokenChange]);
+        }, [desktopTurnstileDisabled, isDesktop, onTokenChange]);
+
+        if (desktopTurnstileDisabled) {
+            return (
+                <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-100">
+                    Desktop auth is using the app-side verification path instead of Cloudflare Turnstile.
+                </div>
+            );
+        }
 
         if (!siteKey) {
             return null;
@@ -155,6 +165,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
                             setLoadError(null);
                             setLastErrorCode(null);
                             setDesktopStatus('waiting');
+                            desktopRequestIdRef.current = null;
 
                             const result = await window.desktop.startTurnstileCheck({ action, siteKey });
                             if (!result.ok || !result.requestId) {
@@ -179,6 +190,26 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
                         <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
                             {loadError}
                         </p>
+                    )}
+                    {desktopStatus === 'waiting' && !loadError && (
+                        <p className="text-[11px] text-zinc-400 bg-white/5 border border-white/10 rounded-md px-3 py-2">
+                            The security check opened in your default browser. Complete it there, then return to the desktop app.
+                        </p>
+                    )}
+                    {desktopStatus === 'verified' && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                onTokenChange(null);
+                                setLoadError(null);
+                                setLastErrorCode(null);
+                                setDesktopStatus('idle');
+                                desktopRequestIdRef.current = null;
+                            }}
+                            className="text-[11px] text-white/80 hover:text-white underline underline-offset-2"
+                        >
+                            Run security check again
+                        </button>
                     )}
                 </div>
             );

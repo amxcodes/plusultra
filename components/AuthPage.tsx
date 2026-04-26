@@ -5,6 +5,7 @@ import { TmdbService } from '../services/tmdb';
 import { SocialService } from '../lib/social';
 import { validateEmail } from '../lib/emailValidator';
 import { TurnstileWidget, type TurnstileWidgetHandle } from './TurnstileWidget';
+import { clearDesktopAuthGuard, getDesktopAuthLockRemainingMs, registerDesktopAuthFailure } from '../lib/desktopAuthGuard';
 import { useRef } from 'react';
 
 
@@ -25,6 +26,9 @@ const FALLBACK_POSTERS = [
 ];
 
 export const AuthPage: React.FC = () => {
+    const isDesktop = Boolean(window.desktop?.isDesktop);
+    const desktopTurnstileDisabled = isDesktop && import.meta.env.VITE_DESKTOP_DISABLE_TURNSTILE === 'true';
+    const captchaRequired = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY) && !desktopTurnstileDisabled;
     const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
     const turnstileEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
     const missingTurnstileConfig = import.meta.env.DEV && !turnstileEnabled;
@@ -84,11 +88,18 @@ export const AuthPage: React.FC = () => {
         setError(null);
 
         try {
-            if (missingTurnstileConfig) {
+            if (!desktopTurnstileDisabled && missingTurnstileConfig) {
                 throw new Error('Turnstile is not configured for local development. Add VITE_TURNSTILE_SITE_KEY to .env.local or disable captcha in Supabase Auth for local testing.');
             }
 
-            if (turnstileEnabled && !captchaToken) {
+            if (desktopTurnstileDisabled) {
+                const remainingMs = getDesktopAuthLockRemainingMs('primary-auth');
+                if (remainingMs > 0) {
+                    throw new Error(`Too many desktop auth attempts. Wait ${Math.ceil(remainingMs / 1000)}s and try again.`);
+                }
+            }
+
+            if (captchaRequired && !captchaToken) {
                 throw new Error('Complete the security check first.');
             }
 
@@ -121,8 +132,28 @@ export const AuthPage: React.FC = () => {
                 });
                 if (error) throw error;
             }
+
+            if (desktopTurnstileDisabled) {
+                clearDesktopAuthGuard('primary-auth');
+            }
         } catch (err: any) {
-            setError(err.message);
+            if (desktopTurnstileDisabled) {
+                registerDesktopAuthFailure('primary-auth');
+            }
+
+            const message = String(err?.message || 'Authentication failed.');
+            const normalizedMessage = message.toLowerCase();
+            const serverStillRequiresCaptcha = desktopTurnstileDisabled && (
+                normalizedMessage.includes('captcha') ||
+                normalizedMessage.includes('turnstile') ||
+                normalizedMessage.includes('security check')
+            );
+
+            setError(
+                serverStillRequiresCaptcha
+                    ? 'Desktop Turnstile is disabled in the app, but Supabase CAPTCHA is still enforced server-side. Keep Turnstile enabled, or move desktop auth to a browser handoff / separate auth project.'
+                    : message
+            );
             turnstileRef.current?.reset();
             setCaptchaToken(null);
 
@@ -180,9 +211,15 @@ export const AuthPage: React.FC = () => {
                     </div>
                 )}
 
-                {missingTurnstileConfig && (
+                {missingTurnstileConfig && !desktopTurnstileDisabled && (
                     <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-100 text-xs rounded-md">
                         Local auth captcha is not configured. Add <code>VITE_TURNSTILE_SITE_KEY</code> to <code>.env.local</code> or disable Supabase captcha while testing locally.
+                    </div>
+                )}
+
+                {desktopTurnstileDisabled && (
+                    <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-100 text-xs rounded-md">
+                        Desktop auth is bypassing the Cloudflare widget and using local attempt throttling instead. This only works if your Supabase project is not enforcing CAPTCHA for these auth methods.
                     </div>
                 )}
 

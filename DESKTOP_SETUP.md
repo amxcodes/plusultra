@@ -12,6 +12,11 @@ Desktop:
 - `npm run desktop:dev`
 - `npm run desktop:dist`
 
+Desktop auth note:
+
+- When Supabase CAPTCHA is enabled, the Electron app opens the Cloudflare Turnstile challenge in the user's default browser and receives the token back through the local desktop callback.
+- Do not rely on an embedded Electron captcha window for packaged desktop auth. Cloudflare interaction is expected to complete in the system browser.
+
 Release flow:
 
 1. Push normal commits to update the shared codebase.
