@@ -15,14 +15,29 @@ interface DesktopCapturedMedia {
     url: string;
     resourceType: string;
     timestamp: number;
+    captureKey: string;
+    media?: DesktopMediaCaptureSession & { key: string };
+}
+
+interface DesktopMediaCaptureSession {
+    tmdbId: string;
+    mediaType: 'movie' | 'tv';
+    season?: number;
+    episode?: number;
+    providerId: string;
+    providerName: string;
+    title?: string;
 }
 
 interface DesktopBridge {
     isDesktop: true;
-    getCapturedMedia: () => Promise<DesktopCapturedMedia[]>;
+    startMediaCapture: (sessionInfo: DesktopMediaCaptureSession) => Promise<{ ok: boolean; captureKey?: string }>;
+    stopMediaCapture: (captureKey: string) => Promise<{ ok: boolean }>;
+    getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;
     openExternal: (targetUrl: string) => Promise<void>;
     checkForUpdates: () => Promise<{ ok: boolean; message?: string }>;
     onCapturedMedia: (listener: (item: DesktopCapturedMedia) => void) => () => void;
+    onCapturedMediaReset: (listener: (payload: { captureKey: string }) => void) => () => void;
 }
 
 interface Window {

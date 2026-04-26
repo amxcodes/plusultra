@@ -8,7 +8,9 @@ import { verifyRecommendationBridgeAccess } from './server/recommendationBridgeS
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const isDesktopBuild = mode === 'desktop';
   return {
+    base: isDesktopBuild ? './' : '/',
     server: {
       port: 3000,
       host: '0.0.0.0',
@@ -81,44 +83,50 @@ export default defineConfig(({ mode }) => {
           });
         }
       },
-      VitePWA({
-        registerType: 'autoUpdate',
-        workbox: {
-          clientsClaim: true,
-          skipWaiting: true,
-          cleanupOutdatedCaches: true,
-        },
-        includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
-        manifest: {
-          name: 'Plus Ultra',
-          short_name: 'Plus Ultra',
-          description: 'Your ultimate streaming companion. ',
-          theme_color: '#000000',
-          background_color: '#000000',
-          display: 'standalone',
-          scope: '/',
-          start_url: '/',
-          orientation: 'portrait',
-          icons: [
-            {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable'
-            }
+      ...(
+        isDesktopBuild
+          ? []
+          : [
+            VitePWA({
+              registerType: 'autoUpdate',
+              workbox: {
+                clientsClaim: true,
+                skipWaiting: true,
+                cleanupOutdatedCaches: true,
+              },
+              includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+              manifest: {
+                name: 'Plus Ultra',
+                short_name: 'Plus Ultra',
+                description: 'Your ultimate streaming companion. ',
+                theme_color: '#000000',
+                background_color: '#000000',
+                display: 'standalone',
+                scope: '/',
+                start_url: '/',
+                orientation: 'portrait',
+                icons: [
+                  {
+                    src: 'pwa-192x192.png',
+                    sizes: '192x192',
+                    type: 'image/png'
+                  },
+                  {
+                    src: 'pwa-512x512.png',
+                    sizes: '512x512',
+                    type: 'image/png'
+                  },
+                  {
+                    src: 'pwa-512x512.png',
+                    sizes: '512x512',
+                    type: 'image/png',
+                    purpose: 'any maskable'
+                  }
+                ]
+              }
+            })
           ]
-        }
-      })
+      )
     ],
     resolve: {
       alias: {

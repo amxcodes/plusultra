@@ -87,6 +87,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const providerReadyMarkedRef = useRef(false);
     const directVideoRef = useRef<HTMLVideoElement>(null);
     const { providers } = usePlayerProviders();
+    const [desktopCaptureKey, setDesktopCaptureKey] = useState<string | null>(null);
 
     // Fetch genres from TMDB for stats tracking
     useEffect(() => {
@@ -262,6 +263,47 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 : currentEmbedUrl,
         });
     }, [currentProvider.id, currentProvider.renderMode, currentEmbedUrl, directSources, tmdbId, mediaType, season, episode]);
+
+    useEffect(() => {
+        if (!window.desktop?.isDesktop) {
+            return;
+        }
+
+        let active = true;
+        let activeKey: string | null = null;
+        setDesktopCaptureKey(null);
+
+        window.desktop.startMediaCapture({
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            providerId: currentProvider.id,
+            providerName: currentProvider.name,
+            title,
+        }).then((result) => {
+            if (!result.captureKey) {
+                return;
+            }
+
+            if (!active) {
+                void window.desktop?.stopMediaCapture(result.captureKey);
+                return;
+            }
+
+            activeKey = result.captureKey;
+            setDesktopCaptureKey(result.captureKey);
+        }).catch(() => {
+            // Desktop bridge is optional; web builds do not provide it.
+        });
+
+        return () => {
+            active = false;
+            if (activeKey) {
+                void window.desktop?.stopMediaCapture(activeKey);
+            }
+        };
+    }, [tmdbId, mediaType, season, episode, currentProvider.id, currentProvider.name, title]);
 
     const finishProviderAttempt = (reason: string) => {
         if (providerAttemptFinishedRef.current) return;
@@ -658,6 +700,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                                 mediaType={mediaType}
                                 season={season}
                                 episode={episode}
+                                title={title}
+                                desktopCaptureKey={desktopCaptureKey}
                                 currentEmbedUrl={currentEmbedUrl}
                                 directSources={directSources}
                             />

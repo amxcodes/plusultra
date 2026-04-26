@@ -11,6 +11,8 @@ interface StreamDownloadPanelProps {
     mediaType: MediaType;
     season?: number;
     episode?: number;
+    title?: string;
+    desktopCaptureKey?: string | null;
     currentEmbedUrl?: string;
     directSources?: DirectPlaybackSource[];
 }
@@ -22,6 +24,7 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
     mediaType,
     season,
     episode,
+    desktopCaptureKey,
     currentEmbedUrl,
     directSources = [],
 }) => {
@@ -42,10 +45,15 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         if (!window.desktop?.isDesktop) {
             return;
         }
+        if (!desktopCaptureKey) {
+            setDesktopCapturedMedia([]);
+            return;
+        }
 
         let active = true;
+        setDesktopCapturedMedia([]);
 
-        window.desktop.getCapturedMedia().then((items) => {
+        window.desktop.getCapturedMedia(desktopCaptureKey).then((items) => {
             if (active) {
                 setDesktopCapturedMedia(items);
             }
@@ -54,6 +62,10 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         });
 
         const unsubscribe = window.desktop.onCapturedMedia((item) => {
+            if (item.captureKey !== desktopCaptureKey) {
+                return;
+            }
+
             setDesktopCapturedMedia((current) => {
                 if (current.some((entry) => entry.url === item.url)) {
                     return current;
@@ -62,12 +74,18 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                 return [item, ...current].slice(0, 20);
             });
         });
+        const unsubscribeReset = window.desktop.onCapturedMediaReset((payload) => {
+            if (payload.captureKey === desktopCaptureKey) {
+                setDesktopCapturedMedia([]);
+            }
+        });
 
         return () => {
             active = false;
             unsubscribe();
+            unsubscribeReset();
         };
-    }, []);
+    }, [desktopCaptureKey]);
 
     const desktopCandidates = useMemo(() => (
         desktopCapturedMedia.map((item) => ({
@@ -113,7 +131,7 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                 <div className="min-w-0">
                     <p className="text-sm font-semibold text-white">Auto-detected stream links</p>
                     <p className="text-[11px] text-zinc-500">
-                        Derived from the active provider URL and any direct source exposed to the app.
+                        Derived from the active provider URL, direct sources, and current desktop playback session.
                     </p>
                 </div>
             </div>
@@ -123,8 +141,8 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                     <div className="flex items-start gap-2 text-zinc-400">
                         <Info size={14} className="mt-0.5" />
                         <p className="text-xs leading-relaxed">
-                            No downloadable stream URL is visible to the app for this provider. Cross-origin iframe
-                            network traffic cannot be inspected directly from the parent page.
+                            No downloadable stream URL is visible for this title yet. Start playback on the current
+                            server, then reopen this menu after the stream begins loading.
                         </p>
                     </div>
                 </div>

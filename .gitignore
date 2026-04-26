@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 release
+release-check
 stream-desktop
 
 # Editor directories and files

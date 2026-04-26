@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import electronUpdater from 'electron-updater';
+import { createReadStream, existsSync } from 'node:fs';
+import { createServer } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,13 +9,42 @@ const { autoUpdater } = electronUpdater;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
+const distDir = path.join(rootDir, 'dist');
 const MAX_CAPTURED_MEDIA = 100;
+const CAPTURE_COOLDOWN_MS = 500;
+const CAPTURE_TTL_MS = 1000 * 60 * 20;
 
 let mainWindow = null;
 let capturedMedia = [];
+let activeCaptureSession = null;
+let activeCaptureStartedAt = 0;
+let localServer = null;
+let localServerUrl = null;
+
+const MIME_TYPES = {
+    '.css': 'text/css; charset=utf-8',
+    '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webmanifest': 'application/manifest+json; charset=utf-8',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+};
 
 const isInterestingRequest = (rawUrl) => {
     const url = rawUrl.toLowerCase();
+    if (
+        url.includes('manifest.webmanifest') ||
+        url.includes('pwa-') ||
+        url.includes('workbox') ||
+        url.includes('favicon')
+    ) {
+        return false;
+    }
+
     return (
         url.includes('.m3u8') ||
         url.includes('.mp4') ||
@@ -24,14 +55,47 @@ const isInterestingRequest = (rawUrl) => {
     );
 };
 
+const getCaptureSessionKey = (sessionInfo) => {
+    if (!sessionInfo || typeof sessionInfo !== 'object') {
+        return '';
+    }
+
+    return [
+        sessionInfo.tmdbId,
+        sessionInfo.mediaType,
+        sessionInfo.season || 1,
+        sessionInfo.episode || 1,
+        sessionInfo.providerId,
+    ].join(':');
+};
+
 const rememberCapturedMedia = (item) => {
+    if (!activeCaptureSession) {
+        return;
+    }
+
+    const now = Date.now();
+    if (now - activeCaptureStartedAt < CAPTURE_COOLDOWN_MS) {
+        return;
+    }
+
     if (capturedMedia.some((entry) => entry.url === item.url)) {
         return;
     }
 
-    capturedMedia = [item, ...capturedMedia].slice(0, MAX_CAPTURED_MEDIA);
+    const scopedItem = {
+        ...item,
+        captureKey: activeCaptureSession.key,
+        media: activeCaptureSession,
+    };
+
+    capturedMedia = [scopedItem, ...capturedMedia]
+        .filter((entry) => now - entry.timestamp <= CAPTURE_TTL_MS)
+        .filter((entry) => entry.captureKey === activeCaptureSession.key)
+        .slice(0, MAX_CAPTURED_MEDIA);
+
     if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('desktop:captured-media', item);
+        mainWindow.webContents.send('desktop:captured-media', scopedItem);
     }
 };
 
@@ -66,6 +130,47 @@ const setupAutoUpdate = () => {
     }, 1000 * 60 * 60 * 6);
 };
 
+const startLocalRendererServer = async () => {
+    if (localServer && localServerUrl) {
+        return localServerUrl;
+    }
+
+    localServer = createServer((request, response) => {
+        const requestUrl = request.url || '/';
+        const normalizedPath = decodeURIComponent(requestUrl.split('?')[0] || '/');
+        const relativePath = normalizedPath === '/' ? 'index.html' : normalizedPath.replace(/^\/+/, '');
+        const candidatePath = path.normalize(path.join(distDir, relativePath));
+        const safePath = candidatePath.startsWith(distDir) ? candidatePath : path.join(distDir, 'index.html');
+
+        let filePath = safePath;
+        if (!existsSync(filePath) || (existsSync(filePath) && path.extname(filePath) === '')) {
+            filePath = path.join(distDir, 'index.html');
+        }
+
+        const mimeType = MIME_TYPES[path.extname(filePath).toLowerCase()] || 'application/octet-stream';
+        response.writeHead(200, {
+            'Content-Type': mimeType,
+            'Cache-Control': 'no-store',
+        });
+        createReadStream(filePath).pipe(response);
+    });
+
+    await new Promise((resolve, reject) => {
+        localServer.once('error', reject);
+        localServer.listen(0, '127.0.0.1', () => {
+            resolve();
+        });
+    });
+
+    const address = localServer.address();
+    if (!address || typeof address === 'string') {
+        throw new Error('Failed to start local renderer server');
+    }
+
+    localServerUrl = `http://localhost:${address.port}`;
+    return localServerUrl;
+};
+
 const createWindow = async () => {
     mainWindow = new BrowserWindow({
         width: 1440,
@@ -93,10 +198,44 @@ const createWindow = async () => {
         return;
     }
 
-    await mainWindow.loadFile(path.join(rootDir, 'dist', 'index.html'));
+    const rendererUrl = await startLocalRendererServer();
+    await mainWindow.loadURL(rendererUrl);
 };
 
-ipcMain.handle('desktop:get-captured-media', () => capturedMedia);
+ipcMain.handle('desktop:start-media-capture', (_event, sessionInfo) => {
+    const key = getCaptureSessionKey(sessionInfo);
+    if (!key) {
+        activeCaptureSession = null;
+        capturedMedia = [];
+        return { ok: false };
+    }
+
+    activeCaptureSession = {
+        ...sessionInfo,
+        key,
+    };
+    activeCaptureStartedAt = Date.now();
+    capturedMedia = [];
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('desktop:captured-media-reset', { captureKey: key });
+    }
+
+    return { ok: true, captureKey: key };
+});
+ipcMain.handle('desktop:stop-media-capture', (_event, captureKey) => {
+    if (activeCaptureSession?.key === captureKey) {
+        activeCaptureSession = null;
+        capturedMedia = [];
+    }
+
+    return { ok: true };
+});
+ipcMain.handle('desktop:get-captured-media', (_event, captureKey) => (
+    captureKey
+        ? capturedMedia.filter((entry) => entry.captureKey === captureKey)
+        : []
+));
 ipcMain.handle('desktop:open-external', (_event, targetUrl) => shell.openExternal(targetUrl));
 ipcMain.handle('desktop:check-for-updates', async () => {
     if (!app.isPackaged) {
@@ -129,5 +268,13 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
+    }
+});
+
+app.on('before-quit', () => {
+    if (localServer) {
+        localServer.close();
+        localServer = null;
+        localServerUrl = null;
     }
 });

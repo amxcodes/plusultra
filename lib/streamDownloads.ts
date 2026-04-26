@@ -37,8 +37,6 @@ const EMBED_PARAM_KEYS = new Set([
     'manifest',
 ]);
 
-const dedupeUrls = new Set<string>();
-
 const decodeRecursively = (value: string) => {
     let current = value;
 
@@ -76,6 +74,7 @@ const isLikelyMediaUrl = (value: string) => {
 
 const pushCandidate = (
     candidates: StreamDownloadCandidate[],
+    dedupeUrls: Set<string>,
     candidate: Omit<StreamDownloadCandidate, 'id'>
 ) => {
     if (!candidate.url || dedupeUrls.has(candidate.url)) return;
@@ -87,11 +86,16 @@ const pushCandidate = (
     });
 };
 
-const inspectUrl = (value: string, candidates: StreamDownloadCandidate[], path: string[] = []) => {
+const inspectUrl = (
+    value: string,
+    candidates: StreamDownloadCandidate[],
+    dedupeUrls: Set<string>,
+    path: string[] = []
+) => {
     const decodedValue = decodeRecursively(value);
     if (isLikelyMediaUrl(decodedValue)) {
         const kind = decodedValue.toLowerCase().includes('.m3u8') ? 'playlist' : 'video';
-        pushCandidate(candidates, {
+        pushCandidate(candidates, dedupeUrls, {
             label: kind === 'playlist' ? 'Detected HLS playlist' : 'Detected direct video',
             url: decodedValue,
             kind,
@@ -113,7 +117,7 @@ const inspectUrl = (value: string, candidates: StreamDownloadCandidate[], path: 
             return;
         }
 
-        inspectUrl(decodedParam, candidates, [...path, key]);
+        inspectUrl(decodedParam, candidates, dedupeUrls, [...path, key]);
     });
 };
 
@@ -127,25 +131,24 @@ export const buildStreamDownloadCandidates = ({
     currentEmbedUrl,
     directSources = [],
 }: BuildStreamDownloadCandidatesOptions): StreamDownloadCandidate[] => {
-    dedupeUrls.clear();
-
     const candidates: StreamDownloadCandidate[] = [];
+    const dedupeUrls = new Set<string>();
 
     directSources.forEach((source, index) => {
         if (!source?.src) return;
         const kind = source.src.toLowerCase().includes('.m3u8') ? 'playlist' : 'video';
-        pushCandidate(candidates, {
+        pushCandidate(candidates, dedupeUrls, {
             label: directSources.length > 1 ? `Direct source ${index + 1}` : 'Direct playback source',
             url: source.src,
             kind,
             source: 'detected',
             note: `Exposed directly by ${providerName}`,
         });
-        inspectUrl(source.src, candidates, ['direct-source']);
+        inspectUrl(source.src, candidates, dedupeUrls, ['direct-source']);
     });
 
     if (currentEmbedUrl) {
-        inspectUrl(currentEmbedUrl, candidates, ['embed-url']);
+        inspectUrl(currentEmbedUrl, candidates, dedupeUrls, ['embed-url']);
     }
 
     if (providerId === 'rive') {
@@ -153,7 +156,7 @@ export const buildStreamDownloadCandidates = ({
             ? `https://rivestream.org/download?type=movie&id=${tmdbId}`
             : `https://rivestream.org/download?type=tv&id=${tmdbId}&season=${season || 1}&episode=${episode || 1}`;
 
-        pushCandidate(candidates, {
+        pushCandidate(candidates, dedupeUrls, {
             label: 'Rive download page',
             url: providerDownloadUrl,
             kind: 'download_page',

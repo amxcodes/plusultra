@@ -5,26 +5,29 @@ initSentry();
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { registerSW } from 'virtual:pwa-register';
 
-const updateServiceWorker = registerSW({
-  immediate: true,
-  onRegisteredSW(_swUrl, registration) {
-    registration?.update();
+if (import.meta.env.MODE !== 'desktop') {
+  void import('virtual:pwa-register').then(({ registerSW }) => {
+    const updateServiceWorker = registerSW({
+      immediate: true,
+      onRegisteredSW(_swUrl, registration) {
+        registration?.update();
 
-    if (typeof window !== 'undefined') {
-      window.setInterval(() => {
-        void registration?.update();
-      }, 60 * 1000);
-    }
-  },
-  onNeedRefresh() {
-    updateServiceWorker(true);
-  },
-  onOfflineReady() {
-    console.info('[PWA] Offline cache is ready');
-  },
-});
+        if (typeof window !== 'undefined') {
+          window.setInterval(() => {
+            void registration?.update();
+          }, 60 * 1000);
+        }
+      },
+      onNeedRefresh() {
+        updateServiceWorker(true);
+      },
+      onOfflineReady() {
+        console.info('[PWA] Offline cache is ready');
+      },
+    });
+  });
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
