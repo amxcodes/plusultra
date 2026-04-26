@@ -19,6 +19,15 @@ Release flow:
 3. Push a version tag like `v1.0.0` to trigger the desktop release workflow.
 4. `electron-builder` publishes the desktop installer and update metadata to GitHub Releases.
 
+Required GitHub Actions secrets:
+
+- `VITE_TMDB_API_KEY`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_TURNSTILE_SITE_KEY`
+- `VITE_TASTEDIVE_API_KEY`
+- `VITE_OMDB_API_KEY`
+
 Auto-update is configured for:
 
 - GitHub owner: `amxcodes`
