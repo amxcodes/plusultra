@@ -23,6 +23,7 @@ let activeCaptureStartedAt = 0;
 let localServer = null;
 let localServerUrl = null;
 let turnstileRequests = new Map();
+let turnstileWindows = new Map();
 
 const MIME_TYPES = {
     '.css': 'text/css; charset=utf-8',
@@ -215,7 +216,7 @@ const renderTurnstileHelperPage = (requestId, requestInfo) => `<!DOCTYPE html>
   <div class="panel">
     <div class="label">Plus Ultra Desktop</div>
     <h1>Security check</h1>
-    <p>Complete the Cloudflare check, then return to the desktop app.</p>
+    <p>Complete the Cloudflare check to continue in the desktop app.</p>
     <div id="widget"></div>
     <div id="status" class="status"></div>
   </div>
@@ -256,7 +257,7 @@ const renderTurnstileHelperPage = (requestId, requestInfo) => `<!DOCTYPE html>
               throw new Error('Verification handoff failed');
             }
 
-            setStatus('Done. You can close this tab and return to the desktop app.', 'success');
+            setStatus('Done. This window can close now.', 'success');
           } catch (error) {
             setStatus('Failed to return the token to the desktop app. Try again.', 'error');
           }
@@ -315,6 +316,11 @@ const startLocalRendererServer = async () => {
                     }
 
                     turnstileRequests.delete(requestId);
+                    const turnstileWindow = turnstileWindows.get(requestId);
+                    if (turnstileWindow && !turnstileWindow.isDestroyed()) {
+                        turnstileWindow.close();
+                    }
+                    turnstileWindows.delete(requestId);
                     if (mainWindow && !mainWindow.isDestroyed()) {
                         mainWindow.webContents.send('desktop:turnstile-token', {
                             requestId,
@@ -448,7 +454,32 @@ ipcMain.handle('desktop:start-turnstile-check', async (_event, payload) => {
 
     turnstileRequests.set(requestId, requestInfo);
     const helperUrl = `${rendererUrl}/desktop-turnstile?requestId=${encodeURIComponent(requestId)}`;
-    await shell.openExternal(helperUrl);
+    const parentWindow = BrowserWindow.fromWebContents(_event.sender) || mainWindow;
+    const turnstileWindow = new BrowserWindow({
+        width: 440,
+        height: 720,
+        minWidth: 420,
+        minHeight: 640,
+        modal: Boolean(parentWindow),
+        parent: parentWindow || undefined,
+        title: 'Security Check',
+        autoHideMenuBar: true,
+        backgroundColor: '#0b0b0f',
+        maximizable: false,
+        minimizable: false,
+        webPreferences: {
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: false,
+        },
+    });
+
+    turnstileWindows.set(requestId, turnstileWindow);
+    turnstileWindow.on('closed', () => {
+        turnstileWindows.delete(requestId);
+    });
+    turnstileWindow.webContents.setUserAgent(DESKTOP_USER_AGENT);
+    await turnstileWindow.loadURL(helperUrl, { userAgent: DESKTOP_USER_AGENT });
     return { ok: true, requestId };
 });
 ipcMain.handle('desktop:open-external', (_event, targetUrl) => shell.openExternal(targetUrl));
@@ -487,6 +518,13 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+    turnstileWindows.forEach((window) => {
+        if (!window.isDestroyed()) {
+            window.close();
+        }
+    });
+    turnstileWindows.clear();
+    turnstileRequests.clear();
     if (localServer) {
         localServer.close();
         localServer = null;
