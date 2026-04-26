@@ -10,3 +10,21 @@ interface ImportMetaEnv {
 interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
+
+interface DesktopCapturedMedia {
+    url: string;
+    resourceType: string;
+    timestamp: number;
+}
+
+interface DesktopBridge {
+    isDesktop: true;
+    getCapturedMedia: () => Promise<DesktopCapturedMedia[]>;
+    openExternal: (targetUrl: string) => Promise<void>;
+    checkForUpdates: () => Promise<{ ok: boolean; message?: string }>;
+    onCapturedMedia: (listener: (item: DesktopCapturedMedia) => void) => () => void;
+}
+
+interface Window {
+    desktop?: DesktopBridge;
+}

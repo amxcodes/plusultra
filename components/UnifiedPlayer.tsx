@@ -10,6 +10,7 @@ import { VIEW_SESSION_HEARTBEAT_SECONDS } from '../lib/sessionTracking';
 import { DirectMediaPlayer } from './DirectMediaPlayer';
 import { getProviderAdapter, PLAYER_PROVIDER_DEFAULTS, Provider, ProviderContext } from '../lib/playerProviders';
 import { usePlayerProviders } from '../hooks/usePlayerProviders';
+import { StreamDownloadPanel } from './StreamDownloadPanel';
 
 interface UnifiedPlayerProps {
     tmdbId: string;
@@ -649,6 +650,17 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                                     <X size={20} />
                                 </button>
                             </div>
+
+                            <StreamDownloadPanel
+                                providerId={currentProvider.id}
+                                providerName={currentProvider.name}
+                                tmdbId={tmdbId}
+                                mediaType={mediaType}
+                                season={season}
+                                episode={episode}
+                                currentEmbedUrl={currentEmbedUrl}
+                                directSources={directSources}
+                            />
 
                             {communityLinks.length === 0 ? (
                                 <div className="text-center py-8 px-4">
