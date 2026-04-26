@@ -196,11 +196,15 @@ const renderTurnstileHelperPage = (requestId, requestInfo) => `<!DOCTYPE html>
       line-height: 1.5;
       margin: 0 0 20px;
     }
+    #widget {
+      min-height: 70px;
+    }
     .status {
       margin-top: 16px;
       font-size: 13px;
       color: #d4d4d8;
-      min-height: 20px;
+      min-height: 40px;
+      line-height: 1.5;
     }
     .status.error {
       color: #fca5a5;
@@ -208,8 +212,15 @@ const renderTurnstileHelperPage = (requestId, requestInfo) => `<!DOCTYPE html>
     .status.success {
       color: #86efac;
     }
+    .status code {
+      color: #f4f4f5;
+      background: rgba(255,255,255,0.06);
+      border-radius: 6px;
+      padding: 1px 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+    }
   </style>
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
   <div class="panel">
@@ -223,27 +234,31 @@ const renderTurnstileHelperPage = (requestId, requestInfo) => `<!DOCTYPE html>
     const requestId = ${JSON.stringify(requestId)};
     const action = ${JSON.stringify(requestInfo.action)};
     const siteKey = ${JSON.stringify(requestInfo.siteKey)};
+    const currentHost = window.location.hostname;
     const statusNode = document.getElementById('status');
+    const widgetNode = document.getElementById('widget');
+    let widgetRendered = false;
+    let renderAttempts = 0;
 
     const setStatus = (message, className = '') => {
       statusNode.className = className ? 'status ' + className : 'status';
-      statusNode.textContent = message;
+      statusNode.innerHTML = message;
     };
 
-    window.onloadTurnstileCallback = () => {};
-
-    const renderWhenReady = () => {
-      if (!window.turnstile) {
-        window.setTimeout(renderWhenReady, 100);
+    const renderWidget = () => {
+      if (widgetRendered || !window.turnstile || !widgetNode) {
         return;
       }
 
-      window.turnstile.render('#widget', {
+      widgetRendered = true;
+      setStatus('Cloudflare loaded. Waiting for verification...', '');
+
+      window.turnstile.render(widgetNode, {
         sitekey: siteKey,
         theme: 'dark',
         action,
         callback: async (token) => {
-          setStatus('Verifying...', '');
+          setStatus('Verifying with the desktop app...', '');
 
           try {
             const response = await fetch('/desktop-turnstile/complete', {
@@ -268,7 +283,40 @@ const renderTurnstileHelperPage = (requestId, requestInfo) => `<!DOCTYPE html>
       });
     };
 
-    renderWhenReady();
+    const waitForTurnstile = () => {
+      renderAttempts += 1;
+
+      if (window.turnstile) {
+        renderWidget();
+        return;
+      }
+
+      if (renderAttempts >= 80) {
+        setStatus(
+          'Cloudflare Turnstile did not load in this browser. If you use Cloudflare hostname restrictions, add <code>localhost</code> and <code>127.0.0.1</code> to the allowed hostnames for this site key, then retry.',
+          'error'
+        );
+        return;
+      }
+
+      window.setTimeout(waitForTurnstile, 100);
+    };
+
+    setStatus('Loading Cloudflare Turnstile on <code>' + currentHost + '</code>...', '');
+
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      setStatus(
+        'The Cloudflare Turnstile script failed to load. Check browser privacy shields, extensions, or network filtering, then retry.',
+        'error'
+      );
+    };
+    document.head.appendChild(script);
+
+    waitForTurnstile();
   </script>
 </body>
 </html>`;
@@ -438,7 +486,7 @@ ipcMain.handle('desktop:start-turnstile-check', async (_event, payload) => {
     const requestId = randomUUID();
     const requestInfo = {
         action: String(payload?.action || 'auth'),
-        siteKey: String(payload?.siteKey || ''),
+        siteKey: String(payload?.siteKey || '').trim(),
         createdAt: Date.now(),
     };
 
