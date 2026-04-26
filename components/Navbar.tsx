@@ -60,6 +60,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   const [showDesktopUpdatePopover, setShowDesktopUpdatePopover] = React.useState(false);
   const [updateStatus, setUpdateStatus] = React.useState<string | null>(null);
   const [isCheckingForUpdate, setIsCheckingForUpdate] = React.useState(false);
+  const [currentDesktopVersion, setCurrentDesktopVersion] = React.useState<string | null>(null);
+  const [latestDesktopVersion, setLatestDesktopVersion] = React.useState<string | null>(null);
   const profileButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const updatePopoverRef = React.useRef<HTMLDivElement | null>(null);
   const isDesktop = Boolean(window.desktop?.isDesktop);
@@ -83,8 +85,34 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   }, [user?.id]);
 
   React.useEffect(() => {
+    if (!isDesktop || !window.desktop) {
+      return;
+    }
+
+    const unsubscribe = window.desktop.onUpdateState((payload) => {
+      setCurrentDesktopVersion(payload.currentVersion || null);
+      setLatestDesktopVersion(payload.latestVersion || null);
+      setUpdateStatus(payload.message || null);
+      setIsCheckingForUpdate(payload.status === 'checking');
+    });
+
+    return () => unsubscribe();
+  }, [isDesktop]);
+
+  React.useEffect(() => {
     if (!showDesktopUpdatePopover) {
       return;
+    }
+
+    if (isDesktop && window.desktop) {
+      void window.desktop.getUpdateState().then((state) => {
+        setCurrentDesktopVersion(state.currentVersion || null);
+        setLatestDesktopVersion(state.latestVersion || null);
+        setUpdateStatus(state.message || null);
+        setIsCheckingForUpdate(state.status === 'checking');
+      }).catch(() => {
+        // Ignore initial state fetch failures and rely on explicit check result.
+      });
     }
 
     const handlePointerDown = (event: MouseEvent) => {
@@ -100,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
 
     window.addEventListener('mousedown', handlePointerDown);
     return () => window.removeEventListener('mousedown', handlePointerDown);
-  }, [showDesktopUpdatePopover]);
+  }, [isDesktop, showDesktopUpdatePopover]);
 
   // DRY helper for adaptive button styles on short screens
   const getNavButtonClass = (isActive: boolean) => 
@@ -310,6 +338,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
                 <p className="mt-1 text-xs leading-relaxed text-zinc-400">
                   Check for a newer desktop build and install it when prompted.
                 </p>
+                <div className="mt-3 space-y-1 text-[11px] text-zinc-400">
+                  <div>
+                    Current version: <span className="text-zinc-200">{currentDesktopVersion ? `v${currentDesktopVersion}` : 'Unknown'}</span>
+                  </div>
+                  <div>
+                    Latest version: <span className="text-zinc-200">{latestDesktopVersion ? `v${latestDesktopVersion}` : 'Not checked yet'}</span>
+                  </div>
+                </div>
               </div>
               <button
                 type="button"
@@ -340,9 +376,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
 
                   try {
                     const result = await window.desktop.checkForUpdates();
+                    setCurrentDesktopVersion(result.currentVersion || currentDesktopVersion);
+                    setLatestDesktopVersion(result.latestVersion || latestDesktopVersion);
                     setUpdateStatus(
                       result.ok
-                        ? 'Update check started. If a newer version is available, the desktop app will prompt you.'
+                        ? (result.message || 'Update check started.')
                         : (result.message || 'Update check failed.')
                     );
                   } catch (error) {

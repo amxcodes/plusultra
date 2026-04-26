@@ -24,15 +24,33 @@ let activeCaptureStartedAt = 0;
 let localServer = null;
 let localServerUrl = null;
 let turnstileRequests = new Map();
+let desktopUpdateState = {
+    status: 'idle',
+    currentVersion: app.getVersion(),
+    latestVersion: null,
+    message: null,
+};
+
+const sendDesktopUpdateState = () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('desktop:update-state', desktopUpdateState);
+    }
+};
 
 const mapDesktopUpdateErrorMessage = (error) => {
     const rawMessage = error instanceof Error ? error.message : String(error || 'Update check failed.');
     const normalized = rawMessage.toLowerCase();
 
     if (
+        normalized.includes('please ensure a production release exists') ||
+        normalized.includes('unable to find latest version on github')
+    ) {
+        return 'No published latest desktop release is available yet. Ask an admin to publish the latest release.';
+    }
+
+    if (
         normalized.includes('releases.atom') ||
         normalized.includes('/releases/latest') ||
-        normalized.includes('unable to find latest version on github') ||
         normalized.includes('cannot parse releases feed') ||
         normalized.includes('authentication token is correct') ||
         normalized.includes('httperror: 404') ||
@@ -153,6 +171,44 @@ const setupAutoUpdate = () => {
     }
 
     autoUpdater.autoDownload = true;
+    autoUpdater.on('checking-for-update', () => {
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'checking',
+            message: 'Checking for updates...',
+        };
+        sendDesktopUpdateState();
+    });
+    autoUpdater.on('update-available', (info) => {
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'available',
+            latestVersion: info.version || null,
+            message: info.version
+                ? `Update available: v${info.version}.`
+                : 'An update is available.',
+        };
+        sendDesktopUpdateState();
+    });
+    autoUpdater.on('update-not-available', (info) => {
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'not-available',
+            latestVersion: info?.version || desktopUpdateState.currentVersion,
+            message: info?.version
+                ? `You're already on the latest version (v${info.version}).`
+                : 'You are already on the latest version.',
+        };
+        sendDesktopUpdateState();
+    });
+    autoUpdater.on('error', (error) => {
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'error',
+            message: mapDesktopUpdateErrorMessage(error),
+        };
+        sendDesktopUpdateState();
+    });
     autoUpdater.checkForUpdatesAndNotify().catch((error) => {
         console.error('[desktop-updater] initial update check failed', error);
     });
@@ -535,15 +591,34 @@ ipcMain.handle('desktop:check-for-updates', async () => {
     }
 
     try {
-        await autoUpdater.checkForUpdates();
-        return { ok: true };
+        const result = await autoUpdater.checkForUpdates();
+        return {
+            ok: true,
+            status: desktopUpdateState.status,
+            currentVersion: desktopUpdateState.currentVersion,
+            latestVersion: result?.updateInfo?.version || desktopUpdateState.latestVersion,
+            message: desktopUpdateState.message,
+        };
     } catch (error) {
+        const message = mapDesktopUpdateErrorMessage(error);
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'error',
+            message,
+        };
+        sendDesktopUpdateState();
         return {
             ok: false,
-            message: mapDesktopUpdateErrorMessage(error),
+            status: 'error',
+            currentVersion: desktopUpdateState.currentVersion,
+            latestVersion: desktopUpdateState.latestVersion,
+            message,
         };
     }
 });
+ipcMain.handle('desktop:get-update-state', async () => ({
+    ...desktopUpdateState,
+}));
 
 app.whenReady().then(async () => {
     registerNetworkCapture();

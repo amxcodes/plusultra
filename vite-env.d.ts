@@ -38,10 +38,12 @@ interface DesktopBridge {
     getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;
     startTurnstileCheck: (payload: { action: string; siteKey: string }) => Promise<{ ok: boolean; requestId?: string; message?: string }>;
     openExternal: (targetUrl: string) => Promise<void>;
-    checkForUpdates: () => Promise<{ ok: boolean; message?: string }>;
+    checkForUpdates: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null }>;
+    getUpdateState: () => Promise<{ status: string; currentVersion: string; latestVersion: string | null; message: string | null }>;
     onCapturedMedia: (listener: (item: DesktopCapturedMedia) => void) => () => void;
     onCapturedMediaReset: (listener: (payload: { captureKey: string }) => void) => () => void;
     onTurnstileToken: (listener: (payload: { requestId: string; token: string; action: string }) => void) => () => void;
+    onUpdateState: (listener: (payload: { status: string; currentVersion: string; latestVersion: string | null; message: string | null }) => void) => () => void;
 }
 
 interface Window {

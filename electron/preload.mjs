@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('desktop', {
     startTurnstileCheck: (payload) => ipcRenderer.invoke('desktop:start-turnstile-check', payload),
     openExternal: (targetUrl) => ipcRenderer.invoke('desktop:open-external', targetUrl),
     checkForUpdates: () => ipcRenderer.invoke('desktop:check-for-updates'),
+    getUpdateState: () => ipcRenderer.invoke('desktop:get-update-state'),
     onCapturedMedia: (listener) => {
         const wrapped = (_event, payload) => listener(payload);
         ipcRenderer.on('desktop:captured-media', wrapped);
@@ -22,5 +23,10 @@ contextBridge.exposeInMainWorld('desktop', {
         const wrapped = (_event, payload) => listener(payload);
         ipcRenderer.on('desktop:turnstile-token', wrapped);
         return () => ipcRenderer.removeListener('desktop:turnstile-token', wrapped);
+    },
+    onUpdateState: (listener) => {
+        const wrapped = (_event, payload) => listener(payload);
+        ipcRenderer.on('desktop:update-state', wrapped);
+        return () => ipcRenderer.removeListener('desktop:update-state', wrapped);
     },
 });
