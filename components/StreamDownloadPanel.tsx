@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Copy, Download, ExternalLink, Info } from 'lucide-react';
+import { Download, ExternalLink, Info } from 'lucide-react';
 import { useToast } from '../lib/ToastContext';
 import { buildStreamDownloadCandidates, type StreamDownloadCandidate } from '../lib/streamDownloads';
 import { DirectPlaybackSource, MediaType, Provider } from '../lib/playerProviders';
@@ -147,15 +147,6 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         return candidate.kind === 'video';
     };
 
-    const handleCopy = async (url: string) => {
-        try {
-            await navigator.clipboard.writeText(url);
-            success('Download link copied');
-        } catch {
-            error('Failed to copy download link');
-        }
-    };
-
     const handleOpen = (url: string) => {
         if (window.desktop?.isDesktop) {
             void window.desktop.openExternal(url);
@@ -223,22 +214,8 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                                 </p>
                             )}
 
-                            <div className="mt-3 flex gap-2">
-                                <button
-                                    onClick={() => handleOpen(candidate.url)}
-                                    className="flex-1 flex items-center justify-center gap-2 bg-white text-black hover:bg-zinc-200 py-2 rounded-lg text-xs font-bold transition-colors"
-                                >
-                                    <ExternalLink size={12} />
-                                    {candidate.kind === 'download_page' ? 'Open Page' : 'Open Link'}
-                                </button>
-                                <button
-                                    onClick={() => void handleCopy(candidate.url)}
-                                    className="px-3 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 text-white py-2 rounded-lg text-xs font-bold transition-colors"
-                                >
-                                    <Copy size={12} />
-                                    Copy
-                                </button>
-                                {canSaveOffline(candidate) && (
+                            <div className="mt-3">
+                                {canSaveOffline(candidate) ? (
                                     <button
                                         onClick={() => {
                                             if (!window.desktop || !title || !imageUrl) {
@@ -271,10 +248,18 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                                                 error('Failed to start offline download.');
                                             });
                                         }}
-                                        className="px-3 flex items-center justify-center gap-2 bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-100 py-2 rounded-lg text-xs font-bold transition-colors"
+                                        className="inline-flex h-9 items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-100 transition-colors hover:bg-emerald-500/20"
                                     >
                                         <Download size={12} />
-                                        Save Offline
+                                        Download Offline
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => handleOpen(candidate.url)}
+                                        className="inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-100 transition-colors hover:bg-white/10"
+                                    >
+                                        <ExternalLink size={12} />
+                                        {candidate.kind === 'download_page' ? 'Open Page' : 'Open Link'}
                                     </button>
                                 )}
                             </div>

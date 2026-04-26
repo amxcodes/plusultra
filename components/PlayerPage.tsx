@@ -15,6 +15,20 @@ interface PlayerPageProps {
 }
 
 export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episode = 1, onBack, onPlayEpisode, offlinePlaybackUrl = null }) => {
+    const getOfflineStorageKey = (targetUrl: string) => {
+        try {
+            const pathname = new URL(targetUrl).pathname;
+            const downloadId = pathname.split('/').filter(Boolean).pop();
+            return downloadId ? `amx_offline_resume:${downloadId}` : `amx_offline_resume:${targetUrl}`;
+        } catch {
+            return `amx_offline_resume:${targetUrl}`;
+        }
+    };
+
+    const offlineSubtitle = movie.mediaType === 'tv'
+        ? `Offline playback for S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')}`
+        : 'Offline playback saved on this device';
+
     return (
         <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-500">
             {/* Back Button */}
@@ -34,6 +48,22 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episo
                         <DirectMediaPlayer
                             sources={[{ src: offlinePlaybackUrl }]}
                             title={`${movie.title} - Offline`}
+                            badge="Offline Ready"
+                            subtitle={offlineSubtitle}
+                            progressContext={{
+                                storageKey: getOfflineStorageKey(offlinePlaybackUrl),
+                                tmdbId: movie.id.toString(),
+                                mediaType: movie.mediaType || 'movie',
+                                season,
+                                episode,
+                                provider: 'offline',
+                                title: movie.title,
+                                posterUrl: movie.imageUrl,
+                                backdropUrl: movie.backdropUrl || movie.imageUrl,
+                                year: movie.year,
+                                genres: movie.genre,
+                                voteAverage: movie.match / 10,
+                            }}
                         />
                     ) : (
                         <UnifiedPlayer

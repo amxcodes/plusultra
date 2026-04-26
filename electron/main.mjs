@@ -37,6 +37,7 @@ let desktopUpdateState = {
 };
 let offlineDownloadCatalog = [];
 let pendingOfflineDownloads = new Map();
+let supersededOfflineDownloadIds = new Set();
 
 const VIDEO_EXTENSION_MIME_TYPES = {
     '.m4v': 'video/mp4',
@@ -215,6 +216,49 @@ const upsertOfflineDownloadEntry = async (entry) => {
     sendOfflineDownloadsChanged();
 };
 
+const isSameOfflineTitle = (entry, target) => (
+    entry.tmdbId === target.tmdbId &&
+    entry.mediaType === target.mediaType &&
+    (entry.season || null) === (target.season || null) &&
+    (entry.episode || null) === (target.episode || null)
+);
+
+const removeOfflineFileIfUnshared = async (entry) => {
+    if (!entry.filePath || !existsSync(entry.filePath)) {
+        return;
+    }
+
+    const isSharedFile = offlineDownloadCatalog.some((item) => (
+        item.id !== entry.id &&
+        item.filePath === entry.filePath
+    ));
+
+    if (!isSharedFile) {
+        await rm(entry.filePath, { force: true }).catch(() => undefined);
+    }
+};
+
+const purgeOfflineDownloadEntries = async (entries) => {
+    if (!entries.length) {
+        return;
+    }
+
+    for (const entry of entries) {
+        supersededOfflineDownloadIds.add(entry.id);
+        const pendingDownload = pendingOfflineDownloads.get(entry.id);
+        if (pendingDownload?.item && !pendingDownload.item.isDestroyed?.()) {
+            pendingDownload.item.cancel();
+        }
+        pendingOfflineDownloads.delete(entry.id);
+        await removeOfflineFileIfUnshared(entry);
+    }
+
+    const removedIds = new Set(entries.map((entry) => entry.id));
+    offlineDownloadCatalog = offlineDownloadCatalog.filter((entry) => !removedIds.has(entry.id));
+    await saveOfflineCatalog();
+    sendOfflineDownloadsChanged();
+};
+
 const removeOfflineDownloadEntry = async (downloadId) => {
     offlineDownloadCatalog = offlineDownloadCatalog.filter((entry) => entry.id !== downloadId);
     await saveOfflineCatalog();
@@ -338,6 +382,13 @@ const registerOfflineDownloadHandler = () => {
         const sourceExtension = pendingDownload.resolvedExtension || getExtensionFromUrl(pendingDownload.sourceUrl);
         const targetFileName = `${pendingDownload.entry.id}-${sanitizeOfflineName(pendingDownload.baseName)}${sourceExtension}`;
         const targetFilePath = path.join(OFFLINE_LIBRARY_DIR, targetFileName);
+        pendingDownload.item = item;
+
+        if (supersededOfflineDownloadIds.has(pendingDownload.entry.id)) {
+            item.cancel();
+            return;
+        }
+
         item.setSavePath(targetFilePath);
 
         await upsertOfflineDownloadEntry({
@@ -350,6 +401,11 @@ const registerOfflineDownloadHandler = () => {
         });
 
         item.on('updated', async () => {
+            if (supersededOfflineDownloadIds.has(pendingDownload.entry.id)) {
+                item.cancel();
+                return;
+            }
+
             await upsertOfflineDownloadEntry({
                 ...pendingDownload.entry,
                 fileName: targetFileName,
@@ -362,6 +418,16 @@ const registerOfflineDownloadHandler = () => {
 
         item.once('done', async (_event, state) => {
             pendingOfflineDownloads.delete(pendingDownload.entry.id);
+
+            if (supersededOfflineDownloadIds.has(pendingDownload.entry.id)) {
+                supersededOfflineDownloadIds.delete(pendingDownload.entry.id);
+                await removeOfflineFileIfUnshared({
+                    ...pendingDownload.entry,
+                    fileName: targetFileName,
+                    filePath: targetFilePath,
+                });
+                return;
+            }
 
             if (state === 'completed') {
                 const fileStats = await stat(targetFilePath).catch(() => null);
@@ -931,12 +997,15 @@ ipcMain.handle('desktop:download-offline-media', async (_event, payload) => {
         return { ok: false, message: 'Missing offline download metadata.' };
     }
 
+    const titleKey = {
+        tmdbId,
+        mediaType,
+        season: typeof payload?.season === 'number' ? payload.season : undefined,
+        episode: typeof payload?.episode === 'number' ? payload.episode : undefined,
+    };
     const existingEntry = offlineDownloadCatalog.find((entry) => (
         entry.sourceUrl === sourceUrl &&
-        entry.tmdbId === tmdbId &&
-        entry.mediaType === mediaType &&
-        (entry.season || null) === (payload?.season || null) &&
-        (entry.episode || null) === (payload?.episode || null) &&
+        isSameOfflineTitle(entry, titleKey) &&
         (entry.status === 'downloading' || entry.status === 'completed')
     ));
 
@@ -976,6 +1045,12 @@ ipcMain.handle('desktop:download-offline-media', async (_event, payload) => {
         bytesReceived: 0,
         totalBytes: 0,
     };
+
+    const replacedEntries = offlineDownloadCatalog.filter((entry) => (
+        entry.id !== offlineEntry.id &&
+        isSameOfflineTitle(entry, offlineEntry)
+    ));
+    await purgeOfflineDownloadEntries(replacedEntries);
 
     pendingOfflineDownloads.set(downloadId, {
         sourceUrl,
