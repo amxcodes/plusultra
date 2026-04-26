@@ -29,6 +29,7 @@ let desktopUpdateState = {
     currentVersion: app.getVersion(),
     latestVersion: null,
     message: null,
+    downloadProgress: null,
 };
 
 const sendDesktopUpdateState = () => {
@@ -170,12 +171,13 @@ const setupAutoUpdate = () => {
         return;
     }
 
-    autoUpdater.autoDownload = true;
+    autoUpdater.autoDownload = false;
     autoUpdater.on('checking-for-update', () => {
         desktopUpdateState = {
             ...desktopUpdateState,
             status: 'checking',
             message: 'Checking for updates...',
+            downloadProgress: null,
         };
         sendDesktopUpdateState();
     });
@@ -185,8 +187,9 @@ const setupAutoUpdate = () => {
             status: 'available',
             latestVersion: info.version || null,
             message: info.version
-                ? `Update available: v${info.version}.`
+                ? `Update available: v${info.version}. Download it to install the latest desktop build.`
                 : 'An update is available.',
+            downloadProgress: null,
         };
         sendDesktopUpdateState();
     });
@@ -198,6 +201,31 @@ const setupAutoUpdate = () => {
             message: info?.version
                 ? `You're already on the latest version (v${info.version}).`
                 : 'You are already on the latest version.',
+            downloadProgress: null,
+        };
+        sendDesktopUpdateState();
+    });
+    autoUpdater.on('download-progress', (progress) => {
+        const percent = Number.isFinite(progress?.percent) ? Math.round(progress.percent) : 0;
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'downloading',
+            message: percent > 0
+                ? `Downloading update... ${percent}%`
+                : 'Downloading update...',
+            downloadProgress: percent,
+        };
+        sendDesktopUpdateState();
+    });
+    autoUpdater.on('update-downloaded', (info) => {
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'downloaded',
+            latestVersion: info?.version || desktopUpdateState.latestVersion,
+            message: info?.version
+                ? `v${info.version} is ready. Restart the app to finish updating.`
+                : 'The update is ready. Restart the app to finish updating.',
+            downloadProgress: 100,
         };
         sendDesktopUpdateState();
     });
@@ -206,15 +234,16 @@ const setupAutoUpdate = () => {
             ...desktopUpdateState,
             status: 'error',
             message: mapDesktopUpdateErrorMessage(error),
+            downloadProgress: null,
         };
         sendDesktopUpdateState();
     });
-    autoUpdater.checkForUpdatesAndNotify().catch((error) => {
+    autoUpdater.checkForUpdates().catch((error) => {
         console.error('[desktop-updater] initial update check failed', error);
     });
 
     setInterval(() => {
-        autoUpdater.checkForUpdatesAndNotify().catch((error) => {
+        autoUpdater.checkForUpdates().catch((error) => {
             console.error('[desktop-updater] periodic update check failed', error);
         });
     }, 1000 * 60 * 60 * 6);
@@ -619,6 +648,76 @@ ipcMain.handle('desktop:check-for-updates', async () => {
 ipcMain.handle('desktop:get-update-state', async () => ({
     ...desktopUpdateState,
 }));
+ipcMain.handle('desktop:download-update', async () => {
+    if (!app.isPackaged) {
+        return { ok: false, message: 'Auto-update is only available in packaged builds.' };
+    }
+
+    try {
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'downloading',
+            message: 'Downloading update...',
+            downloadProgress: desktopUpdateState.downloadProgress ?? 0,
+        };
+        sendDesktopUpdateState();
+        await autoUpdater.downloadUpdate();
+        return {
+            ok: true,
+            status: desktopUpdateState.status,
+            currentVersion: desktopUpdateState.currentVersion,
+            latestVersion: desktopUpdateState.latestVersion,
+            message: desktopUpdateState.message,
+            downloadProgress: desktopUpdateState.downloadProgress,
+        };
+    } catch (error) {
+        const message = mapDesktopUpdateErrorMessage(error);
+        desktopUpdateState = {
+            ...desktopUpdateState,
+            status: 'error',
+            message,
+            downloadProgress: null,
+        };
+        sendDesktopUpdateState();
+        return {
+            ok: false,
+            status: 'error',
+            currentVersion: desktopUpdateState.currentVersion,
+            latestVersion: desktopUpdateState.latestVersion,
+            message,
+            downloadProgress: desktopUpdateState.downloadProgress,
+        };
+    }
+});
+ipcMain.handle('desktop:install-update', async () => {
+    if (!app.isPackaged) {
+        return { ok: false, message: 'Auto-update is only available in packaged builds.' };
+    }
+
+    if (desktopUpdateState.status !== 'downloaded') {
+        return {
+            ok: false,
+            status: desktopUpdateState.status,
+            currentVersion: desktopUpdateState.currentVersion,
+            latestVersion: desktopUpdateState.latestVersion,
+            message: 'Download the update before installing it.',
+            downloadProgress: desktopUpdateState.downloadProgress,
+        };
+    }
+
+    setImmediate(() => {
+        autoUpdater.quitAndInstall();
+    });
+
+    return {
+        ok: true,
+        status: 'installing',
+        currentVersion: desktopUpdateState.currentVersion,
+        latestVersion: desktopUpdateState.latestVersion,
+        message: 'Restarting to install the update...',
+        downloadProgress: desktopUpdateState.downloadProgress,
+    };
+});
 
 app.whenReady().then(async () => {
     registerNetworkCapture();

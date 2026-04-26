@@ -38,12 +38,14 @@ interface DesktopBridge {
     getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;
     startTurnstileCheck: (payload: { action: string; siteKey: string }) => Promise<{ ok: boolean; requestId?: string; message?: string }>;
     openExternal: (targetUrl: string) => Promise<void>;
-    checkForUpdates: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null }>;
-    getUpdateState: () => Promise<{ status: string; currentVersion: string; latestVersion: string | null; message: string | null }>;
+    checkForUpdates: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null; downloadProgress?: number | null }>;
+    downloadUpdate: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null; downloadProgress?: number | null }>;
+    installUpdate: () => Promise<{ ok: boolean; status?: string; currentVersion?: string; latestVersion?: string | null; message?: string | null; downloadProgress?: number | null }>;
+    getUpdateState: () => Promise<{ status: string; currentVersion: string; latestVersion: string | null; message: string | null; downloadProgress: number | null }>;
     onCapturedMedia: (listener: (item: DesktopCapturedMedia) => void) => () => void;
     onCapturedMediaReset: (listener: (payload: { captureKey: string }) => void) => () => void;
     onTurnstileToken: (listener: (payload: { requestId: string; token: string; action: string }) => void) => () => void;
-    onUpdateState: (listener: (payload: { status: string; currentVersion: string; latestVersion: string | null; message: string | null }) => void) => () => void;
+    onUpdateState: (listener: (payload: { status: string; currentVersion: string; latestVersion: string | null; message: string | null; downloadProgress: number | null }) => void) => () => void;
 }
 
 interface Window {

@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('desktop', {
     startTurnstileCheck: (payload) => ipcRenderer.invoke('desktop:start-turnstile-check', payload),
     openExternal: (targetUrl) => ipcRenderer.invoke('desktop:open-external', targetUrl),
     checkForUpdates: () => ipcRenderer.invoke('desktop:check-for-updates'),
+    downloadUpdate: () => ipcRenderer.invoke('desktop:download-update'),
+    installUpdate: () => ipcRenderer.invoke('desktop:install-update'),
     getUpdateState: () => ipcRenderer.invoke('desktop:get-update-state'),
     onCapturedMedia: (listener) => {
         const wrapped = (_event, payload) => listener(payload);

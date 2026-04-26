@@ -22,6 +22,7 @@ import {
   MessageSquarePlus,
   ListVideo,
   Download,
+  RefreshCw,
   X
 } from 'lucide-react';
 import { SocialService } from '../lib/social';
@@ -59,9 +60,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   const [unreadCounts, setUnreadCounts] = React.useState({ announcementsCount: 0, activityCount: 0 });
   const [showDesktopUpdatePopover, setShowDesktopUpdatePopover] = React.useState(false);
   const [updateStatus, setUpdateStatus] = React.useState<string | null>(null);
+  const [updatePhase, setUpdatePhase] = React.useState<string>('idle');
   const [isCheckingForUpdate, setIsCheckingForUpdate] = React.useState(false);
+  const [isUpdateActionPending, setIsUpdateActionPending] = React.useState(false);
   const [currentDesktopVersion, setCurrentDesktopVersion] = React.useState<string | null>(null);
   const [latestDesktopVersion, setLatestDesktopVersion] = React.useState<string | null>(null);
+  const [desktopDownloadProgress, setDesktopDownloadProgress] = React.useState<number | null>(null);
   const profileButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const updatePopoverRef = React.useRef<HTMLDivElement | null>(null);
   const isDesktop = Boolean(window.desktop?.isDesktop);
@@ -90,10 +94,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     }
 
     const unsubscribe = window.desktop.onUpdateState((payload) => {
+      setUpdatePhase(payload.status || 'idle');
       setCurrentDesktopVersion(payload.currentVersion || null);
       setLatestDesktopVersion(payload.latestVersion || null);
       setUpdateStatus(payload.message || null);
+      setDesktopDownloadProgress(payload.downloadProgress ?? null);
       setIsCheckingForUpdate(payload.status === 'checking');
+      if (payload.status !== 'checking' && payload.status !== 'downloading') {
+        setIsUpdateActionPending(false);
+      }
     });
 
     return () => unsubscribe();
@@ -106,9 +115,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
 
     if (isDesktop && window.desktop) {
       void window.desktop.getUpdateState().then((state) => {
+        setUpdatePhase(state.status || 'idle');
         setCurrentDesktopVersion(state.currentVersion || null);
         setLatestDesktopVersion(state.latestVersion || null);
         setUpdateStatus(state.message || null);
+        setDesktopDownloadProgress(state.downloadProgress ?? null);
         setIsCheckingForUpdate(state.status === 'checking');
       }).catch(() => {
         // Ignore initial state fetch failures and rely on explicit check result.
@@ -146,6 +157,78 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     return 16;
   };
   const iconSize = getIconSize();
+  const isDownloadingUpdate = updatePhase === 'downloading';
+  const canDownloadUpdate = updatePhase === 'available';
+  const canInstallUpdate = updatePhase === 'downloaded';
+  const primaryUpdateLabel = (() => {
+    if (isCheckingForUpdate) return 'Checking...';
+    if (isDownloadingUpdate) {
+      return desktopDownloadProgress !== null
+        ? `Downloading ${desktopDownloadProgress}%`
+        : 'Downloading...';
+    }
+    if (canInstallUpdate) return 'Restart to update';
+    if (canDownloadUpdate) return 'Download update';
+    return 'Check for updates';
+  })();
+  const PrimaryUpdateIcon = canInstallUpdate ? RefreshCw : Download;
+  const handlePrimaryUpdateAction = async () => {
+    if (!window.desktop || isCheckingForUpdate || isUpdateActionPending) {
+      return;
+    }
+
+    setIsUpdateActionPending(true);
+
+    try {
+      if (canInstallUpdate) {
+        setUpdateStatus('Restarting to install the update...');
+        const result = await window.desktop.installUpdate();
+        setUpdatePhase(result.status || updatePhase);
+        setCurrentDesktopVersion(result.currentVersion || currentDesktopVersion);
+        setLatestDesktopVersion(result.latestVersion || latestDesktopVersion);
+        setDesktopDownloadProgress(result.downloadProgress ?? desktopDownloadProgress);
+        setUpdateStatus(result.message || 'Restarting to install the update...');
+        return;
+      }
+
+      if (canDownloadUpdate) {
+        setUpdatePhase('downloading');
+        setDesktopDownloadProgress(0);
+        setUpdateStatus('Downloading update...');
+        const result = await window.desktop.downloadUpdate();
+        setUpdatePhase(result.status || updatePhase);
+        setCurrentDesktopVersion(result.currentVersion || currentDesktopVersion);
+        setLatestDesktopVersion(result.latestVersion || latestDesktopVersion);
+        setDesktopDownloadProgress(result.downloadProgress ?? desktopDownloadProgress);
+        setUpdateStatus(
+          result.ok
+            ? (result.message || 'Downloading update...')
+            : (result.message || 'Update download failed.')
+        );
+        return;
+      }
+
+      setIsCheckingForUpdate(true);
+      setUpdateStatus('Checking for updates...');
+      const result = await window.desktop.checkForUpdates();
+      setUpdatePhase(result.status || updatePhase);
+      setCurrentDesktopVersion(result.currentVersion || currentDesktopVersion);
+      setLatestDesktopVersion(result.latestVersion || latestDesktopVersion);
+      setDesktopDownloadProgress(result.downloadProgress ?? desktopDownloadProgress);
+      setUpdateStatus(
+        result.ok
+          ? (result.message || 'Update check started.')
+          : (result.message || 'Update check failed.')
+      );
+    } catch (error) {
+      setUpdateStatus(error instanceof Error ? error.message : 'Desktop update action failed.');
+    } finally {
+      setIsCheckingForUpdate(false);
+      if (!canInstallUpdate) {
+        setIsUpdateActionPending(false);
+      }
+    }
+  };
 
   return (
     <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-4 bg-[#0a0a0a]/80 backdrop-blur-2xl rounded-[24px] border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
@@ -385,37 +468,32 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
                 </div>
               )}
 
+              {isDownloadingUpdate && (
+                <div className="mt-3">
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.92),rgba(161,161,170,0.85))] transition-[width] duration-300"
+                      style={{ width: `${desktopDownloadProgress ?? 0}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+                    Download progress {desktopDownloadProgress ?? 0}%
+                  </div>
+                </div>
+              )}
+
               <div className="mt-4 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (!window.desktop || isCheckingForUpdate) {
-                      return;
-                    }
-
-                    setIsCheckingForUpdate(true);
-                    setUpdateStatus('Checking for updates...');
-
-                    try {
-                      const result = await window.desktop.checkForUpdates();
-                      setCurrentDesktopVersion(result.currentVersion || currentDesktopVersion);
-                      setLatestDesktopVersion(result.latestVersion || latestDesktopVersion);
-                      setUpdateStatus(
-                        result.ok
-                          ? (result.message || 'Update check started.')
-                          : (result.message || 'Update check failed.')
-                      );
-                    } catch (error) {
-                      setUpdateStatus(error instanceof Error ? error.message : 'Update check failed.');
-                    } finally {
-                      setIsCheckingForUpdate(false);
-                    }
-                  }}
+                  onClick={handlePrimaryUpdateAction}
                   className="inline-flex flex-1 items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white px-3 py-3 text-xs font-semibold text-black transition-all hover:scale-[1.01] hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isCheckingForUpdate}
+                  disabled={isCheckingForUpdate || isUpdateActionPending}
                 >
-                  <Download size={14} />
-                  <span>{isCheckingForUpdate ? 'Checking...' : 'Check for updates'}</span>
+                  <PrimaryUpdateIcon
+                    size={14}
+                    className={isDownloadingUpdate || canInstallUpdate ? 'animate-spin' : ''}
+                  />
+                  <span>{primaryUpdateLabel}</span>
                 </button>
 
                 <button
