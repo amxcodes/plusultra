@@ -5,6 +5,7 @@ import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { isGuestAccount, isGuestExpired } from '../lib/guestAccess';
 import { TurnstileWidget, type TurnstileWidgetHandle } from './TurnstileWidget';
+import { env } from '../lib/env';
 
 interface GuestAccessPageProps {
     token: string | null;
@@ -12,7 +13,7 @@ interface GuestAccessPageProps {
 
 export const GuestAccessPage: React.FC<GuestAccessPageProps> = ({ token }) => {
     const { user, profile, loading, signOut, refreshProfile } = useAuth();
-    const turnstileEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+    const turnstileEnabled = Boolean(env.turnstileSiteKey);
     const missingTurnstileConfig = import.meta.env.DEV && !turnstileEnabled;
     const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
     const [status, setStatus] = useState('Use the link below to open a temporary guest account.');

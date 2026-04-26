@@ -1,4 +1,5 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { env, getTurnstileClientErrorMessage } from '../lib/env';
 
 declare global {
     interface Window {
@@ -48,8 +49,8 @@ const loadTurnstileScript = () => {
 
 export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(
     ({ onTokenChange, action = 'auth' }, ref) => {
-        const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim();
-        const desktopTurnstileDisabled = Boolean(window.desktop?.isDesktop) && import.meta.env.VITE_DESKTOP_DISABLE_TURNSTILE === 'true';
+        const siteKey = env.turnstileSiteKey;
+        const desktopTurnstileDisabled = Boolean(window.desktop?.isDesktop) && env.desktopDisableTurnstile;
         const containerRef = useRef<HTMLDivElement | null>(null);
         const widgetIdRef = useRef<string | null>(null);
         const [loadError, setLoadError] = useState<string | null>(null);
@@ -93,7 +94,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
                             const formattedCode = String(errorCode);
                             console.error('Turnstile error:', formattedCode);
                             setLastErrorCode(formattedCode);
-                            setLoadError(`Security check failed${formattedCode ? ` (${formattedCode})` : ''}. Try refreshing the widget or using a different browser/network.`);
+                            setLoadError(getTurnstileClientErrorMessage(formattedCode));
                         },
                     });
                 } catch (error) {

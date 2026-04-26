@@ -6,6 +6,7 @@ import { SocialService } from '../lib/social';
 import { validateEmail } from '../lib/emailValidator';
 import { TurnstileWidget, type TurnstileWidgetHandle } from './TurnstileWidget';
 import { clearDesktopAuthGuard, getDesktopAuthLockRemainingMs, registerDesktopAuthFailure } from '../lib/desktopAuthGuard';
+import { env } from '../lib/env';
 import { useRef } from 'react';
 
 
@@ -27,10 +28,10 @@ const FALLBACK_POSTERS = [
 
 export const AuthPage: React.FC = () => {
     const isDesktop = Boolean(window.desktop?.isDesktop);
-    const desktopTurnstileDisabled = isDesktop && import.meta.env.VITE_DESKTOP_DISABLE_TURNSTILE === 'true';
-    const captchaRequired = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY) && !desktopTurnstileDisabled;
+    const desktopTurnstileDisabled = isDesktop && env.desktopDisableTurnstile;
+    const captchaRequired = Boolean(env.turnstileSiteKey) && !desktopTurnstileDisabled;
     const turnstileRef = useRef<TurnstileWidgetHandle | null>(null);
-    const turnstileEnabled = Boolean(import.meta.env.VITE_TURNSTILE_SITE_KEY);
+    const turnstileEnabled = Boolean(env.turnstileSiteKey);
     const missingTurnstileConfig = import.meta.env.DEV && !turnstileEnabled;
     const [isLogin, setIsLogin] = useState(true);
     const [rememberMe, setRememberMe] = useState(true);
