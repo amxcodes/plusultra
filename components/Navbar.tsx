@@ -414,14 +414,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         {isDesktop && showDesktopUpdatePopover && (
           <div
             ref={updatePopoverRef}
-            className="absolute left-[78px] bottom-0 z-[90] w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02))] text-white shadow-[0_24px_70px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
+            className="absolute left-[78px] bottom-0 z-[90] w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(39,39,42,0.97),rgba(24,24,27,0.95))] text-white shadow-[0_24px_70px_rgba(0,0,0,0.7)] backdrop-blur-xl"
           >
-            <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_70%)] pointer-events-none" />
-            <div className="relative p-4">
-              <div className="flex items-start justify-between gap-3">
+            <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.09),transparent_70%)] pointer-events-none" />
+            <div className="relative p-4 pt-5">
+              <div className="flex items-start justify-between gap-3 pr-10">
                 <div className="min-w-0">
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-300">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
                     Desktop Update
                   </div>
                   <div className="mt-3 text-[15px] font-semibold tracking-tight text-white">
@@ -443,7 +442,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
               <button
                 type="button"
                 onClick={() => setShowDesktopUpdatePopover(false)}
-                className="absolute right-4 top-4 rounded-full border border-transparent p-1.5 text-zinc-500 transition-all hover:border-white/10 hover:bg-white/5 hover:text-white"
+                className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/20 p-1.5 text-zinc-400 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
                 aria-label="Close update prompt"
               >
                 <X size={14} />
