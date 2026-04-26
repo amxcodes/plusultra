@@ -22,6 +22,8 @@ import {
   MessageSquarePlus,
   ListVideo,
   Download,
+  ArrowUpRight,
+  CheckCircle2,
   RefreshCw,
   X
 } from 'lucide-react';
@@ -171,7 +173,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     if (canDownloadUpdate) return 'Download update';
     return 'Check for updates';
   })();
-  const PrimaryUpdateIcon = canInstallUpdate ? RefreshCw : Download;
+  const PrimaryUpdateIcon = canInstallUpdate
+    ? CheckCircle2
+    : canDownloadUpdate
+      ? ArrowUpRight
+      : Download;
   const handlePrimaryUpdateAction = async () => {
     if (!window.desktop || isCheckingForUpdate || isUpdateActionPending) {
       return;
@@ -425,7 +431,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
                     Check GitHub releases, compare versions, and install the latest build when available.
                   </p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 px-2.5 py-2 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02))] px-2.5 py-2 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-500">
                     Running
                   </div>
@@ -444,7 +450,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
               </button>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-[18px] border border-white/10 bg-black/20 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-500">
                     Current
                   </div>
@@ -452,7 +458,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
                     {currentDesktopVersion ? `v${currentDesktopVersion}` : 'Unknown'}
                   </div>
                 </div>
-                <div className="rounded-[18px] border border-white/10 bg-black/20 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <div className="rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-500">
                     Latest
                   </div>
@@ -463,14 +469,14 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
               </div>
 
               {updateStatus && (
-                <div className="mt-3 rounded-[18px] border border-white/10 bg-white/[0.045] px-3 py-3 text-[11px] leading-relaxed text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <div className="mt-3 rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.065),rgba(255,255,255,0.025))] px-3 py-3 text-[11px] leading-relaxed text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                   {updateStatus}
                 </div>
               )}
 
               {isDownloadingUpdate && (
                 <div className="mt-3">
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-2 overflow-hidden rounded-full border border-white/5 bg-white/10">
                     <div
                       className="h-full rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.92),rgba(161,161,170,0.85))] transition-[width] duration-300"
                       style={{ width: `${desktopDownloadProgress ?? 0}%` }}
@@ -486,12 +492,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
                 <button
                   type="button"
                   onClick={handlePrimaryUpdateAction}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white px-3 py-3 text-xs font-semibold text-black transition-all hover:scale-[1.01] hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-[18px] border border-white/15 bg-[linear-gradient(180deg,#ffffff,#d4d4d8)] px-3 py-3 text-xs font-semibold text-black shadow-[0_8px_22px_rgba(255,255,255,0.12)] transition-all hover:scale-[1.01] hover:border-white/30 hover:shadow-[0_12px_28px_rgba(255,255,255,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isCheckingForUpdate || isUpdateActionPending}
                 >
                   <PrimaryUpdateIcon
                     size={14}
-                    className={isDownloadingUpdate || canInstallUpdate ? 'animate-spin' : ''}
+                    className={isDownloadingUpdate ? 'animate-spin' : ''}
                   />
                   <span>{primaryUpdateLabel}</span>
                 </button>
@@ -502,8 +508,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
                     setShowDesktopUpdatePopover(false);
                     setActiveTab(NavItem.PROFILE);
                   }}
-                  className="inline-flex items-center justify-center rounded-[18px] border border-white/10 bg-white/5 px-3 py-3 text-xs font-semibold text-white transition-all hover:bg-white/10"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-[18px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] px-3 py-3 text-xs font-semibold text-white transition-all hover:border-white/20 hover:bg-white/10"
                 >
+                  <User size={13} />
                   Open profile
                 </button>
               </div>
