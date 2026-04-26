@@ -13,6 +13,7 @@ const distDir = path.join(rootDir, 'dist');
 const MAX_CAPTURED_MEDIA = 100;
 const CAPTURE_COOLDOWN_MS = 500;
 const CAPTURE_TTL_MS = 1000 * 60 * 20;
+const DESKTOP_USER_AGENT = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`;
 
 let mainWindow = null;
 let capturedMedia = [];
@@ -100,6 +101,17 @@ const rememberCapturedMedia = (item) => {
 };
 
 const registerNetworkCapture = () => {
+    session.defaultSession.setUserAgent(DESKTOP_USER_AGENT);
+
+    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/*'] }, (details, callback) => {
+        callback({
+            requestHeaders: {
+                ...details.requestHeaders,
+                'User-Agent': DESKTOP_USER_AGENT,
+            },
+        });
+    });
+
     session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
         if (isInterestingRequest(details.url)) {
             rememberCapturedMedia({
@@ -193,13 +205,15 @@ const createWindow = async () => {
 
     const devServerUrl = process.env.ELECTRON_START_URL;
     if (devServerUrl) {
-        await mainWindow.loadURL(devServerUrl);
+        mainWindow.webContents.setUserAgent(DESKTOP_USER_AGENT);
+        await mainWindow.loadURL(devServerUrl, { userAgent: DESKTOP_USER_AGENT });
         mainWindow.webContents.openDevTools({ mode: 'detach' });
         return;
     }
 
     const rendererUrl = await startLocalRendererServer();
-    await mainWindow.loadURL(rendererUrl);
+    mainWindow.webContents.setUserAgent(DESKTOP_USER_AGENT);
+    await mainWindow.loadURL(rendererUrl, { userAgent: DESKTOP_USER_AGENT });
 };
 
 ipcMain.handle('desktop:start-media-capture', (_event, sessionInfo) => {
