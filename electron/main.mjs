@@ -11,6 +11,7 @@ const { autoUpdater } = electronUpdater;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
+const desktopIconPath = path.join(rootDir, 'public', 'pwa-512x512.png');
 const MAX_CAPTURED_MEDIA = 100;
 const CAPTURE_COOLDOWN_MS = 500;
 const CAPTURE_TTL_MS = 1000 * 60 * 20;
@@ -420,6 +421,7 @@ const createWindow = async () => {
         height: 900,
         minWidth: 1100,
         minHeight: 700,
+        icon: desktopIconPath,
         backgroundColor: '#000000',
         autoHideMenuBar: true,
         webPreferences: {

@@ -1,7 +1,7 @@
 {
   "name": "plusultra",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.0.9",
   "type": "module",
   "main": "electron/main.mjs",
   "packageManager": "npm@10",
@@ -53,7 +53,8 @@
     "productName": "Plus Ultra Desktop",
     "asar": true,
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "public"
     },
     "files": [
       "dist/**/*",
@@ -77,6 +78,7 @@
       "main": "electron/main.mjs"
     },
     "win": {
+      "icon": "pwa-512x512.png",
       "target": [
         "nsis"
       ]

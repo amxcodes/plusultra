@@ -20,7 +20,9 @@ import {
   BarChart2,
   Newspaper, // News Feed
   MessageSquarePlus,
-  ListVideo
+  ListVideo,
+  Download,
+  X
 } from 'lucide-react';
 import { SocialService } from '../lib/social';
 
@@ -55,6 +57,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   const { profile, user } = useAuth();
   const canStream = profile?.can_stream || profile?.role === 'admin';
   const [unreadCounts, setUnreadCounts] = React.useState({ announcementsCount: 0, activityCount: 0 });
+  const [showDesktopUpdatePopover, setShowDesktopUpdatePopover] = React.useState(false);
+  const [updateStatus, setUpdateStatus] = React.useState<string | null>(null);
+  const [isCheckingForUpdate, setIsCheckingForUpdate] = React.useState(false);
+  const profileButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const updatePopoverRef = React.useRef<HTMLDivElement | null>(null);
+  const isDesktop = Boolean(window.desktop?.isDesktop);
 
   // Fetch unread counts
   React.useEffect(() => {
@@ -73,6 +81,26 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     const interval = setInterval(fetchUnreadCounts, 30000);
     return () => clearInterval(interval);
   }, [user?.id]);
+
+  React.useEffect(() => {
+    if (!showDesktopUpdatePopover) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node | null;
+      if (
+        target &&
+        !updatePopoverRef.current?.contains(target) &&
+        !profileButtonRef.current?.contains(target)
+      ) {
+        setShowDesktopUpdatePopover(false);
+      }
+    };
+
+    window.addEventListener('mousedown', handlePointerDown);
+    return () => window.removeEventListener('mousedown', handlePointerDown);
+  }, [showDesktopUpdatePopover]);
 
   // DRY helper for adaptive button styles on short screens
   const getNavButtonClass = (isActive: boolean) => 
@@ -241,7 +269,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         {/* Profile */}
         <div className="relative group flex justify-center w-full mt-1 [@media(max-height:750px)]:mt-0">
           <button
-            onClick={() => setActiveTab(NavItem.PROFILE)}
+            ref={profileButtonRef}
+            onClick={() => {
+              if (isDesktop) {
+                setShowDesktopUpdatePopover((current) => !current);
+                return;
+              }
+
+              setActiveTab(NavItem.PROFILE);
+            }}
             className={`p-1 [@media(max-height:750px)]:p-0.5 rounded-full border-2 transition-all duration-300 ${activeTab === NavItem.PROFILE ? 'border-white' : 'border-transparent hover:border-white/50'}`}
           >
           <div className="w-7 h-7 rounded-full bg-zinc-800 overflow-hidden">
@@ -257,6 +293,84 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md whitespace-nowrap">
           Profile
         </div>
+
+        {isDesktop && showDesktopUpdatePopover && (
+          <div
+            ref={updatePopoverRef}
+            className="absolute left-[74px] bottom-0 z-[90] w-[280px] rounded-2xl border border-white/10 bg-[#090909]/95 p-4 text-white shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                  Desktop Update
+                </div>
+                <div className="mt-2 text-sm font-semibold text-white">
+                  Please update to the latest version.
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                  Check for a newer desktop build and install it when prompted.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDesktopUpdatePopover(false)}
+                className="rounded-full p-1 text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
+                aria-label="Close update prompt"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {updateStatus && (
+              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-zinc-300">
+                {updateStatus}
+              </div>
+            )}
+
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!window.desktop || isCheckingForUpdate) {
+                    return;
+                  }
+
+                  setIsCheckingForUpdate(true);
+                  setUpdateStatus('Checking for updates...');
+
+                  try {
+                    const result = await window.desktop.checkForUpdates();
+                    setUpdateStatus(
+                      result.ok
+                        ? 'Update check started. If a newer version is available, the desktop app will prompt you.'
+                        : (result.message || 'Update check failed.')
+                    );
+                  } catch (error) {
+                    setUpdateStatus(error instanceof Error ? error.message : 'Update check failed.');
+                  } finally {
+                    setIsCheckingForUpdate(false);
+                  }
+                }}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isCheckingForUpdate}
+              >
+                <Download size={14} />
+                <span>{isCheckingForUpdate ? 'Checking...' : 'Check for updates'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDesktopUpdatePopover(false);
+                  setActiveTab(NavItem.PROFILE);
+                }}
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+              >
+                Open profile
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       </div>
     </nav>
