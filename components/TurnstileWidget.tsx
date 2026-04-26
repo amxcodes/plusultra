@@ -49,16 +49,21 @@ const loadTurnstileScript = () => {
 export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(
     ({ onTokenChange, action = 'auth' }, ref) => {
         const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+        const isDesktop = Boolean(window.desktop?.isDesktop);
         const containerRef = useRef<HTMLDivElement | null>(null);
         const widgetIdRef = useRef<string | null>(null);
+        const desktopRequestIdRef = useRef<string | null>(null);
         const [loadError, setLoadError] = useState<string | null>(null);
         const [lastErrorCode, setLastErrorCode] = useState<string | null>(null);
+        const [desktopStatus, setDesktopStatus] = useState<'idle' | 'waiting' | 'verified'>('idle');
 
         useImperativeHandle(ref, () => ({
             reset: () => {
                 onTokenChange(null);
                 setLoadError(null);
                 setLastErrorCode(null);
+                setDesktopStatus('idle');
+                desktopRequestIdRef.current = null;
                 if (widgetIdRef.current && window.turnstile) {
                     window.turnstile.reset(widgetIdRef.current);
                 }
@@ -66,6 +71,9 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
         }), [onTokenChange]);
 
         useEffect(() => {
+            if (isDesktop) {
+                return;
+            }
             if (!siteKey || !containerRef.current) return;
 
             let isCancelled = false;
@@ -109,10 +117,71 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
                     widgetIdRef.current = null;
                 }
             };
-        }, [action, onTokenChange, siteKey]);
+        }, [action, isDesktop, onTokenChange, siteKey]);
+
+        useEffect(() => {
+            if (!isDesktop || !window.desktop) {
+                return;
+            }
+
+            const unsubscribe = window.desktop.onTurnstileToken((payload) => {
+                if (!desktopRequestIdRef.current || payload.requestId !== desktopRequestIdRef.current) {
+                    return;
+                }
+
+                onTokenChange(payload.token);
+                setLoadError(null);
+                setLastErrorCode(null);
+                setDesktopStatus('verified');
+            });
+
+            return () => {
+                unsubscribe();
+            };
+        }, [isDesktop, onTokenChange]);
 
         if (!siteKey) {
             return null;
+        }
+
+        if (isDesktop) {
+            return (
+                <div className="space-y-2">
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            if (!window.desktop) return;
+                            onTokenChange(null);
+                            setLoadError(null);
+                            setLastErrorCode(null);
+                            setDesktopStatus('waiting');
+
+                            const result = await window.desktop.startTurnstileCheck({ action, siteKey });
+                            if (!result.ok || !result.requestId) {
+                                setDesktopStatus('idle');
+                                setLoadError(result.message || 'Security check failed to open in the browser.');
+                                return;
+                            }
+
+                            desktopRequestIdRef.current = result.requestId;
+                        }}
+                        className={`w-full rounded-md border px-3 py-2 text-sm font-medium transition-colors ${desktopStatus === 'verified'
+                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                            : 'border-white/10 bg-white/5 text-white hover:bg-white/10'}`}
+                    >
+                        {desktopStatus === 'waiting'
+                            ? 'Waiting for browser verification...'
+                            : desktopStatus === 'verified'
+                                ? 'Security check complete'
+                                : 'Open security check in browser'}
+                    </button>
+                    {loadError && (
+                        <p className="text-[11px] text-red-300 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                            {loadError}
+                        </p>
+                    )}
+                </div>
+            );
         }
 
         return (

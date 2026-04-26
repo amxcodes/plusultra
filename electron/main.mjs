@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
 import electronUpdater from 'electron-updater';
+import { randomUUID } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
 import { createServer } from 'node:http';
 import path from 'node:path';
@@ -21,6 +22,7 @@ let activeCaptureSession = null;
 let activeCaptureStartedAt = 0;
 let localServer = null;
 let localServerUrl = null;
+let turnstileRequests = new Map();
 
 const MIME_TYPES = {
     '.css': 'text/css; charset=utf-8',
@@ -142,6 +144,135 @@ const setupAutoUpdate = () => {
     }, 1000 * 60 * 60 * 6);
 };
 
+const escapeHtml = (value) => String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+
+const renderTurnstileHelperPage = (requestId, requestInfo) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Security Check</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: #0b0b0f;
+      color: #f4f4f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .panel {
+      width: min(100%, 420px);
+      background: #111318;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+    }
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #71717a;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    h1 {
+      font-size: 24px;
+      line-height: 1.1;
+      margin: 0 0 8px;
+    }
+    p {
+      color: #a1a1aa;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 0 20px;
+    }
+    .status {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #d4d4d8;
+      min-height: 20px;
+    }
+    .status.error {
+      color: #fca5a5;
+    }
+    .status.success {
+      color: #86efac;
+    }
+  </style>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+</head>
+<body>
+  <div class="panel">
+    <div class="label">Plus Ultra Desktop</div>
+    <h1>Security check</h1>
+    <p>Complete the Cloudflare check, then return to the desktop app.</p>
+    <div id="widget"></div>
+    <div id="status" class="status"></div>
+  </div>
+  <script>
+    const requestId = ${JSON.stringify(requestId)};
+    const action = ${JSON.stringify(requestInfo.action)};
+    const siteKey = ${JSON.stringify(requestInfo.siteKey)};
+    const statusNode = document.getElementById('status');
+
+    const setStatus = (message, className = '') => {
+      statusNode.className = className ? 'status ' + className : 'status';
+      statusNode.textContent = message;
+    };
+
+    window.onloadTurnstileCallback = () => {};
+
+    const renderWhenReady = () => {
+      if (!window.turnstile) {
+        window.setTimeout(renderWhenReady, 100);
+        return;
+      }
+
+      window.turnstile.render('#widget', {
+        sitekey: siteKey,
+        theme: 'dark',
+        action,
+        callback: async (token) => {
+          setStatus('Verifying...', '');
+
+          try {
+            const response = await fetch('/desktop-turnstile/complete', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ requestId, token }),
+            });
+
+            if (!response.ok) {
+              throw new Error('Verification handoff failed');
+            }
+
+            setStatus('Done. You can close this tab and return to the desktop app.', 'success');
+          } catch (error) {
+            setStatus('Failed to return the token to the desktop app. Try again.', 'error');
+          }
+        },
+        'error-callback': (code) => {
+          setStatus('Cloudflare rejected this browser challenge (' + String(code) + ').', 'error');
+        },
+        'expired-callback': () => setStatus('Challenge expired. Retry the check.', 'error'),
+      });
+    };
+
+    renderWhenReady();
+  </script>
+</body>
+</html>`;
+
 const startLocalRendererServer = async () => {
     if (localServer && localServerUrl) {
         return localServerUrl;
@@ -150,6 +281,58 @@ const startLocalRendererServer = async () => {
     localServer = createServer((request, response) => {
         const requestUrl = request.url || '/';
         const normalizedPath = decodeURIComponent(requestUrl.split('?')[0] || '/');
+
+        if (normalizedPath === '/desktop-turnstile' && request.method === 'GET') {
+            const url = new URL(requestUrl, 'http://localhost');
+            const requestId = url.searchParams.get('requestId') || '';
+            const requestInfo = turnstileRequests.get(requestId);
+
+            if (!requestInfo) {
+                response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+                response.end('Unknown or expired Turnstile request.');
+                return;
+            }
+
+            response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+            response.end(renderTurnstileHelperPage(requestId, requestInfo));
+            return;
+        }
+
+        if (normalizedPath === '/desktop-turnstile/complete' && request.method === 'POST') {
+            const chunks = [];
+            request.on('data', (chunk) => chunks.push(chunk));
+            request.on('end', () => {
+                try {
+                    const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+                    const requestId = String(payload.requestId || '');
+                    const token = String(payload.token || '');
+                    const requestInfo = turnstileRequests.get(requestId);
+
+                    if (!requestInfo || !token) {
+                        response.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                        response.end(JSON.stringify({ ok: false }));
+                        return;
+                    }
+
+                    turnstileRequests.delete(requestId);
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.send('desktop:turnstile-token', {
+                            requestId,
+                            token,
+                            action: requestInfo.action,
+                        });
+                    }
+
+                    response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    response.end(JSON.stringify({ ok: true }));
+                } catch {
+                    response.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    response.end(JSON.stringify({ ok: false }));
+                }
+            });
+            return;
+        }
+
         const relativePath = normalizedPath === '/' ? 'index.html' : normalizedPath.replace(/^\/+/, '');
         const candidatePath = path.normalize(path.join(distDir, relativePath));
         const safePath = candidatePath.startsWith(distDir) ? candidatePath : path.join(distDir, 'index.html');
@@ -250,6 +433,24 @@ ipcMain.handle('desktop:get-captured-media', (_event, captureKey) => (
         ? capturedMedia.filter((entry) => entry.captureKey === captureKey)
         : []
 ));
+ipcMain.handle('desktop:start-turnstile-check', async (_event, payload) => {
+    const rendererUrl = await startLocalRendererServer();
+    const requestId = randomUUID();
+    const requestInfo = {
+        action: String(payload?.action || 'auth'),
+        siteKey: String(payload?.siteKey || ''),
+        createdAt: Date.now(),
+    };
+
+    if (!requestInfo.siteKey) {
+        return { ok: false, message: 'Missing Turnstile site key.' };
+    }
+
+    turnstileRequests.set(requestId, requestInfo);
+    const helperUrl = `${rendererUrl}/desktop-turnstile?requestId=${encodeURIComponent(requestId)}`;
+    await shell.openExternal(helperUrl);
+    return { ok: true, requestId };
+});
 ipcMain.handle('desktop:open-external', (_event, targetUrl) => shell.openExternal(targetUrl));
 ipcMain.handle('desktop:check-for-updates', async () => {
     if (!app.isPackaged) {
