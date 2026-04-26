@@ -6,6 +6,7 @@ import { SocialService } from '../lib/social';
 import { validateEmail } from '../lib/emailValidator';
 import { TurnstileWidget, type TurnstileWidgetHandle } from './TurnstileWidget';
 import { clearDesktopAuthGuard, getDesktopAuthLockRemainingMs, registerDesktopAuthFailure } from '../lib/desktopAuthGuard';
+import { getRememberMePreference, setRememberMePreference } from '../lib/authStorage';
 import { env } from '../lib/env';
 import { useRef } from 'react';
 
@@ -34,7 +35,7 @@ export const AuthPage: React.FC = () => {
     const turnstileEnabled = Boolean(env.turnstileSiteKey);
     const missingTurnstileConfig = import.meta.env.DEV && !turnstileEnabled;
     const [isLogin, setIsLogin] = useState(true);
-    const [rememberMe, setRememberMe] = useState(true);
+    const [rememberMe, setRememberMe] = useState(() => getRememberMePreference());
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -105,6 +106,8 @@ export const AuthPage: React.FC = () => {
             }
 
             if (isLogin) {
+                setRememberMePreference(rememberMe);
+
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
@@ -113,10 +116,6 @@ export const AuthPage: React.FC = () => {
                     }
                 });
                 if (error) throw error;
-
-                // Handle persistence preference
-                localStorage.setItem('AMX_REMEMBER_ME', rememberMe ? 'true' : 'false');
-                sessionStorage.setItem('AMX_SESSION_ACTIVE', 'true');
             } else {
                 // Validate email (format + disposable check)
                 const emailValidation = validateEmail(email);

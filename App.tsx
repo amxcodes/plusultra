@@ -37,7 +37,6 @@ import { PlaylistsPage } from './components/PlaylistsPage';
 import { StatsDashboard } from './components/StatsDashboard';
 import { NewsFeed } from './components/NewsFeed';
 import { RequestsPage } from './components/RequestsPage';
-import { supabase } from './lib/supabase';
 import { MobileNavbar } from './components/MobileNavbar';
 import { MobileMenu } from './components/MobileMenu';
 import { MobileHome } from './components/MobileHome';
@@ -123,25 +122,6 @@ function StreamApp() {
     return () => window.clearTimeout(timeout);
   }, [profile?.account_kind, profile?.guest_expires_at]);
 
-
-  // Session Persistence Check
-  useEffect(() => {
-    const checkSession = async () => {
-      const rememberMe = localStorage.getItem('AMX_REMEMBER_ME');
-      const sessionActive = sessionStorage.getItem('AMX_SESSION_ACTIVE');
-
-      // If 'Keep me logged in' was unchecked AND this is a fresh browser session
-      if (rememberMe === 'false' && !sessionActive && user) {
-        console.log('Session was not set to persist. Signing out.');
-        await supabase.auth.signOut();
-        return;
-      }
-
-      // Mark session as active for this tab/window
-      sessionStorage.setItem('AMX_SESSION_ACTIVE', 'true');
-    };
-    checkSession();
-  }, [user]);
 
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.DASHBOARD);
 

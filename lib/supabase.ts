@@ -1,5 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js'
+import { supabaseAuthStorage } from './authStorage';
 import { env } from './env';
 
 const supabaseUrl = env.supabaseUrl
@@ -12,5 +13,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(
     supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseAnonKey || 'placeholder'
+    supabaseAnonKey || 'placeholder',
+    {
+        auth: {
+            persistSession: true,
+            storage: supabaseAuthStorage,
+        },
+    }
 )
