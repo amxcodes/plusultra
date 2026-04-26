@@ -325,87 +325,110 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         {isDesktop && showDesktopUpdatePopover && (
           <div
             ref={updatePopoverRef}
-            className="absolute left-[74px] bottom-0 z-[90] w-[280px] rounded-2xl border border-white/10 bg-[#090909]/95 p-4 text-white shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-2xl"
+            className="absolute left-[78px] bottom-0 z-[90] w-[320px] overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02))] text-white shadow-[0_24px_70px_rgba(0,0,0,0.6)] backdrop-blur-2xl"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                  Desktop Update
-                </div>
-                <div className="mt-2 text-sm font-semibold text-white">
-                  Please update to the latest version.
-                </div>
-                <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                  Check for a newer desktop build and install it when prompted.
-                </p>
-                <div className="mt-3 space-y-1 text-[11px] text-zinc-400">
-                  <div>
-                    Current version: <span className="text-zinc-200">{currentDesktopVersion ? `v${currentDesktopVersion}` : 'Unknown'}</span>
+            <div className="absolute inset-x-0 top-0 h-16 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_70%)] pointer-events-none" />
+            <div className="relative p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
+                    Desktop Update
                   </div>
-                  <div>
-                    Latest version: <span className="text-zinc-200">{latestDesktopVersion ? `v${latestDesktopVersion}` : 'Not checked yet'}</span>
+                  <div className="mt-3 text-[15px] font-semibold tracking-tight text-white">
+                    Keep this desktop build current.
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                    Check GitHub releases, compare versions, and install the latest build when available.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 px-2.5 py-2 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                    Running
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-white">
+                    {currentDesktopVersion ? `v${currentDesktopVersion}` : 'Unknown'}
                   </div>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowDesktopUpdatePopover(false)}
-                className="rounded-full p-1 text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
+                className="absolute right-4 top-4 rounded-full border border-transparent p-1.5 text-zinc-500 transition-all hover:border-white/10 hover:bg-white/5 hover:text-white"
                 aria-label="Close update prompt"
               >
                 <X size={14} />
               </button>
-            </div>
 
-            {updateStatus && (
-              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-zinc-300">
-                {updateStatus}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-[18px] border border-white/10 bg-black/20 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                    Current
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-white">
+                    {currentDesktopVersion ? `v${currentDesktopVersion}` : 'Unknown'}
+                  </div>
+                </div>
+                <div className="rounded-[18px] border border-white/10 bg-black/20 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                    Latest
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-white">
+                    {latestDesktopVersion ? `v${latestDesktopVersion}` : 'Not checked'}
+                  </div>
+                </div>
               </div>
-            )}
 
-            <div className="mt-4 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!window.desktop || isCheckingForUpdate) {
-                    return;
-                  }
+              {updateStatus && (
+                <div className="mt-3 rounded-[18px] border border-white/10 bg-white/[0.045] px-3 py-3 text-[11px] leading-relaxed text-zinc-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                  {updateStatus}
+                </div>
+              )}
 
-                  setIsCheckingForUpdate(true);
-                  setUpdateStatus('Checking for updates...');
+              <div className="mt-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!window.desktop || isCheckingForUpdate) {
+                      return;
+                    }
 
-                  try {
-                    const result = await window.desktop.checkForUpdates();
-                    setCurrentDesktopVersion(result.currentVersion || currentDesktopVersion);
-                    setLatestDesktopVersion(result.latestVersion || latestDesktopVersion);
-                    setUpdateStatus(
-                      result.ok
-                        ? (result.message || 'Update check started.')
-                        : (result.message || 'Update check failed.')
-                    );
-                  } catch (error) {
-                    setUpdateStatus(error instanceof Error ? error.message : 'Update check failed.');
-                  } finally {
-                    setIsCheckingForUpdate(false);
-                  }
-                }}
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isCheckingForUpdate}
-              >
-                <Download size={14} />
-                <span>{isCheckingForUpdate ? 'Checking...' : 'Check for updates'}</span>
-              </button>
+                    setIsCheckingForUpdate(true);
+                    setUpdateStatus('Checking for updates...');
 
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDesktopUpdatePopover(false);
-                  setActiveTab(NavItem.PROFILE);
-                }}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-white/10"
-              >
-                Open profile
-              </button>
+                    try {
+                      const result = await window.desktop.checkForUpdates();
+                      setCurrentDesktopVersion(result.currentVersion || currentDesktopVersion);
+                      setLatestDesktopVersion(result.latestVersion || latestDesktopVersion);
+                      setUpdateStatus(
+                        result.ok
+                          ? (result.message || 'Update check started.')
+                          : (result.message || 'Update check failed.')
+                      );
+                    } catch (error) {
+                      setUpdateStatus(error instanceof Error ? error.message : 'Update check failed.');
+                    } finally {
+                      setIsCheckingForUpdate(false);
+                    }
+                  }}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-[18px] border border-white/10 bg-white px-3 py-3 text-xs font-semibold text-black transition-all hover:scale-[1.01] hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isCheckingForUpdate}
+                >
+                  <Download size={14} />
+                  <span>{isCheckingForUpdate ? 'Checking...' : 'Check for updates'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDesktopUpdatePopover(false);
+                    setActiveTab(NavItem.PROFILE);
+                  }}
+                  className="inline-flex items-center justify-center rounded-[18px] border border-white/10 bg-white/5 px-3 py-3 text-xs font-semibold text-white transition-all hover:bg-white/10"
+                >
+                  Open profile
+                </button>
+              </div>
             </div>
           </div>
         )}
