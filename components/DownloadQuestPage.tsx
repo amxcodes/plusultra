@@ -184,6 +184,20 @@ const getSummaryBadgeClassName = (status: OfflineGroupSummary['status']) => {
     }
 };
 
+const getSummaryAccentClassName = (status: OfflineGroupSummary['status']) => {
+    switch (status) {
+        case 'downloading':
+        case 'partial':
+            return 'from-sky-400 to-cyan-300';
+        case 'completed':
+            return 'from-emerald-400 to-lime-300';
+        case 'failed':
+            return 'from-red-400 to-orange-300';
+        default:
+            return 'from-zinc-500 to-zinc-400';
+    }
+};
+
 export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGroup }) => {
     const [downloads, setDownloads] = React.useState<OfflineDownloadEntry[]>([]);
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -242,40 +256,60 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
     };
 
     return (
-        <div className="min-h-screen pt-4 pb-20 pl-24 pr-8">
-            <div className="mb-8 rounded-[32px] border border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-8">
-                <div className="flex items-start justify-between gap-6">
+        <div className="w-full pl-24 pr-8 pt-8 min-h-screen text-zinc-100 font-sans animate-in fade-in duration-700">
+            <div className="mb-8">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
-                            <HardDriveDownload size={12} />
-                            Download Quest
+                        <div className="flex items-center gap-3 mb-2 pl-1">
+                            <div className="h-px w-6 bg-zinc-800" />
+                            <span className="text-zinc-500 uppercase tracking-[0.3em] text-[10px] font-medium">Offline Library</span>
                         </div>
-                        <h1 className="mt-4 text-4xl font-bold tracking-tight text-white">Offline library</h1>
-                        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-zinc-400">
+                        <h1 className="text-4xl md:text-5xl font-extralight text-white tracking-tighter">
+                            Download Quest
+                        </h1>
+                        <p className="mt-3 max-w-xl text-xs text-zinc-500">
                             Track active downloads, revisit completed titles, and open offline-ready movies or episodes from one desktop library.
                         </p>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-[24px] border border-white/10 bg-black/20 px-5 py-4 text-right">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Titles</div>
-                            <div className="mt-1 text-2xl font-semibold text-white">{groups.length}</div>
-                        </div>
-                        <div className="rounded-[24px] border border-white/10 bg-black/20 px-5 py-4 text-right">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Active</div>
-                            <div className="mt-1 text-2xl font-semibold text-white">{activeGroupCount}</div>
+                    <div className="flex items-center gap-4">
+                        <div className="px-4 py-2 rounded-full bg-black/40 border border-white/5 text-[10px] font-medium text-zinc-400 backdrop-blur-xl">
+                            {activeGroupCount} active
                         </div>
                     </div>
                 </div>
 
-                <div className="relative mt-6 max-w-md">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        placeholder="Search offline titles..."
-                        className="w-full rounded-full border border-white/10 bg-black/20 py-3 pl-11 pr-4 text-sm text-white outline-none transition-all placeholder:text-zinc-600 focus:border-white/20 focus:bg-black/30"
-                    />
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] gap-4">
+                    <div className="relative rounded-[28px] border border-white/5 bg-black/40 backdrop-blur-xl p-4">
+                        <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(event) => setSearchTerm(event.target.value)}
+                            placeholder="Search offline titles..."
+                            className="w-full rounded-full border border-white/5 bg-white/[0.03] py-3 pl-12 pr-4 text-sm text-white outline-none transition-all placeholder:text-zinc-600 focus:border-white/10 focus:bg-white/[0.05]"
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="group relative h-32 bg-gradient-to-tr from-white/20 to-white/5 rounded-[28px] border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.16)] backdrop-blur-3xl overflow-hidden transition-all duration-500 hover:border-white/20">
+                            <div className="relative z-10 h-full p-5 flex flex-col justify-between">
+                                <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em]">Titles</span>
+                                <div className="text-4xl font-thin tracking-tighter text-white">
+                                    {groups.length}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="group relative h-32 bg-gradient-to-tr from-white/20 to-white/5 rounded-[28px] border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.16)] backdrop-blur-3xl overflow-hidden transition-all duration-500 hover:border-white/20">
+                            <div className="relative z-10 h-full p-5 flex flex-col justify-between">
+                                <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em]">In Motion</span>
+                                <div className="flex items-end justify-between gap-3">
+                                    <div className="text-4xl font-thin tracking-tighter text-white">
+                                        {activeGroupCount}
+                                    </div>
+                                    <HardDriveDownload size={16} className="text-zinc-400" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -288,7 +322,7 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 pb-20">
                     {filteredGroups.map((group) => {
                         const summary = getGroupSummary(group);
                         const hasCompletedEntries = group.entries.some((entry) => entry.status === 'completed');
@@ -302,9 +336,9 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                                     <MovieCard movie={group.movie} />
                                 </div>
 
-                                <div className="mt-3 rounded-[22px] border border-white/10 bg-black/20 p-3">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${getSummaryBadgeClassName(summary.status)}`}>
+                                <div className="mt-3 rounded-[24px] border border-white/5 bg-black/40 backdrop-blur-xl px-3.5 py-3 shadow-[0_12px_32px_rgba(0,0,0,0.22)] transition-all duration-300 group-hover:border-white/10">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] ${getSummaryBadgeClassName(summary.status)}`}>
                                             {(summary.status === 'downloading' || summary.status === 'partial') && (
                                                 <LoaderCircle size={10} className="animate-spin" />
                                             )}
@@ -314,49 +348,70 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                                             type="button"
                                             onClick={() => void handleRemoveGroup(group)}
                                             disabled={removingKey === group.key}
-                                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-colors hover:bg-red-500/10 hover:text-red-200 disabled:opacity-60"
+                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/5 bg-white/[0.03] text-zinc-400 transition-colors hover:border-red-400/20 hover:bg-red-500/10 hover:text-red-200 disabled:opacity-60"
                                             title="Remove downloads"
                                         >
-                                            <Trash2 size={12} />
+                                            <Trash2 size={11} />
                                         </button>
                                     </div>
 
-                                    <div className="mt-3 space-y-2">
-                                        <div className="text-[11px] font-semibold text-white">
-                                            {group.movie.mediaType === 'tv'
-                                                ? `${summary.completedCount} ready of ${group.entries.length} episode${group.entries.length === 1 ? '' : 's'}`
-                                                : hasCompletedEntries
-                                                    ? 'Offline movie ready'
-                                                    : summary.status === 'downloading'
-                                                        ? 'Movie download in progress'
-                                                        : 'Movie not ready yet'}
-                                        </div>
-                                        <div className="text-[11px] leading-relaxed text-zinc-500">
-                                            {summary.downloadingCount > 0
-                                                ? summary.progressPercent !== null
-                                                    ? `${summary.downloadingCount} active download${summary.downloadingCount === 1 ? '' : 's'}`
-                                                    : 'Waiting for the stream source to settle'
-                                                : summary.failedCount > 0
-                                                    ? `${summary.failedCount} failed item${summary.failedCount === 1 ? '' : 's'} can be retried from the player`
-                                                    : summary.cancelledCount > 0
-                                                        ? `${summary.cancelledCount} cancelled item${summary.cancelledCount === 1 ? '' : 's'}`
-                                                        : 'Open this title to access offline-ready playback'}
-                                        </div>
-
-                                        {summary.progressPercent !== null && (
-                                            <div className="pt-1">
-                                                <div className="h-2 overflow-hidden rounded-full bg-white/5">
-                                                    <div
-                                                        className="h-full rounded-full bg-gradient-to-r from-sky-400 to-emerald-400 transition-[width] duration-500"
-                                                        style={{ width: `${summary.progressPercent}%` }}
-                                                    />
-                                                </div>
-                                                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">
-                                                    {summary.progressPercent}% downloaded
-                                                </div>
+                                    <div className="mt-3 flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="text-[11px] font-semibold text-white tracking-tight">
+                                                {group.movie.mediaType === 'tv'
+                                                    ? `${summary.completedCount}/${group.entries.length} episodes ready`
+                                                    : hasCompletedEntries
+                                                        ? 'Offline movie ready'
+                                                        : summary.status === 'downloading'
+                                                            ? 'Download in progress'
+                                                            : 'Offline file unavailable'}
                                             </div>
-                                        )}
+                                            <div className="mt-1 text-[10px] leading-relaxed text-zinc-500">
+                                                {summary.downloadingCount > 0
+                                                    ? summary.progressPercent !== null
+                                                        ? `${summary.downloadingCount} active download${summary.downloadingCount === 1 ? '' : 's'}`
+                                                        : 'Waiting for stable file response'
+                                                    : summary.failedCount > 0
+                                                        ? `${summary.failedCount} failed item${summary.failedCount === 1 ? '' : 's'}`
+                                                        : summary.cancelledCount > 0
+                                                            ? `${summary.cancelledCount} cancelled item${summary.cancelledCount === 1 ? '' : 's'}`
+                                                            : group.movie.mediaType === 'tv'
+                                                                ? 'Open this show to browse downloaded episodes'
+                                                                : 'Open this title to start offline playback'}
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+                                                {group.movie.mediaType === 'tv' ? 'Series' : 'Movie'}
+                                            </div>
+                                            <div className="mt-1 text-sm font-medium text-zinc-300">
+                                                {group.movie.year || 'Offline'}
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    {summary.progressPercent !== null && (
+                                        <div className="mt-3">
+                                            <div className="h-[3px] overflow-hidden rounded-full bg-white/5">
+                                                <div
+                                                    className={`h-full rounded-full bg-gradient-to-r ${getSummaryAccentClassName(summary.status)} transition-[width] duration-500`}
+                                                    style={{ width: `${summary.progressPercent}%` }}
+                                                />
+                                            </div>
+                                            <div className="mt-1 flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-600">
+                                                <span>Transfer</span>
+                                                <span>{summary.progressPercent}%</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {summary.progressPercent === null && (
+                                        <div className="mt-3 h-[3px] overflow-hidden rounded-full bg-white/5">
+                                            <div
+                                                className={`h-full w-1/3 rounded-full bg-gradient-to-r ${getSummaryAccentClassName(summary.status)} opacity-70`}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
