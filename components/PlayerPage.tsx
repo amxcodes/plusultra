@@ -35,7 +35,7 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episo
             {/* Back Button */}
             <button
                 onClick={onBack}
-                className="absolute top-4 left-4 md:top-6 md:left-6 z-[110] flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full bg-black/50 hover:bg-white/10 text-white backdrop-blur-md border border-white/10 transition-all group"
+                className="absolute top-4 left-4 md:top-6 md:left-6 z-[120] flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full bg-black/60 hover:bg-white/10 text-white backdrop-blur-md border border-white/10 transition-all group shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
             >
                 <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                 <span className="font-medium hidden md:inline">Exit Player</span>

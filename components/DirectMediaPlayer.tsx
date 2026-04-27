@@ -212,17 +212,17 @@ export const DirectMediaPlayer: React.FC<DirectMediaPlayerProps> = ({
                 Your browser does not support direct video playback.
             </video>
 
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-black/80 via-black/35 to-transparent px-5 py-4">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 bg-gradient-to-b from-black/80 via-black/35 to-transparent px-5 pb-5 pt-20 md:px-6 md:pb-6 md:pt-24">
                 <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
+                    <div className="min-w-0 max-w-3xl">
                         <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-200 backdrop-blur-md">
                             {badge}
                         </div>
-                        <h2 className="mt-3 max-w-3xl truncate text-lg font-semibold text-white md:text-2xl">
+                        <h2 className="mt-3 text-lg font-semibold leading-tight text-white md:text-2xl">
                             {title}
                         </h2>
                         {subtitle && (
-                            <p className="mt-1 text-xs text-zinc-400 md:text-sm">
+                            <p className="mt-1 max-w-2xl text-xs text-zinc-400 md:text-sm">
                                 {subtitle}
                             </p>
                         )}

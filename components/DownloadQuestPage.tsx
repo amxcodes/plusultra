@@ -278,16 +278,24 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                     </div>
                 </div>
 
-                <div className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] gap-4">
-                    <div className="relative rounded-[28px] border border-white/5 bg-black/40 backdrop-blur-xl p-4">
-                        <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(event) => setSearchTerm(event.target.value)}
-                            placeholder="Search offline titles..."
-                            className="w-full rounded-full border border-white/5 bg-white/[0.03] py-3 pl-12 pr-4 text-sm text-white outline-none transition-all placeholder:text-zinc-600 focus:border-white/10 focus:bg-white/[0.05]"
-                        />
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] gap-4">
+                    <div className="rounded-[32px] border border-white/5 bg-black/40 backdrop-blur-xl p-5 shadow-[0_18px_44px_rgba(0,0,0,0.22)]">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Library Search</div>
+                                <div className="mt-1 text-sm text-zinc-300">Jump to any downloaded movie or series instantly.</div>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <Search className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                placeholder="Search offline titles..."
+                                className="h-[52px] w-full rounded-full border border-white/10 bg-white/[0.04] py-3 pl-12 pr-4 text-sm text-white outline-none transition-all placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/[0.06] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                            />
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div className="group relative h-32 bg-gradient-to-tr from-white/20 to-white/5 rounded-[28px] border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.16)] backdrop-blur-3xl overflow-hidden transition-all duration-500 hover:border-white/20">
