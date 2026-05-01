@@ -69,8 +69,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
 
     const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId) || null;
     const unreadConversationCount = conversations.filter((conversation) => conversation.unread_count > 0).length;
-    const inboxCountLabel = `${conversations.length.toString().padStart(2, '0')} active`;
     const mutualCountLabel = `${messageableProfiles.length.toString().padStart(2, '0')} mutuals`;
+    const conversationCountLabel = `${conversations.length.toString().padStart(2, '0')} threads`;
 
     const filteredConversations = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -245,30 +245,29 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                         <button
                             type="button"
                             onClick={() => onMovieSelect(sharedMovie)}
-                            className="mt-3 flex w-full items-stretch gap-3 overflow-hidden rounded-[20px] border border-white/10 bg-black/20 text-left transition-all hover:border-white/20 hover:bg-white/5"
+                            className="mt-3 block w-[168px] text-left transition-transform hover:scale-[1.02]"
                         >
-                            <img
-                                src={sharedMovie.imageUrl}
-                                alt={sharedMovie.title}
-                                className="h-24 w-16 shrink-0 object-cover"
-                            />
-                            <div className="flex min-w-0 flex-1 flex-col justify-between py-3 pr-3">
-                                <div>
-                                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
-                                        {sharedMovie.mediaType === 'movie' ? <Film size={12} /> : <Tv size={12} />}
-                                        Shared title
+                            <div className="overflow-hidden rounded-[20px] border border-white/10 bg-[#0f1014] shadow-[0_10px_28px_rgba(0,0,0,0.3)] transition-all hover:border-white/20">
+                                <div className="relative aspect-[2/3] overflow-hidden">
+                                    <img
+                                        src={sharedMovie.imageUrl}
+                                        alt={sharedMovie.title}
+                                        className="h-full w-full object-cover"
+                                    />
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent px-3 pb-3 pt-10">
+                                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-300">
+                                            {sharedMovie.mediaType === 'movie' ? <Film size={11} /> : <Tv size={11} />}
+                                            Shared title
+                                        </div>
                                     </div>
-                                    <div className="mt-2 line-clamp-2 text-sm font-semibold text-white">
+                                </div>
+                                <div className="px-3 py-3">
+                                    <div className="line-clamp-2 text-sm font-semibold text-white">
                                         {sharedMovie.title}
                                     </div>
-                                    {sharedMovie.description && (
-                                        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-zinc-400">
-                                            {sharedMovie.description}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="mt-3 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">
-                                    Open title
+                                    <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                                        {sharedMovie.year || 'Library'} / Open title
+                                    </div>
                                 </div>
                             </div>
                         </button>
@@ -283,81 +282,58 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
     };
 
     return (
-        <div className="min-h-screen bg-[#0f1014] px-0 pb-20 pt-0 md:px-10 md:pb-10 md:pt-16">
-            <div className="mx-auto w-full max-w-[1540px]">
-                <div className="px-4 pt-4 md:px-0 md:pt-0">
-                    <div className="relative overflow-hidden rounded-[34px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(150,170,255,0.14),transparent_28%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_24%),linear-gradient(180deg,rgba(18,19,25,0.98),rgba(11,12,16,0.96))] shadow-[0_30px_90px_rgba(0,0,0,0.45)]">
-                        <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent)] pointer-events-none" />
-                        <div className="relative flex flex-col gap-6 px-5 py-5 md:px-8 md:py-7">
-                            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                                <div className="max-w-3xl">
-                                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.32em] text-zinc-500">
-                                        <span className="h-px w-8 bg-white/12" />
-                                        Mutual Messages
-                                    </div>
-                                    <h1 className="mt-4 text-4xl font-extralight tracking-[-0.06em] text-white md:text-6xl">
-                                        Message
-                                        <span className="ml-2 font-medium text-white/92">Studio</span>
-                                    </h1>
-                                    <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400 md:text-[15px]">
-                                        Private threads for mutual followers, with title sharing built directly into the app instead of a detached social feed.
-                                    </p>
+        <div className="min-h-screen bg-[#0f1014] px-0 pb-20 pt-0 md:pb-10 md:pl-[108px] md:pr-8 md:pt-6">
+            <div className="mx-auto w-full max-w-[1520px]">
+                <div className="px-4 pt-3 md:px-0 md:pt-0">
+                    <div className="rounded-[28px] border border-white/8 bg-[#121318] px-5 py-5 shadow-[0_18px_44px_rgba(0,0,0,0.34)] md:px-6 md:py-5">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                            <div className="max-w-2xl">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-zinc-500">
+                                    Mutual Messages
                                 </div>
-
-                                <div className="flex flex-wrap gap-3 md:justify-end">
-                                    <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
-                                        <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-500">Signed in</div>
-                                        <div className="mt-1 text-sm font-semibold text-white">{profile?.username || 'Inbox'}</div>
-                                    </div>
-                                    <div className="rounded-[24px] border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
-                                        <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-500">Unread</div>
-                                        <div className="mt-1 text-sm font-semibold text-white">{unreadConversationCount.toString().padStart(2, '0')}</div>
-                                    </div>
-                                </div>
+                                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                                    Messages
+                                </h1>
+                                <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                                    Direct threads for mutual followers, with in-app title sharing.
+                                </p>
                             </div>
 
-                            <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_220px_220px]">
-                                <div className="flex items-center gap-3 rounded-[26px] border border-white/10 bg-black/20 px-4 py-3 backdrop-blur-xl">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300">
-                                        <Search size={18} />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-500">Search the inbox</div>
-                                        <input
-                                            value={searchQuery}
-                                            onChange={(event) => setSearchQuery(event.target.value)}
-                                            placeholder="People, message previews, shared titles..."
-                                            className="mt-1 w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-500"
-                                        />
-                                    </div>
+                            <div className="flex flex-wrap gap-2">
+                                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white">
+                                    {profile?.username || 'Inbox'}
                                 </div>
-
-                                <div className="rounded-[26px] border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
-                                    <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-500">Inbox status</div>
-                                    <div className="mt-2 text-xl font-semibold tracking-tight text-white">{inboxCountLabel}</div>
-                                    <div className="mt-1 text-xs text-zinc-500">Active threads sorted by freshest message.</div>
+                                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white">
+                                    {unreadConversationCount} unread
                                 </div>
-
-                                <div className="rounded-[26px] border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-xl">
-                                    <div className="text-[9px] font-bold uppercase tracking-[0.22em] text-zinc-500">Can message</div>
-                                    <div className="mt-2 text-xl font-semibold tracking-tight text-white">{mutualCountLabel}</div>
-                                    <div className="mt-1 text-xs text-zinc-500">Mutual-follow contacts available instantly.</div>
+                                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white">
+                                    {mutualCountLabel}
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="mt-4 flex items-center gap-3 rounded-[20px] border border-white/10 bg-black/20 px-4 py-3">
+                            <Search size={16} className="text-zinc-500" />
+                            <input
+                                value={searchQuery}
+                                onChange={(event) => setSearchQuery(event.target.value)}
+                                placeholder="Search people or message previews..."
+                                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-500"
+                            />
                         </div>
                     </div>
                 </div>
 
-                <div className="mt-4 grid min-h-[72vh] grid-cols-1 gap-4 px-4 md:grid-cols-[380px_minmax(0,1fr)] md:px-0">
+                <div className="mt-4 grid min-h-[72vh] grid-cols-1 gap-4 px-4 md:grid-cols-[360px_minmax(0,1fr)] md:px-0">
                     <aside className={`${selectedConversationId ? 'hidden md:flex' : 'flex'} min-h-[560px] flex-col overflow-hidden rounded-[32px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,19,23,0.98),rgba(12,13,17,0.98))] shadow-[0_18px_60px_rgba(0,0,0,0.38)]`}>
                         <div className="border-b border-white/6 p-4">
                             <div className="flex items-center justify-between gap-3 rounded-[24px] border border-white/8 bg-black/20 px-4 py-3">
                                 <div>
                                     <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Inbox rail</div>
-                                    <div className="mt-1 text-sm font-semibold text-white">Recent threads and new mutuals</div>
+                                    <div className="mt-1 text-sm font-semibold text-white">Threads and mutuals</div>
                                 </div>
                                 <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
-                                    {unreadConversationCount} unread
+                                    {conversationCountLabel}
                                 </div>
                             </div>
                         </div>
@@ -388,7 +364,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                             onClick={() => handleConversationOpen(conversation.id)}
                                             className={`w-full rounded-[24px] border px-4 py-4 text-left transition-all ${
                                                 selectedConversationId === conversation.id
-                                                    ? 'border-white/18 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_55%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] shadow-[0_16px_34px_rgba(0,0,0,0.25)]'
+                                                    ? 'border-white/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] shadow-[0_16px_34px_rgba(0,0,0,0.25)]'
                                                     : 'border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]'
                                             }`}
                                         >
@@ -490,7 +466,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                                     {selectedConversation.otherProfile.username}
                                                 </div>
                                                 <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                                                    Private thread · mutual follow
+                                                    Private thread / mutual follow
                                                 </div>
                                             </div>
                                         </div>
@@ -501,28 +477,18 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                     </div>
                                 </div>
 
-                                <div className="border-b border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent)] px-5 py-4">
-                                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-                                        <div className="rounded-[22px] border border-white/8 bg-black/20 px-4 py-3">
-                                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                                                Thread context
-                                            </div>
-                                            <div className="mt-1 text-sm text-zinc-300">
-                                                Share recommendations, drop quick notes, or send titles directly back into the app experience.
-                                            </div>
+                                <div className="border-b border-white/6 px-5 py-3">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div className="text-sm text-zinc-400">
+                                            Share recommendations or send titles directly into the app experience.
                                         </div>
-                                        <div className="rounded-[22px] border border-white/8 bg-black/20 px-4 py-3">
-                                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
-                                                Messages loaded
-                                            </div>
-                                            <div className="mt-1 text-lg font-semibold text-white">
-                                                {messages.length.toString().padStart(2, '0')}
-                                            </div>
+                                        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
+                                            {messages.length.toString().padStart(2, '0')} messages
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_42%)] px-5 py-5 custom-scrollbar">
+                                <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.03),transparent_35%)] px-5 py-5 custom-scrollbar">
                                     {threadLoading && (
                                         <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-zinc-400">
                                             Loading conversation...
@@ -530,12 +496,12 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                     )}
 
                                     {!threadLoading && messages.length === 0 && (
-                                        <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-[30px] border border-dashed border-white/10 bg-[radial-gradient(circle_at_top,rgba(150,170,255,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-6 py-10 text-center">
+                                        <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-[30px] border border-dashed border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-6 py-10 text-center">
                                             <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300">
                                                 <Sparkles size={22} />
                                             </div>
                                             <div className="mt-4 text-lg font-semibold text-white">
-                                                Start the thread cleanly
+                                                Start the thread
                                             </div>
                                             <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-500">
                                                 Drop a note or share a title from the app. Only mutual followers can reach each other here.
@@ -584,7 +550,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                 </div>
                             </>
                         ) : (
-                            <div className="flex h-full min-h-[560px] flex-col items-center justify-center bg-[radial-gradient(circle_at_top,rgba(150,170,255,0.12),transparent_38%)] px-8 text-center">
+                            <div className="flex h-full min-h-[560px] flex-col items-center justify-center px-8 text-center">
                                 <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 shadow-[0_14px_36px_rgba(0,0,0,0.28)]">
                                     <MessageSquareText size={24} />
                                 </div>
@@ -592,7 +558,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                     Select a conversation
                                 </div>
                                 <p className="mt-3 max-w-md text-sm leading-relaxed text-zinc-500">
-                                    Pick an existing thread or start one with a mutual follower. Movie shares from inside the app land here as clickable title cards.
+                                    Pick an existing thread or start one with a mutual follower. Shared titles open back into the app.
                                 </p>
                             </div>
                         )}
