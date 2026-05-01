@@ -16,6 +16,45 @@ const buildDefaultExpiry = () => {
     return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
 };
 
+const normalizeBaseUrl = (value?: string | null) => {
+    const trimmed = String(value || '').trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+    try {
+        const url = new URL(withProtocol);
+        return url.origin.replace(/\/$/, '');
+    } catch {
+        return '';
+    }
+};
+
+const isLocalDesktopOrigin = (value: string) => {
+    try {
+        const url = new URL(value);
+        return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    } catch {
+        return false;
+    }
+};
+
+const resolveGuestAccessBaseUrl = (configuredSiteUrl?: string | null) => {
+    const configuredOrigin = normalizeBaseUrl(configuredSiteUrl);
+    if (configuredOrigin) {
+        return configuredOrigin;
+    }
+
+    const currentOrigin = normalizeBaseUrl(window.location.origin);
+    if (!isLocalDesktopOrigin(currentOrigin)) {
+        return currentOrigin;
+    }
+
+    return '';
+};
+
 export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ compact = false }) => {
     const { success, error } = useToast();
     const confirm = useConfirm();
@@ -57,8 +96,14 @@ export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ co
     const handleCreate = async () => {
         setIsCreating(true);
         try {
+            const settings = await SocialService.getAppSettings() as Record<string, string>;
+            const baseUrl = resolveGuestAccessBaseUrl(settings.site_url);
+            if (!baseUrl) {
+                throw new Error('Set the public site URL in Admin Settings before generating guest links from the desktop app.');
+            }
+
             const created = await SocialService.createGuestAccessLink(new Date(expiresAt).toISOString(), maxUses, note);
-            const url = `${window.location.origin}/guest/${created.token}`;
+            const url = `${baseUrl}/guest/${created.token}`;
             setLatestCreatedLink({ id: created.id, url });
             await navigator.clipboard?.writeText(url);
             success('Guest access link created and copied');
@@ -66,7 +111,7 @@ export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ co
             await loadData();
         } catch (err) {
             console.error(err);
-            error('Failed to create guest access link');
+            error(err instanceof Error ? err.message : 'Failed to create guest access link');
         } finally {
             setIsCreating(false);
         }
