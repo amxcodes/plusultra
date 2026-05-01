@@ -56,6 +56,7 @@ import { GuestAccessPage } from './components/GuestAccessPage';
 import { GuestExpiredPage } from './components/GuestExpiredPage';
 import { isGuestExpired } from './lib/guestAccess';
 import { DownloadQuestPage, type OfflineDownloadGroup } from './components/DownloadQuestPage';
+import { MessagesPage } from './components/MessagesPage';
 import type { OfflineDownloadEntry } from './types';
 
 type ViewAllCategoryState = {
@@ -629,6 +630,17 @@ function StreamApp() {
         isSearchOpen: false,
         isMobileMenuOpen: false,
       }));
+    } else if (page === 'messages') {
+      commitSnapshot(buildSnapshot({
+        activeTab: NavItem.MESSAGES,
+        selectedOfflineDownloads: null,
+        offlinePlaybackUrl: null,
+        selectedPlaylistId: undefined,
+        selectedMovie: null,
+        playerState: null,
+        isSearchOpen: false,
+        isMobileMenuOpen: false,
+      }));
     }
   };
 
@@ -789,6 +801,10 @@ function StreamApp() {
 
               {activeTab === NavItem.DOWNLOAD_QUEST && window.desktop?.isDesktop && !viewAllCategory && !selectedPlaylistId && (
                 <DownloadQuestPage onSelectGroup={handleOfflineGroupSelect} />
+              )}
+
+              {activeTab === NavItem.MESSAGES && !viewAllCategory && !selectedPlaylistId && (
+                <MessagesPage onMovieSelect={handleMovieSelect} />
               )}
 
               {/* DASHBOARD VIEW (Desktop) */}

@@ -20,6 +20,7 @@ import {
   BarChart2,
   Newspaper, // News Feed
   MessageSquarePlus,
+  MessagesSquare,
   ListVideo,
   Download,
   ArrowUpRight,
@@ -39,6 +40,7 @@ interface NavbarProps {
 const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.DASHBOARD]: LayoutGrid,
   [NavItem.DOWNLOAD_QUEST]: HardDriveDownload,
+  [NavItem.MESSAGES]: MessagesSquare,
   [NavItem.NEWS]: Newspaper, // High priority
   [NavItem.MOVIES]: Clapperboard,
   [NavItem.SERIES]: MonitorPlay,

@@ -4,6 +4,7 @@ import { AdminService } from '../services/AdminService';
 import { NotificationService } from '../services/NotificationService';
 import { PlayerProviderService } from '../services/PlayerProviderService';
 import { GuestAccessService } from '../services/GuestAccessService';
+import { DirectMessageService } from '../services/DirectMessageService';
 
 /**
  * SocialService Facade
@@ -17,5 +18,6 @@ export const SocialService = {
     ...AdminService,
     ...NotificationService,
     ...PlayerProviderService,
-    ...GuestAccessService
+    ...GuestAccessService,
+    ...DirectMessageService
 };

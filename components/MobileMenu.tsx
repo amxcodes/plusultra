@@ -20,6 +20,7 @@ import {
     LayoutGrid,
     Newspaper,
     MessageSquarePlus,
+    MessagesSquare,
     Bot
 } from 'lucide-react';
 
@@ -129,6 +130,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
                     <div className="space-y-2.5">
                         <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Social</h3>
                         <div className="space-y-2">
+                            <MenuItem icon={MessagesSquare} label="Messages" tab={NavItem.MESSAGES} />
                             <MenuItem icon={Bell} label="Announcements" tab={NavItem.ANNOUNCEMENTS} />
                             <MenuItem icon={Activity} label="Activity Log" tab={NavItem.ACTIVITY} />
                             {canStream && <MenuItem icon={BarChart2} label="Stats Dashboard" tab={NavItem.STATS} />}

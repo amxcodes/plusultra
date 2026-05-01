@@ -57,6 +57,40 @@ export interface OfflineDownloadEntry {
   totalBytes?: number;
 }
 
+export interface SharedMoviePayload {
+  tmdbId: number;
+  title: string;
+  mediaType: 'movie' | 'tv';
+  year?: number;
+  imageUrl: string;
+  backdropUrl?: string;
+  description?: string;
+}
+
+export interface DirectConversation {
+  id: string;
+  participantIds: [string, string];
+  otherProfile: Profile;
+  created_at: string;
+  updated_at: string;
+  last_message_at: string;
+  last_message_preview?: string | null;
+  last_message_sender_id?: string | null;
+  unread_count: number;
+}
+
+export interface DirectMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  recipient_id: string;
+  message_type: 'text' | 'movie_share';
+  body?: string | null;
+  shared_movie?: SharedMoviePayload | null;
+  created_at: string;
+  read_at?: string | null;
+}
+
 export interface HeroMovie extends Movie {
   tagline?: string;
   genre?: string[];
@@ -68,6 +102,7 @@ export interface HeroMovie extends Movie {
 export enum NavItem {
   DASHBOARD = 'Dashboard',
   DOWNLOAD_QUEST = 'Download Quest',
+  MESSAGES = 'Messages',
   MOVIES = 'Movies',
   SERIES = 'Series',
   ANIME = 'Anime',
@@ -144,7 +179,7 @@ export interface PlaylistCollaborator {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'playlist_invite' | 'system' | 'follow' | 'playlist_liked' | 'follower_new_playlist';
+  type: 'playlist_invite' | 'system' | 'follow' | 'playlist_liked' | 'follower_new_playlist' | 'direct_message';
   title: string;
   message: string;
   data: any;

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Movie, OfflineDownloadEntry } from '../types';
-import { Play, HardDriveDownload, ChevronLeft, ThumbsUp, Clock, Calendar, ListPlus, Shuffle, Lock } from 'lucide-react';
+import { Play, HardDriveDownload, ChevronLeft, ThumbsUp, Clock, Calendar, ListPlus, Shuffle, Lock, Send } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { MobileAddToPlaylistModal } from './MobileAddToPlaylistModal';
+import { ShareMovieModal } from './ShareMovieModal';
 import { TmdbService } from '../services/tmdb';
 import { useAuth } from '../lib/AuthContext';
 
@@ -34,6 +35,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
     const [isVisible, setIsVisible] = useState(false);
     const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Detailed Movie State (Merges prop with fetched details)
     const [activeMovie, setActiveMovie] = useState<Movie & { numberOfSeasons?: number; seasons?: any[] }>(movie);
@@ -325,6 +327,15 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 >
                                     <ListPlus size={22} strokeWidth={2} className="transition-transform duration-300 group-hover:scale-110" />
                                 </button>
+
+                                <button
+                                    onClick={() => setShowShareModal(true)}
+                                    className="group h-12 md:h-14 px-5 md:px-6 border border-white/5 bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 backdrop-blur-3xl text-white rounded-[18px] font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] hover:border-white/10"
+                                    title="Share in Messages"
+                                >
+                                    <Send size={16} strokeWidth={2} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+                                    <span className="hidden md:inline">Share</span>
+                                </button>
                             </div>
                         </div>
 
@@ -343,6 +354,13 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                     />
                                 </div>
                             </>
+                        )}
+
+                        {showShareModal && (
+                            <ShareMovieModal
+                                movie={activeMovie}
+                                onClose={() => setShowShareModal(false)}
+                            />
                         )}
                     </>
                 )}
