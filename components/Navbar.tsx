@@ -35,6 +35,7 @@ interface NavbarProps {
   activeTab: NavItem;
   setActiveTab: (tab: NavItem) => void;
   onSearchClick: () => void;
+  messageUnreadCount: number;
 }
 
 const NAV_ICONS: Record<NavItem, React.ElementType> = {
@@ -60,7 +61,7 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
 };
 import { useAuth } from '../lib/AuthContext';
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick, messageUnreadCount }) => {
   const { profile, user } = useAuth();
   const canStream = profile?.can_stream || profile?.role === 'admin';
   const [unreadCounts, setUnreadCounts] = React.useState({ announcementsCount: 0, activityCount: 0 });
@@ -308,6 +309,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         ).map((item) => {
           const Icon = NAV_ICONS[item];
           const isActive = activeTab === item;
+          const showMessageBadge = item === NavItem.MESSAGES && messageUnreadCount > 0;
 
           return (
             <div key={item} className="relative group flex justify-center w-full">
@@ -321,6 +323,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
                   className={isActive ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""}
                 />
               </button>
+
+              {showMessageBadge && (
+                <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 min-w-[14px] h-[14px] px-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] pointer-events-none flex items-center justify-center text-[9px] font-bold text-white">
+                  {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
+                </div>
+              )}
 
               {/* Tooltip */}
               <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md whitespace-nowrap">

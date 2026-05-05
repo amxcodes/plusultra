@@ -64,6 +64,8 @@ export const ShareMovieModal: React.FC<ShareMovieModalProps> = ({ movie, onClose
         return profiles.filter((profile) => profile.username.toLowerCase().includes(query));
     }, [profiles, searchQuery]);
 
+    const actionChipClassName = 'inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white';
+
     const handleSend = async () => {
         if (!selectedProfileId || sending) return;
 
@@ -85,18 +87,18 @@ export const ShareMovieModal: React.FC<ShareMovieModalProps> = ({ movie, onClose
 
     return (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-4 backdrop-blur-md">
-            <div className="relative w-full max-w-[720px] overflow-hidden rounded-[30px] border border-white/10 bg-[#101116] shadow-[0_30px_80px_rgba(0,0,0,0.7)]">
+            <div className="relative w-full max-w-[720px] overflow-hidden rounded-[28px] border border-white/10 bg-[#101116] shadow-[0_30px_80px_rgba(0,0,0,0.7)]">
                 <button
                     type="button"
                     onClick={onClose}
-                    className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-all hover:border-white/20 hover:text-white"
+                    className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-all hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
                 >
                     <X size={16} />
                 </button>
 
                 <div className="grid grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)]">
                     <div className="border-b border-white/8 bg-black/20 p-5 md:border-b-0 md:border-r">
-                        <div className="overflow-hidden rounded-[22px] border border-white/10 bg-white/5">
+                        <div className="overflow-hidden rounded-[18px] border border-white/10 bg-white/5">
                             <img
                                 src={movie.imageUrl}
                                 alt={movie.title}
@@ -129,8 +131,8 @@ export const ShareMovieModal: React.FC<ShareMovieModalProps> = ({ movie, onClose
                             </p>
                         </div>
 
-                        <div className="mt-5 rounded-[22px] border border-white/10 bg-black/20 p-3">
-                            <div className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-white/5 px-4 py-3">
+                        <div className="mt-5 rounded-[18px] border border-white/10 bg-black/20 p-3">
+                            <div className="flex items-center gap-3 rounded-[14px] border border-white/10 bg-white/5 px-4 py-3">
                                 <Search size={16} className="text-zinc-500" />
                                 <input
                                     value={searchQuery}
@@ -143,13 +145,13 @@ export const ShareMovieModal: React.FC<ShareMovieModalProps> = ({ movie, onClose
 
                         <div className="mt-4 max-h-[220px] space-y-2 overflow-y-auto custom-scrollbar">
                             {loading && (
-                                <div className="rounded-[20px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-400">
+                                <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-4 text-sm text-zinc-400">
                                     Loading mutual followers...
                                 </div>
                             )}
 
                             {!loading && filteredProfiles.length === 0 && (
-                                <div className="rounded-[20px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-sm leading-relaxed text-zinc-500">
+                                <div className="rounded-[18px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-sm leading-relaxed text-zinc-500">
                                     No mutual followers available yet. Both users need to follow each other before sharing titles in DMs.
                                 </div>
                             )}
@@ -159,9 +161,9 @@ export const ShareMovieModal: React.FC<ShareMovieModalProps> = ({ movie, onClose
                                     key={profile.id}
                                     type="button"
                                     onClick={() => setSelectedProfileId(profile.id)}
-                                    className={`flex w-full items-center gap-3 rounded-[20px] border px-4 py-3 text-left transition-all ${
+                                    className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-3 text-left transition-all ${
                                         selectedProfileId === profile.id
-                                            ? 'border-white/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.13),rgba(255,255,255,0.05))]'
+                                            ? 'border-white/18 bg-white/[0.08]'
                                             : 'border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]'
                                     }`}
                                 >
@@ -186,8 +188,8 @@ export const ShareMovieModal: React.FC<ShareMovieModalProps> = ({ movie, onClose
                                 onChange={(event) => setNote(event.target.value)}
                                 rows={3}
                                 placeholder="Add a short note (optional)"
-                                className="w-full rounded-[22px] border border-white/10 bg-black/20 px-4 py-4 text-sm leading-relaxed text-white outline-none placeholder:text-zinc-500"
-                            />
+                            className="w-full rounded-[18px] border border-white/10 bg-black/20 px-4 py-4 text-sm leading-relaxed text-white outline-none placeholder:text-zinc-500"
+                        />
                         </div>
 
                         {errorMessage && (
@@ -206,16 +208,16 @@ export const ShareMovieModal: React.FC<ShareMovieModalProps> = ({ movie, onClose
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-300 transition-all hover:border-white/20 hover:text-white"
-                            >
-                                Cancel
-                            </button>
+                            className={actionChipClassName}
+                        >
+                            Cancel
+                        </button>
                             <button
                                 type="button"
                                 onClick={() => void handleSend()}
                                 disabled={!selectedProfileId || sending || loading}
-                                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-black transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
-                            >
+                            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white px-5 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-black transition-all hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
                                 <Send size={14} />
                                 {sending ? 'Sharing...' : 'Share title'}
                             </button>

@@ -109,6 +109,7 @@ function StreamApp() {
   const guestToken = getGuestTokenFromPath();
   const [guestExpiryNow, setGuestExpiryNow] = useState(() => Date.now());
   const guestExpired = isGuestExpired(profile, guestExpiryNow);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
 
   useEffect(() => {
     if (profile?.account_kind !== 'guest' || !profile.guest_expires_at) return;
@@ -129,6 +130,32 @@ function StreamApp() {
 
 
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.DASHBOARD);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setMessageUnreadCount(0);
+      return;
+    }
+
+    let isMounted = true;
+
+    const refreshUnreadMessages = async () => {
+      const count = await SocialService.getUnreadDirectMessageCount(user.id);
+      if (isMounted) {
+        setMessageUnreadCount(count);
+      }
+    };
+
+    void refreshUnreadMessages();
+    const unsubscribe = SocialService.subscribeToInbox(user.id, () => {
+      void refreshUnreadMessages();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -680,6 +707,7 @@ function StreamApp() {
           activeTab={activeTab}
           setActiveTab={handleTabChange}
           onSearchClick={openSearch}
+          messageUnreadCount={messageUnreadCount}
         />
       </div>
 
@@ -689,12 +717,14 @@ function StreamApp() {
           setActiveTab={handleTabChange}
           onSearchClick={openSearch}
           onMenuClick={openMobileMenu}
+          messageUnreadCount={messageUnreadCount}
         />
         <MobileMenu
           isOpen={isMobileMenuOpen}
           onClose={closeMobileMenu}
           activeTab={activeTab}
           setActiveTab={handleTabChange}
+          messageUnreadCount={messageUnreadCount}
         />
       </div>
 

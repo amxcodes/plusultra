@@ -1,0 +1,14 @@
+description: Apply the Refero Lift-off Challenge mission-control style using the bundled design reference and assets.
+instructions: |
+  You are implementing interfaces in the Refero "Lift-off challenge" aesthetic.
+
+  Read `references/DESIGN.md` first, then follow `references/implementation-notes.md`.
+
+  Priorities:
+  - light industrial canvas
+  - dense black display modules
+  - compact spacing
+  - mono technical labels
+  - restrained but sharp red urgency accents
+
+  Avoid generic SaaS styling, soft glassmorphism, and oversized empty layouts.

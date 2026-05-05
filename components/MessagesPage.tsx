@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ArrowLeft,
+    Check,
+    CheckCheck,
     Film,
     MessageSquareText,
     Search,
@@ -51,6 +53,8 @@ const toMovieFromShare = (message: DirectMessage): Movie | null => {
         match: 100,
     };
 };
+
+const statLabelClassName = 'text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500';
 
 export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => {
     const { user, profile } = useAuth();
@@ -222,6 +226,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
     const renderMessageBubble = (message: DirectMessage) => {
         const isMine = message.sender_id === user?.id;
         const sharedMovie = toMovieFromShare(message);
+        const MessageStatusIcon = message.read_at ? CheckCheck : Check;
+        const messageStatusLabel = message.read_at ? 'Read' : 'Sent';
 
         return (
             <div
@@ -229,9 +235,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                 className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
             >
                 <div
-                    className={`max-w-[88%] rounded-[24px] border px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.18)] ${
+                    className={`max-w-[88%] rounded-[22px] border px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.18)] ${
                         isMine
-                            ? 'border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0.08))] text-white'
+                            ? 'border-white/15 bg-[linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.07))] text-white'
                             : 'border-white/8 bg-[#15161b] text-zinc-100'
                     }`}
                 >
@@ -245,36 +251,48 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                         <button
                             type="button"
                             onClick={() => onMovieSelect(sharedMovie)}
-                            className="mt-3 block w-[168px] text-left transition-transform hover:scale-[1.02]"
+                            className="mt-3 block w-[148px] text-left"
                         >
-                            <div className="overflow-hidden rounded-[20px] border border-white/10 bg-[#0f1014] shadow-[0_10px_28px_rgba(0,0,0,0.3)] transition-all hover:border-white/20">
+                            <div className="overflow-hidden rounded-[16px] bg-[#0d0e12] ring-1 ring-white/8 transition-all hover:ring-white/18">
                                 <div className="relative aspect-[2/3] overflow-hidden">
                                     <img
                                         src={sharedMovie.imageUrl}
                                         alt={sharedMovie.title}
                                         className="h-full w-full object-cover"
                                     />
-                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent px-3 pb-3 pt-10">
-                                        <div className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-300">
+                                    <div className="absolute inset-x-0 top-0 flex items-center justify-between px-2.5 pt-2.5">
+                                        <div className="bg-black/58 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.18em] text-zinc-100">
                                             {sharedMovie.mediaType === 'movie' ? <Film size={11} /> : <Tv size={11} />}
-                                            Shared title
+                                            <span className="ml-1">Shared</span>
+                                        </div>
+                                        <div className="bg-black/58 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.16em] text-zinc-200">
+                                            {sharedMovie.year || 'TMDB'}
                                         </div>
                                     </div>
-                                </div>
-                                <div className="px-3 py-3">
-                                    <div className="line-clamp-2 text-sm font-semibold text-white">
-                                        {sharedMovie.title}
-                                    </div>
-                                    <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">
-                                        {sharedMovie.year || 'Library'} / Open title
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/76 to-transparent px-3 pb-3 pt-10">
+                                        <div className="line-clamp-2 text-sm font-semibold leading-tight text-white">
+                                            {sharedMovie.title}
+                                        </div>
+                                        <div className="mt-1 text-[9px] uppercase tracking-[0.16em] text-zinc-400">
+                                            Open in app
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </button>
                     )}
 
-                    <div className={`mt-2 text-[10px] font-bold uppercase tracking-[0.14em] ${isMine ? 'text-white/45' : 'text-zinc-500'}`}>
-                        {formatConversationTime(message.created_at)}
+                    <div className={`mt-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] ${isMine ? 'text-white/45' : 'text-zinc-500'}`}>
+                        <span>{formatConversationTime(message.created_at)}</span>
+                        {isMine && (
+                            <>
+                                <span className="opacity-40">•</span>
+                                <span className={`inline-flex items-center gap-1 ${message.read_at ? 'text-sky-300/90' : 'text-white/45'}`}>
+                                    <MessageStatusIcon size={12} />
+                                    <span>{messageStatusLabel}</span>
+                                </span>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
@@ -282,57 +300,62 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
     };
 
     return (
-        <div className="min-h-screen bg-[#0f1014] px-0 pb-20 pt-0 md:pb-10 md:pl-[108px] md:pr-8 md:pt-6">
-            <div className="mx-auto w-full max-w-[1520px]">
-                <div className="px-4 pt-3 md:px-0 md:pt-0">
-                    <div className="rounded-[28px] border border-white/8 bg-[#121318] px-5 py-5 shadow-[0_18px_44px_rgba(0,0,0,0.34)] md:px-6 md:py-5">
+        <div className="min-h-screen bg-[#0f1014] px-0 pb-20 pt-0 md:pb-10 md:pl-[116px] md:pr-8 md:pt-8">
+            <div className="mx-auto w-full max-w-[1480px]">
+                <div className="px-4 pt-5 md:px-0 md:pt-0">
+                    <div className="border-b border-white/8 pb-5">
                         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                             <div className="max-w-2xl">
                                 <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-zinc-500">
                                     Mutual Messages
                                 </div>
-                                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
+                                <h1 className="mt-2 text-[30px] font-semibold tracking-tight text-white md:text-[38px]">
                                     Messages
                                 </h1>
                                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                                    Direct threads for mutual followers, with in-app title sharing.
+                                    Practical direct threads for mutual followers, with shared titles that open back into the app.
                                 </p>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
-                                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white">
-                                    {profile?.username || 'Inbox'}
+                            <div className="grid grid-cols-3 gap-6 text-left md:min-w-[360px] md:text-right">
+                                <div>
+                                    <div className={statLabelClassName}>Account</div>
+                                    <div className="mt-1 text-sm font-medium text-white">{profile?.username || 'Inbox'}</div>
                                 </div>
-                                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white">
-                                    {unreadConversationCount} unread
+                                <div>
+                                    <div className={statLabelClassName}>Unread</div>
+                                    <div className="mt-1 text-sm font-medium text-white">{unreadConversationCount}</div>
                                 </div>
-                                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-semibold text-white">
-                                    {mutualCountLabel}
+                                <div>
+                                    <div className={statLabelClassName}>Mutuals</div>
+                                    <div className="mt-1 text-sm font-medium text-white">{messageableProfiles.length}</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="mt-4 flex items-center gap-3 rounded-[20px] border border-white/10 bg-black/20 px-4 py-3">
-                            <Search size={16} className="text-zinc-500" />
-                            <input
-                                value={searchQuery}
-                                onChange={(event) => setSearchQuery(event.target.value)}
-                                placeholder="Search people or message previews..."
-                                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-500"
-                            />
+                        <div className="mt-5 max-w-[560px] border border-white/10 bg-[#111217]">
+                            <div className="flex items-center gap-3 px-4 py-3">
+                                <Search size={15} className="text-zinc-500" />
+                                <input
+                                    value={searchQuery}
+                                    onChange={(event) => setSearchQuery(event.target.value)}
+                                    placeholder="Search people or message previews..."
+                                    className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-500"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="mt-4 grid min-h-[72vh] grid-cols-1 gap-4 px-4 md:grid-cols-[360px_minmax(0,1fr)] md:px-0">
-                    <aside className={`${selectedConversationId ? 'hidden md:flex' : 'flex'} min-h-[560px] flex-col overflow-hidden rounded-[32px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,19,23,0.98),rgba(12,13,17,0.98))] shadow-[0_18px_60px_rgba(0,0,0,0.38)]`}>
+                <div className="mt-4 grid min-h-[72vh] grid-cols-1 gap-4 px-4 md:grid-cols-[340px_minmax(0,1fr)] md:px-0">
+                    <aside className={`${selectedConversationId ? 'hidden md:flex' : 'flex'} min-h-[560px] flex-col overflow-hidden border border-white/8 bg-[#121318]`}>
                         <div className="border-b border-white/6 p-4">
-                            <div className="flex items-center justify-between gap-3 rounded-[24px] border border-white/8 bg-black/20 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3 px-1 py-1">
                                 <div>
-                                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">Inbox rail</div>
+                                    <div className={statLabelClassName}>Inbox rail</div>
                                     <div className="mt-1 text-sm font-semibold text-white">Threads and mutuals</div>
                                 </div>
-                                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
+                                <div className="text-[11px] font-medium text-zinc-400">
                                     {conversationCountLabel}
                                 </div>
                             </div>
@@ -346,13 +369,13 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                 </div>
                                 <div className="space-y-2">
                                     {loading && (
-                                        <div className="rounded-[24px] border border-white/8 bg-white/5 px-4 py-4 text-sm text-zinc-400">
+                                        <div className="border border-white/8 bg-white/5 px-4 py-4 text-sm text-zinc-400">
                                             Loading inbox...
                                         </div>
                                     )}
 
                                     {!loading && filteredConversations.length === 0 && (
-                                        <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-sm leading-relaxed text-zinc-500">
+                                        <div className="border border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-sm leading-relaxed text-zinc-500">
                                             No conversations yet. Start with a mutual follower below.
                                         </div>
                                     )}
@@ -362,9 +385,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                             key={conversation.id}
                                             type="button"
                                             onClick={() => handleConversationOpen(conversation.id)}
-                                            className={`w-full rounded-[24px] border px-4 py-4 text-left transition-all ${
+                                            className={`w-full border px-4 py-4 text-left transition-colors ${
                                                 selectedConversationId === conversation.id
-                                                    ? 'border-white/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] shadow-[0_16px_34px_rgba(0,0,0,0.25)]'
+                                                    ? 'border-white/18 bg-white/[0.06]'
                                                     : 'border-white/8 bg-white/[0.03] hover:border-white/14 hover:bg-white/[0.05]'
                                             }`}
                                         >
@@ -405,7 +428,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                 </div>
                                 <div className="space-y-2">
                                     {suggestedProfiles.length === 0 && (
-                                        <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-sm leading-relaxed text-zinc-500">
+                                        <div className="border border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-sm leading-relaxed text-zinc-500">
                                             Follow each other to unlock new DMs. Shared follows appear here automatically.
                                         </div>
                                     )}
@@ -416,7 +439,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                             type="button"
                                             onClick={() => void handleStartConversation(candidate)}
                                             disabled={creatingConversationFor === candidate.id}
-                                            className="flex w-full items-center justify-between gap-3 rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4 text-left transition-all hover:border-white/14 hover:bg-white/[0.05] disabled:cursor-wait disabled:opacity-60"
+                                            className="flex w-full items-center justify-between gap-3 border border-white/8 bg-white/[0.03] px-4 py-4 text-left transition-colors hover:border-white/14 hover:bg-white/[0.05] disabled:cursor-wait disabled:opacity-60"
                                         >
                                             <div className="flex min-w-0 items-center gap-3">
                                                 <img
@@ -433,7 +456,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
+                                            <div className="text-[11px] font-medium text-zinc-300">
                                                 {creatingConversationFor === candidate.id ? 'Opening...' : 'Message'}
                                             </div>
                                         </button>
@@ -443,7 +466,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                         </div>
                     </aside>
 
-                    <section className={`${selectedConversationId ? 'flex' : 'hidden md:flex'} min-h-[560px] flex-col overflow-hidden rounded-[32px] border border-white/8 bg-[linear-gradient(180deg,rgba(18,19,23,0.98),rgba(10,11,15,0.98))] shadow-[0_18px_60px_rgba(0,0,0,0.38)]`}>
+                    <section className={`${selectedConversationId ? 'flex' : 'hidden md:flex'} min-h-[560px] flex-col overflow-hidden border border-white/8 bg-[#121318]`}>
                         {selectedConversation ? (
                             <>
                                 <div className="border-b border-white/6 p-5">
@@ -452,7 +475,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                             <button
                                                 type="button"
                                                 onClick={() => setSelectedConversationId(null)}
-                                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 transition-all hover:border-white/20 hover:text-white md:hidden"
+                                                className="inline-flex h-10 w-10 items-center justify-center border border-white/10 bg-white/[0.04] text-zinc-300 transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-white md:hidden"
                                             >
                                                 <ArrowLeft size={16} />
                                             </button>
@@ -471,7 +494,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                             </div>
                                         </div>
 
-                                        <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300 md:inline-flex">
+                                        <div className="hidden text-[11px] font-medium text-zinc-400 md:block">
                                             {formatConversationTime(selectedConversation.last_message_at) || 'Live'}
                                         </div>
                                     </div>
@@ -482,22 +505,22 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                         <div className="text-sm text-zinc-400">
                                             Share recommendations or send titles directly into the app experience.
                                         </div>
-                                        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
+                                        <div className="text-[11px] font-medium text-zinc-400">
                                             {messages.length.toString().padStart(2, '0')} messages
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.03),transparent_35%)] px-5 py-5 custom-scrollbar">
+                                <div className="flex-1 space-y-4 overflow-y-auto bg-[#101116] px-5 py-5 custom-scrollbar">
                                     {threadLoading && (
-                                        <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-zinc-400">
+                                        <div className="border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-zinc-400">
                                             Loading conversation...
                                         </div>
                                     )}
 
                                     {!threadLoading && messages.length === 0 && (
-                                        <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-[30px] border border-dashed border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-6 py-10 text-center">
-                                            <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300">
+                                        <div className="flex h-full min-h-[280px] flex-col items-center justify-center border border-dashed border-white/10 bg-white/[0.02] px-6 py-10 text-center">
+                                            <div className="flex h-14 w-14 items-center justify-center border border-white/10 bg-white/5 text-zinc-300">
                                                 <Sparkles size={22} />
                                             </div>
                                             <div className="mt-4 text-lg font-semibold text-white">
@@ -513,13 +536,13 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                     <div ref={threadEndRef} />
                                 </div>
 
-                                <div className="border-t border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] p-5">
+                                <div className="border-t border-white/6 bg-[#121318] p-5">
                                     {errorMessage && (
-                                        <div className="mb-3 rounded-[18px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                                        <div className="mb-3 border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                                             {errorMessage}
                                         </div>
                                     )}
-                                    <div className="rounded-[28px] border border-white/10 bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                                    <div className="border border-white/10 bg-black/20 p-3">
                                         <div className="mb-2 px-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">
                                             Reply to {selectedConversation.otherProfile.username}
                                         </div>
@@ -541,9 +564,9 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                                                 type="button"
                                                 onClick={() => void handleSend()}
                                                 disabled={!composer.trim() || isSending}
-                                                className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white text-black transition-all hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-50"
+                                                className="inline-flex h-11 min-w-11 items-center justify-center border border-white/15 bg-white px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-black transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50"
                                             >
-                                                <Send size={16} />
+                                                <Send size={14} />
                                             </button>
                                         </div>
                                     </div>
@@ -551,7 +574,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect }) => 
                             </>
                         ) : (
                             <div className="flex h-full min-h-[560px] flex-col items-center justify-center px-8 text-center">
-                                <div className="flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-white/5 text-zinc-300 shadow-[0_14px_36px_rgba(0,0,0,0.28)]">
+                                <div className="flex h-16 w-16 items-center justify-center border border-white/10 bg-white/5 text-zinc-300">
                                     <MessageSquareText size={24} />
                                 </div>
                                 <div className="mt-5 text-2xl font-semibold text-white">

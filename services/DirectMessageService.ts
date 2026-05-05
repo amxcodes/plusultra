@@ -75,6 +75,21 @@ const normalizeMessage = (row: DirectMessageRow): DirectMessage => ({
 });
 
 export const DirectMessageService = {
+    async getUnreadDirectMessageCount(userId: string): Promise<number> {
+        const { count, error } = await supabase
+            .from('direct_messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('recipient_id', userId)
+            .is('read_at', null);
+
+        if (error) {
+            console.error('Error loading unread direct message count:', error);
+            return 0;
+        }
+
+        return count || 0;
+    },
+
     async listMessageableProfiles(): Promise<Profile[]> {
         const { data, error } = await supabase.rpc('list_messageable_profiles');
 

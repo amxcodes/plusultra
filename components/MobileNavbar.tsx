@@ -11,9 +11,10 @@ interface MobileNavbarProps {
     setActiveTab: (tab: NavItem) => void;
     onSearchClick: () => void;
     onMenuClick: () => void;
+    messageUnreadCount: number;
 }
 
-export const MobileNavbar: React.FC<MobileNavbarProps> = ({ activeTab, setActiveTab, onSearchClick, onMenuClick }) => {
+export const MobileNavbar: React.FC<MobileNavbarProps> = ({ activeTab, setActiveTab, onSearchClick, onMenuClick, messageUnreadCount }) => {
     // Determine if the menu tab is active based on the tabs housed inside the menu
     const isMenuTabActive = [
         NavItem.MOVIES,
@@ -75,6 +76,11 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({ activeTab, setActive
                         className={`relative z-10 transition-colors duration-300 ${isMenuTabActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-zinc-400 group-hover:text-zinc-200'}`} 
                         strokeWidth={1.5} 
                     />
+                    {messageUnreadCount > 0 && (
+                        <span className="absolute right-[6px] top-[6px] min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                            {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
+                        </span>
+                    )}
                 </button>
 
             </div>

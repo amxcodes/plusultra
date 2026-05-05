@@ -29,9 +29,10 @@ interface MobileMenuProps {
     onClose: () => void;
     activeTab: NavItem;
     setActiveTab: (tab: NavItem) => void;
+    messageUnreadCount: number;
 }
 
-export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeTab, setActiveTab }) => {
+export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeTab, setActiveTab, messageUnreadCount }) => {
     const { user, profile, signOut } = useAuth();
     const canStream = profile?.can_stream || profile?.role === 'admin';
 
@@ -130,7 +131,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
                     <div className="space-y-2.5">
                         <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Social</h3>
                         <div className="space-y-2">
-                            <MenuItem icon={MessagesSquare} label="Messages" tab={NavItem.MESSAGES} />
+                            <MenuItem icon={MessagesSquare} label="Messages" tab={NavItem.MESSAGES} badge={messageUnreadCount > 0 ? (messageUnreadCount > 9 ? '9+' : String(messageUnreadCount)) : undefined} />
                             <MenuItem icon={Bell} label="Announcements" tab={NavItem.ANNOUNCEMENTS} />
                             <MenuItem icon={Activity} label="Activity Log" tab={NavItem.ACTIVITY} />
                             {canStream && <MenuItem icon={BarChart2} label="Stats Dashboard" tab={NavItem.STATS} />}
