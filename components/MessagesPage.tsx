@@ -12,7 +12,9 @@ import {
     UserRoundPlus
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
+import { useConfirm } from '../lib/ConfirmContext';
 import { SocialService } from '../lib/social';
+import { useToast } from '../lib/ToastContext';
 import type { DirectConversation, DirectMessage, Movie, Profile } from '../types';
 
 interface MessagesPageProps {
@@ -60,6 +62,8 @@ const panelClassName = 'rounded-[24px] border border-white/8 bg-[#121318]';
 
 export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initialConversationId }) => {
     const { user, profile } = useAuth();
+    const confirm = useConfirm();
+    const toast = useToast();
     const [conversations, setConversations] = useState<DirectConversation[]>([]);
     const [messageableProfiles, setMessageableProfiles] = useState<Profile[]>([]);
     const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -70,6 +74,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
     const [threadLoading, setThreadLoading] = useState(false);
     const [creatingConversationFor, setCreatingConversationFor] = useState<string | null>(null);
     const [isSending, setIsSending] = useState(false);
+    const [unsendingMessageId, setUnsendingMessageId] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const threadEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -231,11 +236,43 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
         }
     };
 
+    const handleUnsend = async (message: DirectMessage) => {
+        if (!selectedConversation || message.sender_id !== user?.id || unsendingMessageId) return;
+
+        const approved = await confirm({
+            title: 'Unsend message?',
+            message: 'This will remove the message for both sides of the conversation.',
+            confirmText: 'Unsend',
+            cancelText: 'Keep message',
+            variant: 'warning',
+        });
+
+        if (!approved) return;
+
+        setUnsendingMessageId(message.id);
+        setErrorMessage(null);
+
+        try {
+            await SocialService.deleteDirectMessage(message.id);
+            await loadInbox(selectedConversation.id);
+            await loadMessages(selectedConversation.id);
+            toast.success('Message unsent.');
+        } catch (error) {
+            console.error('Failed to unsend message:', error);
+            const nextError = error instanceof Error ? error.message : 'Unable to unsend that message.';
+            setErrorMessage(nextError);
+            toast.error(nextError);
+        } finally {
+            setUnsendingMessageId(null);
+        }
+    };
+
     const renderMessageBubble = (message: DirectMessage) => {
         const isMine = message.sender_id === user?.id;
         const sharedMovie = toMovieFromShare(message);
         const MessageStatusIcon = message.read_at ? CheckCheck : Check;
         const messageStatusLabel = message.read_at ? 'Read' : 'Sent';
+        const isUnsending = unsendingMessageId === message.id;
 
         return (
             <div
@@ -243,11 +280,17 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
                 className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
             >
                 <div
+                    onDoubleClick={() => {
+                        if (isMine && !isUnsending) {
+                            void handleUnsend(message);
+                        }
+                    }}
                     className={`max-w-[88%] md:max-w-[78%] rounded-[20px] border px-4 py-3.5 shadow-[0_8px_24px_rgba(0,0,0,0.16)] ${
                         isMine
                             ? 'border-white/14 bg-[#1c1d23] text-zinc-100'
                             : 'border-white/8 bg-[#17181d] text-zinc-100'
-                    }`}
+                    } ${isMine ? 'cursor-pointer' : ''} ${isUnsending ? 'opacity-60' : ''}`}
+                    title={isMine ? 'Double-click to unsend' : undefined}
                 >
                     {message.body && (
                         <p className="text-sm leading-relaxed text-inherit whitespace-pre-wrap">

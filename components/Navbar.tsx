@@ -82,19 +82,30 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   // Fetch unread counts
   React.useEffect(() => {
     if (!user?.id) return;
+
+    let isMounted = true;
+
     const fetchUnreadCounts = async () => {
       try {
         const counts = await SocialService.getUnreadCounts(user.id);
-        setUnreadCounts(counts);
+        if (isMounted) {
+          setUnreadCounts(counts);
+        }
       } catch (error) {
         console.error('Failed to fetch unread counts:', error);
       }
     };
+
     fetchUnreadCounts();
-    // Refresh every 30 seconds
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchUnreadCounts, 30000);
-    return () => clearInterval(interval);
+
+    const unsubscribe = SocialService.subscribeToUnreadCountChanges(user.id, () => {
+      void fetchUnreadCounts();
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [user?.id]);
 
   React.useEffect(() => {

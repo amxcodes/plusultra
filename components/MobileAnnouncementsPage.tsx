@@ -1,88 +1,131 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
-import { Bell, Sparkles } from 'lucide-react';
+
+type AnnouncementItem = {
+    id: string;
+    title: string;
+    content: string;
+    type: 'warning' | 'success' | 'info' | string;
+    created_at: string;
+};
+
+const getTypeConfig = (type: string) => {
+    switch (type) {
+        case 'warning':
+            return {
+                label: 'Important',
+                className: 'text-amber-200 bg-amber-500/10',
+            };
+        case 'success':
+            return {
+                label: 'Shipped',
+                className: 'text-emerald-200 bg-emerald-500/10',
+            };
+        default:
+            return {
+                label: 'Update',
+                className: 'text-sky-200 bg-sky-500/10',
+            };
+    }
+};
 
 export const MobileAnnouncementsPage: React.FC = () => {
     const { user } = useAuth();
-    const [announcements, setAnnouncements] = useState<any[]>([]);
+    const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
             try {
                 const data = await SocialService.getAnnouncements();
-                setAnnouncements(data);
-                if (user?.id) { await SocialService.markAnnouncementsSeen(user.id); }
-            } catch (e) {
-                console.error("Failed to load announcements", e);
+                setAnnouncements((data || []) as AnnouncementItem[]);
+                if (user?.id) {
+                    await SocialService.markAnnouncementsSeen(user.id);
+                }
+            } catch (error) {
+                console.error('Failed to load announcements', error);
             } finally {
                 setLoading(false);
             }
         };
-        load();
+
+        void load();
     }, [user?.id]);
 
-    const getTypeConfig = (type: string) => {
-        switch (type) {
-            case 'warning': return { color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20' };
-            case 'success': return { color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' };
-            default: return { color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20' };
-        }
-    };
-
     return (
-        <div className="min-h-screen bg-[#0f1014] pb-24 animate-in fade-in duration-300">
-            {/* Mobile Header */}
-            <div className="sticky top-0 z-40 bg-[#0f1014]/95 backdrop-blur-xl border-b border-white/5 px-4 pt-4 pb-4">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-zinc-900 rounded-lg text-white">
-                        <Bell size={20} />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-black text-white tracking-tight">Updates</h1>
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Latest Changes</p>
-                    </div>
+        <div className="min-h-screen bg-[#0f1014] pb-24">
+            <div className="border-b border-white/6 px-4 pb-4 pt-4">
+                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">
+                    Announcements
                 </div>
+                <h1 className="mt-3 text-[30px] font-semibold leading-none tracking-[-0.05em] text-white">
+                    Platform updates
+                </h1>
+                <p className="mt-3 max-w-sm text-sm leading-6 text-zinc-400">
+                    Important notices and release notes in one clean feed.
+                </p>
             </div>
 
-            <div className="p-4 space-y-6">
+            <div className="px-4">
                 {loading ? (
-                    [1, 2, 3].map(i => (
-                        <div key={i} className="animate-pulse space-y-3">
-                            <div className="h-4 w-20 bg-zinc-900 rounded" />
-                            <div className="h-32 bg-zinc-900 rounded-2xl" />
-                        </div>
-                    ))
-                ) : announcements.length === 0 ? (
-                    <div className="text-center py-20 text-zinc-500 text-sm">No updates yet.</div>
-                ) : (
-                    <div className="space-y-8 relative border-l border-white/10 ml-2 pl-6">
-                        {announcements.map((item) => {
-                            const config = getTypeConfig(item.type);
-                            return (
-                                <div key={item.id} className="relative">
-                                    {/* Timeline Dot */}
-                                    <div className={`absolute -left-[29px] top-1 w-3 h-3 rounded-full border-2 border-[#0f1014] ${config.color.replace('text-', 'bg-')}`} />
-
-                                    <div className="mb-2 flex items-center justify-between">
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${config.bg} ${config.color} border ${config.border}`}>
-                                            {item.type}
-                                        </span>
-                                        <span className="text-[10px] text-zinc-500 font-medium">
-                                            {new Date(item.created_at).toLocaleDateString()}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="text-lg font-bold text-white mb-2 leading-tight">{item.title}</h3>
-                                    <div className="text-sm text-zinc-400 leading-relaxed bg-zinc-900/30 p-4 rounded-xl border border-white/5">
-                                        {item.content}
-                                    </div>
+                    <div className="space-y-8 pt-6">
+                        {[1, 2, 3].map((item) => (
+                            <div key={item} className="animate-pulse border-t border-white/6 pt-6">
+                                <div className="mb-3 h-5 w-24 rounded bg-white/5" />
+                                <div className="mb-3 h-7 w-4/5 rounded bg-white/5" />
+                                <div className="space-y-2">
+                                    <div className="h-4 w-full rounded bg-white/5" />
+                                    <div className="h-4 w-5/6 rounded bg-white/5" />
                                 </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : announcements.length === 0 ? (
+                    <div className="border-t border-white/6 py-14">
+                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+                            Nothing published
+                        </div>
+                        <div className="mt-3 text-xl font-semibold tracking-[-0.04em] text-white">
+                            No announcements yet
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-zinc-500">
+                            Updates will appear here once they are published.
+                        </p>
+                    </div>
+                ) : (
+                    <section className="space-y-0 pt-2">
+                        {announcements.map((item, index) => {
+                            const config = getTypeConfig(item.type);
+
+                            return (
+                                <article
+                                    key={item.id}
+                                    className={`border-t border-white/6 py-6 ${index === announcements.length - 1 ? 'border-b' : ''}`}
+                                >
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${config.className}`}>
+                                            {config.label}
+                                        </span>
+                                        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                                            {new Date(item.created_at).toLocaleDateString(undefined, {
+                                                month: 'long',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                            })}
+                                        </span>
+                                    </div>
+
+                                    <h2 className="mt-4 text-[24px] font-semibold leading-tight tracking-[-0.045em] text-white">
+                                        {item.title}
+                                    </h2>
+                                    <p className="mt-3 text-sm leading-7 text-zinc-400">
+                                        {item.content}
+                                    </p>
+                                </article>
                             );
                         })}
-                    </div>
+                    </section>
                 )}
             </div>
         </div>

@@ -88,4 +88,29 @@ export const NotificationService = {
             .eq('id', notificationId);
         if (error) throw error;
     },
+
+    subscribeToUnreadCountChanges(userId: string, onChange: () => void): () => void {
+        const channel = supabase
+            .channel(`navbar-unread-counts-${userId}`)
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'announcements' },
+                () => onChange()
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+                () => onChange()
+            )
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'follows', filter: `following_id=eq.${userId}` },
+                () => onChange()
+            )
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    },
 };

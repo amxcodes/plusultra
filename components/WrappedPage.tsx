@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { X, Share2, Download, Play, Trophy, Calendar, Clock, RotateCcw, Flame, Sparkles, TrendingUp, Film, Tv, Award, Users, Zap, Target, ArrowUpRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Film, Flame, RotateCcw, TrendingUp, Clapperboard, Tv, CalendarRange, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { TmdbService } from '../services/tmdb';
+import { Movie } from '../types';
 
 interface WrappedStats {
     total_movies: number;
@@ -12,6 +14,7 @@ interface WrappedStats {
     binge_days: number;
     title_rewatch_counts: Record<string, number>;
     monthly_watches: Record<string, number>;
+    daily_watch_count?: Record<string, number>;
     first_watch_of_year?: {
         title: string;
         date: string;
@@ -22,19 +25,12 @@ interface WrappedStats {
 
 interface CommunityStats {
     avg_total_content: number;
-    avg_movies: number;
-    avg_shows: number;
-    avg_streak: number;
-    avg_rewatch_count: number;
     median_total: number;
-    median_streak: number;
-    total_users: number;
     user_percentile: {
         total_content: number;
         streak: number;
         rewatches: number;
     };
-    top_community_genres: Array<{ genre: string; count: number }>;
     user_stats: {
         total_content: number;
         movies: number;
@@ -52,7 +48,6 @@ interface PredictiveInsights {
     projected_2027_total: number;
     confidence: 'high' | 'medium' | 'low';
     trending_genre: string | null;
-    genre_trend_direction: 'increasing' | 'stable' | 'decreasing';
     growth_rate: number;
     next_milestone: {
         type: string;
@@ -65,54 +60,157 @@ interface WrappedPageProps {
     onClose: () => void;
 }
 
+type HighlightCardMap = {
+    firstWatch?: Movie | null;
+    topRewatch?: Movie | null;
+    comfortShelf: Movie[];
+};
+
+const monthLabel = (monthKey?: string) => {
+    if (!monthKey) return 'Unknown';
+    const parsed = new Date(`${monthKey}-01`);
+    if (Number.isNaN(parsed.getTime())) return monthKey;
+    return parsed.toLocaleDateString('en-US', { month: 'long' });
+};
+
+const readableDate = (value?: string) => {
+    if (!value) return 'Unknown date';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+};
+
+const dedupeMovies = (items: Array<Movie | null | undefined>) => {
+    const seen = new Set<string>();
+    return items.filter((movie): movie is Movie => {
+        if (!movie) return false;
+        const key = String(movie.tmdbId || movie.id || movie.title).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
+
+const movieKey = (movie?: Movie | null) => movie ? String(movie.tmdbId || movie.id || movie.title).toLowerCase() : null;
+
+const confidenceTone: Record<PredictiveInsights['confidence'], string> = {
+    high: 'text-emerald-300',
+    medium: 'text-amber-300',
+    low: 'text-zinc-400'
+};
+
+const desktopSlideShell = 'px-16 pr-14 pl-36';
+
+const WrappedSpotlight: React.FC<{
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    movie?: Movie | null;
+    accent: 'violet' | 'amber';
+}> = ({ eyebrow, title, subtitle, movie, accent }) => {
+    const accentTone = accent === 'violet'
+        ? {
+            chip: 'border-violet-300/20 bg-violet-300/10 text-violet-200',
+            frame: 'border-violet-400/20',
+            glow: 'shadow-[0_40px_120px_rgba(91,33,182,0.2)]',
+            fallback: 'from-violet-500/25 via-fuchsia-500/10 to-zinc-950'
+        }
+        : {
+            chip: 'border-amber-300/20 bg-amber-300/10 text-amber-200',
+            frame: 'border-amber-400/20',
+            glow: 'shadow-[0_40px_120px_rgba(245,158,11,0.16)]',
+            fallback: 'from-amber-500/25 via-orange-500/10 to-zinc-950'
+        };
+
+    return (
+        <div className="grid h-full grid-cols-[1.08fr_0.72fr] gap-10">
+            <div className="flex flex-col justify-center">
+                <div className={`inline-flex w-fit items-center rounded-full border px-4 py-1.5 text-[10px] font-mono uppercase tracking-[0.32em] ${accentTone.chip}`}>
+                    {eyebrow}
+                </div>
+                <h2 className="mt-7 max-w-xl text-6xl font-black leading-[0.9] tracking-tight text-white">
+                    {title}
+                </h2>
+                <p className="mt-5 max-w-lg text-lg leading-8 text-zinc-400">
+                    {subtitle}
+                </p>
+            </div>
+            <div className="flex items-center justify-center">
+            <div className={`relative aspect-[2/3] w-full max-w-[320px] overflow-hidden rounded-[36px] border bg-zinc-950/90 ${accentTone.frame} ${accentTone.glow}`}>
+                <div className="absolute inset-0">
+                    {movie?.imageUrl ? (
+                        <img src={movie.imageUrl} alt={movie.title} className="h-full w-full object-cover" />
+                    ) : (
+                        <div className={`h-full w-full bg-gradient-to-br ${accentTone.fallback}`} />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-black/10" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),transparent_42%)]" />
+                </div>
+                <div className="absolute left-6 right-6 top-6 flex items-center justify-between">
+                    <div className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-white/70 backdrop-blur-xl">
+                        {movie?.mediaType === 'tv' ? 'Series' : 'Movie'}
+                    </div>
+                    {movie?.year ? (
+                        <div className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-white/70 backdrop-blur-xl">
+                            {movie.year}
+                        </div>
+                    ) : null}
+                </div>
+                <div className="absolute inset-x-0 bottom-0 p-6">
+                    <div className="rounded-[28px] border border-white/10 bg-black/45 p-6 backdrop-blur-2xl">
+                        {movie?.description ? (
+                            <p className="line-clamp-4 text-sm leading-7 text-white/65">
+                                {movie.description}
+                            </p>
+                        ) : (
+                            <p className="text-sm leading-7 text-white/55">
+                                A highlight card from your wrapped stream.
+                            </p>
+                        )}
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    );
+};
+
 export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<WrappedStats | null>(null);
     const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
     const [predictions, setPredictions] = useState<PredictiveInsights | null>(null);
+    const [highlightCards, setHighlightCards] = useState<HighlightCardMap>({ comfortShelf: [] });
     const [currentSlide, setCurrentSlide] = useState(0);
     const currentYear = new Date().getFullYear();
-    const nextYear = currentYear + 1;
 
     useEffect(() => {
         fetchWrappedStats();
     }, []);
+
+    useEffect(() => {
+        if (!stats) return;
+        hydrateHighlightCards(stats);
+    }, [stats]);
 
     const fetchWrappedStats = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // Enforce minimum loading time of 2.5s to show animation
-            const minLoadTime = new Promise(resolve => setTimeout(resolve, 2500));
-
-            // Fetch user stats
-            const statsPromise = supabase
-                .rpc('get_private_profile', {
-                    p_user_id: user.id
-                })
-                .single();
+            const minLoadTime = new Promise(resolve => setTimeout(resolve, 1800));
+            const statsPromise = supabase.rpc('get_private_profile', { p_user_id: user.id }).single();
 
             const [result] = await Promise.all([statsPromise, minLoadTime]);
             const profile = result.data as WrappedProfileResponse | null;
 
             if (profile?.stats) {
                 setStats(profile.stats);
+                setPredictions(calculatePredictions(profile.stats));
 
-                // Calculate predictions from user stats
-                const predictions = calculatePredictions(profile.stats);
-                setPredictions(predictions);
-
-                // Fetch community stats
                 try {
-                    const { data: communityData, error: communityError } = await supabase
-                        .rpc('get_community_stats', { p_user_id: user.id });
-
-                    if (communityError) {
-                        console.error('Error fetching community stats:', communityError);
-                    } else if (communityData) {
-                        setCommunityStats(communityData);
-                    }
+                    const { data: communityData } = await supabase.rpc('get_community_stats', { p_user_id: user.id });
+                    if (communityData) setCommunityStats(communityData);
                 } catch (err) {
                     console.error('Community stats unavailable:', err);
                 }
@@ -124,11 +222,58 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
         }
     };
 
+    const hydrateHighlightCards = async (userStats: WrappedStats) => {
+        const firstWatchTitle = userStats.first_watch_of_year?.title?.trim();
+        const topRewatchTitle = Object.entries(userStats.title_rewatch_counts || {})
+            .sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0]?.trim();
+        const comfortTitles = Object.entries(userStats.title_rewatch_counts || {})
+            .sort(([, a], [, b]) => (b as number) - (a as number))
+            .slice(0, 3)
+            .map(([title]) => title?.trim())
+            .filter((value): value is string => Boolean(value));
+
+        const lookups: Promise<[Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null]>[] = [];
+
+        if (firstWatchTitle) {
+            lookups.push(
+                TmdbService.search(firstWatchTitle, { type: userStats.first_watch_of_year?.type === 'tv' ? 'tv' : 'movie' })
+                    .then(results => ['firstWatch', results[0] || null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+                    .catch(() => ['firstWatch', null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+            );
+        }
+
+        if (topRewatchTitle) {
+            lookups.push(
+                TmdbService.search(topRewatchTitle, { type: 'multi' })
+                    .then(results => ['topRewatch', results[0] || null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+                    .catch(() => ['topRewatch', null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+            );
+        }
+
+        if (lookups.length === 0 && comfortTitles.length === 0) return;
+
+        const resolved = lookups.length > 0 ? await Promise.all(lookups) : [];
+        const comfortShelf = (await Promise.all(
+            comfortTitles.map(title =>
+                TmdbService.search(title, { type: 'multi' })
+                    .then(results => results[0] || null)
+                    .catch(() => null)
+            )
+        )).filter((movie): movie is Movie => Boolean(movie));
+
+        setHighlightCards(prev => {
+            const next = { ...prev };
+            resolved.forEach(([key, movie]) => {
+                next[key] = movie;
+            });
+            next.comfortShelf = comfortShelf;
+            return next;
+        });
+    };
+
     const calculatePredictions = (userStats: WrappedStats): PredictiveInsights => {
         const monthlyData = Object.entries(userStats.monthly_watches || {});
         const totalContent = userStats.total_movies + userStats.total_shows;
-
-        // Calculate trend (last 6 months vs first 6 months)
         const sortedMonths = monthlyData.sort((a, b) => a[0].localeCompare(b[0]));
         const recentMonths = sortedMonths.slice(-6);
         const earlierMonths = sortedMonths.slice(0, Math.min(6, sortedMonths.length - 6));
@@ -140,35 +285,17 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
             ? earlierMonths.reduce((sum, [, count]) => sum + (count as number), 0) / earlierMonths.length
             : recentAvg;
 
-        // Calculate growth rate
         const growthRate = earlierAvg > 0 ? ((recentAvg - earlierAvg) / earlierAvg) * 100 : 0;
-
-        // Project 2027 (12 months * recent average with growth adjustment)
         const baseProjection = recentAvg * 12;
         const trendAdjustment = growthRate > 0 ? baseProjection * (growthRate / 100) * 0.5 : 0;
         const projected2027 = Math.round(baseProjection + trendAdjustment);
-
-        // Confidence based on data completeness
         const dataCompleteness = monthlyData.length / 12;
         const trendStability = Math.abs(growthRate) < 20 ? 1 : Math.abs(growthRate) < 50 ? 0.7 : 0.4;
         const confidenceScore = dataCompleteness * trendStability;
-
         const confidence: 'high' | 'medium' | 'low' =
             confidenceScore > 0.7 ? 'high' : confidenceScore > 0.4 ? 'medium' : 'low';
 
-        // Find trending genre (comparing Q4 vs Q1)
-        let trendingGenre: string | null = null;
-        let genreTrendDirection: 'increasing' | 'stable' | 'decreasing' = 'stable';
-
-        if (userStats.genre_counts) {
-            const genres = Object.entries(userStats.genre_counts);
-            if (genres.length > 0) {
-                trendingGenre = genres.sort((a, b) => (b[1] as number) - (a[1] as number))[0][0];
-                genreTrendDirection = growthRate > 10 ? 'increasing' : growthRate < -10 ? 'decreasing' : 'stable';
-            }
-        }
-
-        // Calculate next milestone
+        const trendingGenre = Object.entries(userStats.genre_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0] || null;
         const milestones = [50, 100, 250, 500, 750, 1000, 1500, 2000];
         const nextMilestoneValue = milestones.find(m => m > totalContent) || totalContent + 100;
 
@@ -176,7 +303,6 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
             projected_2027_total: projected2027,
             confidence,
             trending_genre: trendingGenre,
-            genre_trend_direction: genreTrendDirection,
             growth_rate: Math.round(growthRate),
             next_milestone: {
                 type: 'total',
@@ -194,617 +320,492 @@ export const WrappedPage: React.FC<WrappedPageProps> = ({ onClose }) => {
         if (currentSlide > 0) setCurrentSlide(c => c - 1);
     };
 
-    if (loading) return (
-        <div className="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center space-y-8">
-            <div className="relative animate-bounce-slow">
-                {/* Casper-Style Cute Ghost with Remote */}
-                <svg width="140" height="140" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-                    {/* Casper-like Bulbous Head & Body */}
-                    <path d="M50 10 C 25 10 10 35 15 65 C 18 80 25 85 30 85 C 35 85 40 80 45 80 C 50 80 55 85 60 85 C 65 85 75 80 85 65 C 90 35 75 10 50 10 Z" fill="white" />
-
-                    {/* Big Expressive Eyes */}
-                    <ellipse cx="40" cy="42" rx="6" ry="8" fill="#1a1a1a" />
-                    <ellipse cx="60" cy="42" rx="6" ry="8" fill="#1a1a1a" />
-                    {/* Eye Sparkles */}
-                    <circle cx="42" cy="38" r="2.5" fill="white" />
-                    <circle cx="62" cy="38" r="2.5" fill="white" />
-
-                    {/* Cute Blush */}
-                    <ellipse cx="38" cy="52" rx="4" ry="2" fill="#FFB7B2" opacity="0.6" />
-                    <ellipse cx="62" cy="52" rx="4" ry="2" fill="#FFB7B2" opacity="0.6" />
-
-                    {/* Friendly Smile */}
-                    <path d="M45 50 Q 50 54 55 50" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
-
-                    {/* Christmas Hat (Perched on round head) */}
-                    <path d="M28 22 C 28 22, 10 5, 45 5" stroke="#EF4444" strokeWidth="0" fill="#EF4444" />
-                    <path d="M25 20 C 25 20, 45 -5, 75 20 Z" fill="#EF4444" />
-                    <circle cx="78" cy="20" r="7" fill="white" /> {/* Pompom */}
-                    <path d="M22 22 H 78 Q 50 32 22 22 Z" fill="white" /> {/* White Trim */}
-
-                    {/* Arm holding Remote (Animated "Trying to make it work") */}
-                    <g className="origin-bottom-right animate-pulse" style={{ transformBox: 'fill-box', transformOrigin: '80% 80%' }}>
-                        <path d="M75 60 C 80 60 85 55 90 50" stroke="white" strokeWidth="6" strokeLinecap="round" />
-                        {/* The Remote */}
-                        <g transform="translate(85, 40) rotate(-15)">
-                            <rect x="0" y="0" width="12" height="20" rx="2" fill="#333" />
-                            <circle cx="6" cy="5" r="2" fill="#EF4444" /> {/* Red Power Button */}
-                            <rect x="3" y="9" width="6" height="1.5" rx="0.5" fill="#555" />
-                            <rect x="3" y="12" width="6" height="1.5" rx="0.5" fill="#555" />
-                            {/* Infrared Beams */}
-                            <path d="M6 -2L6 -8M2 -3L-2 -7M10 -3L14 -7" stroke="#EF4444" strokeWidth="1.5" className="animate-ping opacity-75" />
-                        </g>
-                    </g>
-                </svg>
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-                <span className="text-white text-lg font-mono tracking-widest uppercase animate-pulse">
-                    {`We are preparing your ${currentYear} session recap`}
-                </span>
-                <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"></div>
+    if (loading) {
+        return (
+            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center space-y-8 bg-black">
+                <div className="h-24 w-24 rounded-full border border-white/10 bg-white/5" />
+                <div className="text-lg font-mono uppercase tracking-[0.28em] text-white/70">
+                    Preparing your wrapped
                 </div>
             </div>
-        </div>
-    );
+        );
+    }
 
     if (!stats) return null;
 
-    // Calculated Stats
     const totalContent = stats.total_movies + stats.total_shows;
     const nostalgiaScore = totalContent > 0 ? Math.round((stats.rewatch_count / totalContent) * 100) : 0;
-    const movieRatio = totalContent > 0 ? stats.total_movies / totalContent : 0;
-    const discoveryRate = totalContent > 0 ? Math.round(((totalContent - stats.rewatch_count) / totalContent) * 100) : 0;
-
-    // Personality Types
-    const viewingStyle = nostalgiaScore >= 15 ? "Comfort Seeker" : "Explorer";
-    const contentPreference = movieRatio > 0.6 ? "Movie Buff" : movieRatio < 0.4 ? "Series Addict" : "Balanced Viewer";
-    const bingeLevel = stats.binge_days > 30 ? "Binge Champion" : stats.binge_days <= 10 ? "Casual Viewer" : "Moderate Binger";
-
-    // Peak Month
+    const topGenres = Object.entries(stats.genre_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 5);
+    const dominantGenre = topGenres[0]?.[0] || '-';
     const peakMonth = Object.entries(stats.monthly_watches || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0];
-    const peakMonthName = peakMonth ? new Date(peakMonth[0] + '-01').toLocaleDateString('en-US', { month: 'long' }) : 'Unknown';
-    const peakMonthCount = peakMonth ? peakMonth[1] : 0;
-
-    // Top Rewatched Title
+    const peakMonthName = monthLabel(peakMonth?.[0]);
+    const peakMonthCount = Number(peakMonth?.[1] || 0);
     const topRewatch = Object.entries(stats.title_rewatch_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0];
+    const moviePercent = totalContent > 0 ? Math.round((stats.total_movies / totalContent) * 100) : 0;
+    const showPercent = 100 - moviePercent;
+    const topDay = Object.entries(stats.daily_watch_count || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0];
+    const topDayDate = topDay?.[0] ? readableDate(topDay[0]) : 'Unknown day';
+    const topDayCount = Number(topDay?.[1] || 0);
+    const previousYearStats = stats.past_years?.[String(currentYear - 1)];
+    const previousYearTotal = previousYearStats ? (previousYearStats.total_movies || 0) + (previousYearStats.total_shows || 0) : 0;
+    const yoyDelta = previousYearTotal > 0 ? totalContent - previousYearTotal : 0;
+    const viewingStyle = nostalgiaScore >= 15 ? 'Comfort Seeker' : 'Explorer';
+    const firstWatchKey = movieKey(highlightCards.firstWatch);
+    const topRewatchKey = movieKey(highlightCards.topRewatch);
+    const comfortShelf = dedupeMovies(highlightCards.comfortShelf || []).filter(movie => {
+        const key = movieKey(movie);
+        return key !== firstWatchKey && key !== topRewatchKey;
+    });
+    const rewatchCountsByTitle = stats.title_rewatch_counts || {};
+    const posterMosaic = dedupeMovies(comfortShelf).slice(0, 4);
+    const compareCards = dedupeMovies([highlightCards.firstWatch, highlightCards.topRewatch]).slice(0, 2);
 
-    // Slide Content Generators
     const slides = [
-        // Slide 1: Intro
-        <div key="intro" className="h-full flex flex-col justify-center items-center p-8 pl-24 md:pl-32 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-black to-black animate-pulse-slow" />
-            <div className="absolute top-0 right-0 w-[80vw] h-[80vw] bg-violet-600/10 rounded-full blur-[150px] mix-blend-screen" />
-            <h1 className="text-[12vw] leading-[0.8] font-black tracking-tighter mix-blend-difference z-10 select-none text-center flex flex-col items-center">
-                <span className="block animate-slide-up-fade delay-500">{currentYear}</span>
-                <span className="block animate-slide-up-fade delay-1000">WRAP</span>
-                <span className="block animate-slide-up-fade delay-[1500ms]">PED.</span>
-            </h1>
-            <p className="mt-12 text-sm text-white/50 font-mono tracking-[0.4em] uppercase z-10 text-center animate-zoom-in-fade delay-[2500ms]">
-                Your Year in Cinema
-            </p>
+        <div key="intro" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-black to-black" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_42%)]" />
+            <div className="relative z-10 max-w-5xl">
+                <div className="text-[10px] font-mono uppercase tracking-[0.36em] text-white/45">Your year in cinema</div>
+                <h1 className="mt-8 text-[10vw] font-black leading-[0.82] tracking-tighter text-white">
+                    {currentYear}
+                    <span className="block bg-gradient-to-b from-white to-white/45 bg-clip-text text-transparent">WRAPPED</span>
+                </h1>
+                <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-400">
+                    The titles, returns, streaks, and sessions that shaped how your year actually felt.
+                </p>
+            </div>
         </div>,
 
-        // Slide 2: The Volume
-        <div key="volume" className="h-full flex flex-col justify-center p-12 pl-24 md:pl-32 pb-24 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-bl from-emerald-900/10 via-black to-black" />
-            <Film className="absolute -bottom-20 -right-20 w-[60vh] h-[60vh] text-emerald-900/10 rotate-12" />
-
-            <h2 className="text-emerald-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-8 relative z-10 ml-1">The Volume</h2>
-
-            <div className="relative z-10">
-                <span className="block text-[15vw] leading-[0.8] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-emerald-600/50 pb-4">
+        <div key="volume" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/18 via-black to-black" />
+            <Film className="absolute -bottom-24 -right-24 h-[32rem] w-[32rem] rotate-12 text-emerald-900/10" />
+            <div className="relative z-10 max-w-5xl">
+                <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-emerald-300/75">What you put in</div>
+                <div className="mt-6 bg-gradient-to-r from-emerald-100 to-emerald-500/50 bg-clip-text text-[12vw] font-black leading-[0.82] tracking-tighter text-transparent">
                     {totalContent}
-                </span>
-                <span className="block text-4xl md:text-5xl font-light text-zinc-500 tracking-tight mt-4">
-                    Qualified Sessions
-                </span>
-                <p className="mt-3 max-w-xl text-xs text-zinc-600 uppercase tracking-[0.2em]">
-                    Movies plus qualified TV episode sessions
-                </p>
-            </div>
-
-            <div className="mt-24 flex gap-16 relative z-10">
-                <div>
-                    <span className="block text-5xl font-bold text-white mb-2">{stats.total_movies}</span>
-                    <span className="text-xs text-zinc-600 uppercase tracking-[0.2em] font-medium">Movie Sessions</span>
                 </div>
-                <div>
-                    <span className="block text-5xl font-bold text-white mb-2">{stats.total_shows}</span>
-                    <span className="text-xs text-zinc-600 uppercase tracking-[0.2em] font-medium">Episode Sessions</span>
+                <div className="mt-4 text-5xl font-light tracking-tight text-zinc-400">qualified sessions made the cut</div>
+                <div className="mt-12 grid max-w-3xl grid-cols-2 gap-6">
+                    <div className="rounded-[30px] border border-white/10 bg-white/[0.03] p-6">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Movies</div>
+                        <div className="mt-3 text-5xl font-black text-white">{stats.total_movies}</div>
+                    </div>
+                    <div className="rounded-[30px] border border-white/10 bg-white/[0.03] p-6">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Episodes</div>
+                        <div className="mt-3 text-5xl font-black text-white">{stats.total_shows}</div>
+                    </div>
                 </div>
             </div>
         </div>,
 
-        // Slide 3: The Vibe
-        <div key="vibe" className="h-full flex flex-col justify-center p-12 pl-24 md:pl-32 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-pink-900/10 via-black to-black" />
-            <div className="absolute top-1/2 right-0 w-[40vw] h-[40vw] bg-pink-600/10 rounded-full blur-[120px]" />
+        <div key="split" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/14 via-black to-violet-900/10" />
+            <div className="relative z-10 grid grid-cols-[0.95fr_1.05fr] gap-12">
+                <div className="flex flex-col justify-center">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-cyan-300/75">How you watched</div>
+                    <h2 className="mt-6 text-6xl font-black leading-[0.92] tracking-tight text-white">
+                        {moviePercent >= showPercent ? 'Cinema leaned year' : 'Series leaned year'}
+                    </h2>
+                    <p className="mt-5 max-w-lg text-lg leading-8 text-zinc-400">
+                        You spent more of this year {moviePercent >= showPercent ? 'chasing standalone movie nights' : 'living inside episode-to-episode momentum'}.
+                    </p>
+                </div>
+                <div className="rounded-[34px] border border-white/10 bg-white/[0.03] p-7">
+                    <div className="mb-5 flex items-end justify-between border-b border-white/10 pb-4">
+                        <div>
+                            <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Split this year</div>
+                            <div className="mt-2 text-3xl font-black text-white">{moviePercent}% / {showPercent}%</div>
+                        </div>
+                        <div className="text-right text-sm leading-6 text-zinc-400">
+                            <div>Films vs episodes</div>
+                            <div>across every qualified session</div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-5">
+                        <div className="rounded-[24px] border border-white/10 bg-black/35 p-5">
+                            <Clapperboard className="mb-4 h-5 w-5 text-white/70" />
+                            <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Movies</div>
+                            <div className="mt-2 text-4xl font-black text-white">{stats.total_movies}</div>
+                            <div className="mt-2 text-sm text-zinc-400">{moviePercent}% of your wrapped</div>
+                        </div>
+                        <div className="rounded-[24px] border border-white/10 bg-black/35 p-5">
+                            <Tv className="mb-4 h-5 w-5 text-white/70" />
+                            <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Episodes</div>
+                            <div className="mt-2 text-4xl font-black text-white">{stats.total_shows}</div>
+                            <div className="mt-2 text-sm text-zinc-400">{showPercent}% of your wrapped</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>,
 
-            <h2 className="text-pink-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-16 relative z-10 ml-1">The Vibe</h2>
+        <div key="first-watch" className={`relative h-full overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-900/18 via-black to-black" />
+            <div className="relative z-10 h-full">
+                <WrappedSpotlight
+                    eyebrow="Your opener"
+                    title={stats.first_watch_of_year?.title || 'No first watch saved'}
+                    subtitle={stats.first_watch_of_year ? `${stats.first_watch_of_year.type === 'tv' ? 'Series start' : 'Movie night'} • ${readableDate(stats.first_watch_of_year.date)}` : 'No first watch data captured yet'}
+                    movie={highlightCards.firstWatch || undefined}
+                    accent="violet"
+                />
+            </div>
+        </div>,
 
-            <div className="flex flex-col gap-6 relative z-10">
-                {Object.entries(stats.genre_counts || {})
-                    .sort(([, a], [, b]) => (b as number) - (a as number))
-                    .slice(0, 5)
-                    .map(([genre, count], index) => {
-                        const style = index === 0
-                            ? "text-[8vw] leading-none text-white opacity-100 pl-4 border-l-4 border-pink-500"
-                            : `text-[4vw] leading-none text-zinc-600 opacity-${80 - (index * 15)}`;
-
-                        return (
-                            <div key={genre} className="flex items-baseline gap-6 transition-all hover:opacity-100">
-                                <span className={`font-black tracking-tighter uppercase transition-all duration-500 ${style}`}>
-                                    {genre}
-                                </span>
-                                {index === 0 && (
-                                    <span className="text-xl font-mono text-pink-400">{count}</span>
-                                )}
+        <div key="genres" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-900/18 via-black to-black" />
+            <div className="relative z-10 grid max-w-6xl grid-cols-[0.9fr_1.1fr] gap-12">
+                <div className="flex flex-col justify-center">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-pink-300/75">Your taste map</div>
+                    <div className="mt-6 max-w-md text-6xl font-black uppercase leading-[0.9] tracking-tight text-white">
+                        {dominantGenre}
+                    </div>
+                    <p className="mt-5 max-w-md text-lg leading-8 text-zinc-400">
+                        This genre showed up more than anything else in the year you built.
+                    </p>
+                </div>
+                <div className="grid gap-4">
+                    {topGenres.map(([genre, count], index) => (
+                        <div key={genre} className={`flex items-center justify-between rounded-[24px] border px-6 py-5 ${index === 0 ? 'border-pink-400/20 bg-pink-400/10' : 'border-white/10 bg-white/[0.03]'}`}>
+                            <div className={`font-black uppercase tracking-tight ${index === 0 ? 'text-3xl text-white' : 'text-xl text-zinc-300'}`}>
+                                {genre}
                             </div>
-                        );
-                    })}
-            </div>
-        </div>,
-
-        // Slide 4: Habits
-        <div key="habits" className="h-full flex flex-col justify-center p-12 pl-24 md:pl-32 pb-24 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-900/10 via-black to-blue-900/10" />
-
-            <h2 className="text-zinc-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-24 relative z-10 ml-1">Habits</h2>
-
-            <div className="flex flex-col gap-16 relative z-10 max-w-4xl pb-10">
-                <div className="group transition-all duration-500 hover:translate-x-4">
-                    <span className="block text-[8vw] leading-[0.8] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-200 to-orange-600/50 mb-4 pb-2">
-                        {stats.max_streak} DAYS
-                    </span>
-                    <div className="flex items-center gap-4 text-zinc-500 group-hover:text-orange-400 transition-colors">
-                        <Flame className="w-5 h-5" />
-                        <span className="text-xs font-mono uppercase tracking-[0.2em]">Longest Streak (Current: {stats.streak_days})</span>
-                    </div>
-                </div>
-
-                <div className="group transition-all duration-500 hover:translate-x-4">
-                    <span className="block text-[8vw] leading-[0.8] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-blue-600/50 mb-4 pb-2">
-                        {stats.rewatch_count} TITLES
-                    </span>
-                    <div className="flex items-center gap-4 text-zinc-500 group-hover:text-blue-400 transition-colors">
-                        <RotateCcw className="w-5 h-5" />
-                        <span className="text-xs font-mono uppercase tracking-[0.2em]">Repeat Qualified Sessions</span>
-                    </div>
+                            <div className={`text-sm font-mono uppercase tracking-[0.24em] ${index === 0 ? 'text-pink-200' : 'text-zinc-500'}`}>
+                                {count} sessions
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>,
 
-        // Slide 5: First Watch (if exists)
-        ...(stats.first_watch_of_year ? [
-            <div key="first" className="h-full flex flex-col justify-center p-12 pl-24 md:pl-32 bg-black text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tl from-cyan-900/10 via-black to-black" />
-                <Calendar className="absolute top-20 right-20 w-64 h-64 text-cyan-900/5 rotate-12" />
+        <div key="peak-month" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-900/16 via-black to-zinc-950" />
+            <div className="relative z-10 grid grid-cols-[0.9fr_1.1fr] gap-12">
+                <div className="flex flex-col justify-center">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-sky-300/75">Your busiest run</div>
+                    <div className="mt-6 text-7xl font-black leading-none tracking-tight text-white">{peakMonthName}</div>
+                    <p className="mt-5 max-w-md text-lg leading-8 text-zinc-400">
+                        This was the stretch where your year really accelerated.
+                    </p>
+                </div>
+                <div className="rounded-[34px] border border-white/10 bg-white/[0.03] p-8">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">Qualified sessions in that month</div>
+                    <div className="mt-4 text-[8vw] font-black leading-none tracking-tighter text-white">{peakMonthCount}</div>
+                    {previousYearTotal > 0 ? (
+                        <div className="mt-8 border-t border-white/10 pt-6">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">{currentYear - 1} vs {currentYear}</div>
+                            <div className="mt-3 text-4xl font-black text-white">
+                                {yoyDelta > 0 ? '+' : yoyDelta < 0 ? '-' : ''}{Math.abs(yoyDelta)}
+                            </div>
+                            <div className="mt-2 text-sm text-zinc-400">
+                                sessions compared with last year
+                            </div>
+                        </div>
+                    ) : null}
+                </div>
+            </div>
+        </div>,
 
-                <h2 className="text-cyan-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-16 relative z-10 ml-1">{`First Qualified Watch of ${currentYear}`}</h2>
-
-                <div className="relative z-10">
-                    <span className="block text-[8vw] leading-[0.9] font-black tracking-tighter mb-8 max-w-4xl">
-                        {stats.first_watch_of_year.title}
-                    </span>
-                    <div className="inline-block px-6 py-3 border border-cyan-500/30 rounded-full bg-cyan-900/10 backdrop-blur-sm">
-                        <span className="font-mono text-cyan-300 uppercase tracking-widest text-sm">
-                            {new Date(stats.first_watch_of_year.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-                        </span>
+        <div key="habits" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-900/12 via-black to-blue-900/10" />
+            <div className="relative z-10 grid grid-cols-2 gap-7">
+                <div className="rounded-[34px] border border-white/10 bg-white/[0.03] p-8">
+                    <div className="flex items-center gap-3 text-zinc-500">
+                        <Flame size={18} className="text-orange-400" />
+                        <span className="text-[10px] font-mono uppercase tracking-[0.26em]">You kept showing up</span>
+                    </div>
+                    <div className="mt-5 text-[7vw] font-black leading-none tracking-tighter text-white">{stats.max_streak}</div>
+                    <div className="mt-2 text-2xl font-light text-zinc-400">days in a row</div>
+                </div>
+                <div className="rounded-[34px] border border-white/10 bg-white/[0.03] p-8">
+                    <div className="flex items-center gap-3 text-zinc-500">
+                        <CalendarRange size={18} className="text-sky-300" />
+                        <span className="text-[10px] font-mono uppercase tracking-[0.26em]">Your hardest binge day</span>
+                    </div>
+                    <div className="mt-5 text-[7vw] font-black leading-none tracking-tighter text-white">{topDayCount || stats.binge_days}</div>
+                    <div className="mt-3 text-base leading-7 text-zinc-400">
+                        {topDayCount > 0 ? `${topDayDate} was your busiest watch day.` : `${stats.binge_days} binge days crossed the threshold.`}
                     </div>
                 </div>
+            </div>
+        </div>,
 
-                <p className="absolute bottom-20 text-zinc-700 font-mono text-xs uppercase tracking-[0.2em]">
-                    Started the year right
+        <div key="rewatch" className={`relative h-full overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-900/16 via-black to-black" />
+            <div className="relative z-10 h-full">
+                <WrappedSpotlight
+                    eyebrow="Your comfort title"
+                    title={topRewatch?.[0] || 'No repeat title yet'}
+                    subtitle={topRewatch ? `${topRewatch[1]} completed returns • comfort-watch signal` : 'No major rewatch title recorded yet'}
+                    movie={highlightCards.topRewatch || undefined}
+                    accent="amber"
+                />
+            </div>
+        </div>,
+
+        ...(compareCards.length >= 2 ? [<div key="compare-cards" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-950/20 via-black to-amber-950/16" />
+            <div className="relative z-10 grid grid-cols-[0.82fr_1.18fr] gap-12">
+                <div className="flex flex-col justify-center">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-white/45">Two ends of the year</div>
+                    <h2 className="mt-6 text-6xl font-black leading-[0.92] tracking-tight text-white">
+                        How it opened, and where you kept returning
+                    </h2>
+                    <p className="mt-5 max-w-lg text-lg leading-8 text-zinc-400">
+                        One title kicked the year off. Another became the place you returned to when the year needed something familiar.
+                    </p>
+                </div>
+                <div className="flex items-center gap-6">
+                    <WrappedPosterMini
+                        movie={compareCards[0]}
+                        caption="First watch"
+                        subcaption={stats.first_watch_of_year ? readableDate(stats.first_watch_of_year.date) : undefined}
+                    />
+                    <WrappedPosterMini
+                        movie={compareCards[1]}
+                        caption="Most revisited"
+                        subcaption={topRewatch ? `${topRewatch[1]} returns` : undefined}
+                    />
+                </div>
+            </div>
+        </div>] : []),
+
+        ...(comfortShelf.length > 0 ? [<div key="comfort-shelf" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-950/22 via-black to-black" />
+            <div className="relative z-10">
+                <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-amber-200/70">Comfort shelf</div>
+                <div className="mt-5 max-w-3xl text-5xl font-black leading-[0.95] tracking-tight text-white">
+                    The posters you kept reaching for
+                </div>
+                <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-400">
+                    These are the titles that held the strongest repeat pull in your wrapped.
                 </p>
-            </div>
-        ] : []),
-
-        // Slide 6: Top Rewatch (if exists)
-        ...(topRewatch ? [
-            <div key="toprewatch" className="h-full flex flex-col justify-center p-12 pl-24 md:pl-32 bg-black text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tr from-violet-900/10 via-black to-black" />
-                <div className="absolute bottom-0 left-0 w-full h-[30vh] bg-gradient-to-t from-violet-900/20 to-transparent" />
-
-                <h2 className="text-violet-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-12 relative z-10 ml-1">Most Repeated Session</h2>
-
-                <div className="relative z-10">
-                    <span className="block text-[8vw] leading-[0.9] font-black tracking-tighter mb-12 max-w-5xl">
-                        {topRewatch[0]}
-                    </span>
-
-                    <div className="flex items-center gap-8">
-                        <span className="text-[12vw] leading-none font-black text-transparent bg-clip-text bg-gradient-to-b from-violet-200 to-violet-600/50">
-                            {topRewatch[1]}
-                        </span>
-                        <div className="flex flex-col justify-center h-full pt-4">
-                            <span className="text-xl font-bold text-white uppercase tracking-widest">Times</span>
-                            <span className="text-sm text-zinc-500 uppercase tracking-[0.2em]">Repeat Sessions</span>
-                        </div>
-                    </div>
+                <div className="mt-10 flex gap-6">
+                    {comfortShelf.slice(0, 3).map((movie, index) => (
+                        <WrappedPosterMini
+                            key={`${movie.id}-${index}`}
+                            movie={movie}
+                            caption={`Return ${index + 1}`}
+                            subcaption={rewatchCountsByTitle[movie.title] ? `${rewatchCountsByTitle[movie.title]} returns` : undefined}
+                        />
+                    ))}
                 </div>
             </div>
-        ] : []),
+        </div>] : []),
 
-        // Slide 7: Peak Month
-        ...(peakMonth ? [
-            <div key="peak" className="h-full flex flex-col justify-center p-12 pl-24 md:pl-32 bg-black text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-black via-black to-amber-900/20" />
-
-                <h2 className="text-amber-500/60 text-xs font-bold tracking-[0.4em] uppercase mb-12 relative z-10 ml-1">Peak Activity</h2>
-
-                <div className="relative z-10 flex flex-col items-start gap-8">
-                    <span className="text-[15vw] leading-[0.8] font-black tracking-tighter text-white uppercase mix-blend-difference">
-                        {peakMonthName}
-                    </span>
-
-                    <div className="flex items-center gap-6 pl-4 border-l-4 border-amber-500">
-                        <span className="text-6xl font-black text-amber-500">{peakMonthCount}</span>
-                        <span className="text-sm text-zinc-400 uppercase tracking-widest max-w-[100px] leading-relaxed">
-                            Qualified Sessions
-                        </span>
-                    </div>
+        ...(posterMosaic.length >= 3 ? [<div key="poster-mosaic" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-black to-black" />
+            <div className="relative z-10 grid grid-cols-[0.76fr_1.24fr] gap-12">
+                <div className="flex flex-col justify-center">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-white/45">Your year in posters</div>
+                    <h2 className="mt-6 text-6xl font-black leading-[0.92] tracking-tight text-white">
+                        A quick visual of what your wrapped looked like
+                    </h2>
+                    <p className="mt-5 max-w-lg text-lg leading-8 text-zinc-400">
+                        Not every title, just the cards that best summarize how your year felt on screen.
+                    </p>
+                </div>
+                <div className="grid grid-cols-2 gap-5">
+                    {posterMosaic.map((movie, index) => (
+                        <div key={`${movie.id}-${index}`} className="relative aspect-[2/3] overflow-hidden rounded-[28px] border border-white/10 bg-zinc-950">
+                            <img src={movie.imageUrl} alt={movie.title} className="h-full w-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
+                            <div className="absolute inset-x-0 bottom-0 p-4">
+                                <div className="rounded-[16px] border border-white/10 bg-black/45 p-3 backdrop-blur-xl">
+                                    <div className="line-clamp-2 text-base font-black leading-tight text-white">{movie.title}</div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
-        ] : []),
+        </div>] : []),
 
-        // Slide 7.5: Predictive Insights (Next-Year Projection) - Minimalist Maximalism
-        ...(predictions ? [
-            <div key="predictions" className="h-full flex flex-col justify-center items-center p-8 bg-zinc-950 text-white relative overflow-hidden">
-                {/* Background Texture */}
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
-
-                {/* Massive Background Year - The "Maximalist" Element */}
-                <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none overflow-hidden">
-                    <span className="text-[35vw] font-black tracking-tighter text-zinc-900/50 scale-150 transform rotate-[5deg] mix-blend-color-dodge blur-sm">
-                        {nextYear}
-                    </span>
-                </div>
-
-                <div className="relative z-10 w-full max-w-6xl flex flex-col h-full justify-between py-24">
-                    {/* Header - The "Minimalist" Element */}
-                    <div className="text-center">
-                        <h2 className="text-sm font-mono text-cyan-500 uppercase tracking-[0.5em] mb-2">Future Forecast</h2>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white uppercase">The Next Chapter</h1>
-                    </div>
-
-                    {/* Stats Layout - High Contrast Overlay */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-center md:text-left items-end">
-
-                        {/* Stat 1: Projected Total */}
-                        <div className="group flex flex-col items-center md:items-start border-l-2 border-zinc-800 pl-6 hover:border-cyan-500 transition-colors duration-500">
-                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Projected Total</span>
-                            <span className="text-6xl md:text-7xl font-black text-white leading-[0.8]">
-                                {predictions.projected_2027_total}
-                            </span>
-                            <span className="text-sm font-bold text-zinc-600 mt-2">Qualified Sessions Forecasted</span>
+        ...(communityStats ? [
+            <div key="community" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+                <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-900/16 via-black to-black" />
+                <div className="relative z-10 grid grid-cols-[0.9fr_1.1fr] gap-12">
+                    <div className="flex flex-col justify-center">
+                        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-[10px] font-mono uppercase tracking-[0.28em] text-zinc-400">
+                            <Users size={12} className="text-fuchsia-300" />
+                            Against everyone else
                         </div>
-
-                        {/* Stat 2: Trajectory */}
-                        <div className="group flex flex-col items-center md:items-start border-l-2 border-zinc-800 pl-6 hover:border-green-500 transition-colors duration-500">
-                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Trajectory</span>
-                            <span className={`text-6xl md:text-7xl font-black leading-[0.8] ${predictions.growth_rate >= 0 ? 'text-white' : 'text-zinc-400'}`}>
-                                {predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}%
-                            </span>
-                            <span className="text-sm font-bold text-zinc-600 mt-2">Annual Growth</span>
-                        </div>
-
-                        {/* Stat 3: Next Goal */}
-                        <div className="group flex flex-col items-center md:items-start border-l-2 border-zinc-800 pl-6 hover:border-purple-500 transition-colors duration-500">
-                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Next Milestone</span>
-                            {predictions.next_milestone ? (
-                                <>
-                                    <span className="text-6xl md:text-7xl font-black text-white leading-[0.8]">
-                                        {predictions.next_milestone.target}
-                                    </span>
-                                    <span className="text-sm font-bold text-zinc-600 mt-2">
-                                        {predictions.next_milestone.remaining} titles to go
-                                    </span>
-                                </>
-                            ) : (
-                                <span className="text-4xl font-black text-zinc-500 leading-tight">All Goals Met</span>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Confidence Indicator */}
-                    <div className="flex justify-center mt-12">
-                        <div className="inline-flex items-center gap-3 px-6 py-3 border border-zinc-800 bg-black/50 backdrop-blur-md rounded-full">
-                            <div className={`w-2 h-2 rounded-full ${predictions.confidence === 'high' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]' :
-                                predictions.confidence === 'medium' ? 'bg-yellow-500' : 'bg-red-500'
-                                }`} />
-                            <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
-                                {predictions.confidence} Confidence Level
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="absolute bottom-8 w-full text-center">
-                        <p className="font-mono text-[9px] uppercase tracking-[0.5em] opacity-30 text-zinc-500">
-                            Predictive AI Model • v2.1
+                        <h2 className="mt-7 text-6xl font-black leading-[0.92] tracking-tight text-white">
+                            Top {Math.max(1, 100 - Math.round(communityStats.user_percentile.total_content))}%
+                        </h2>
+                        <p className="mt-5 max-w-lg text-lg leading-8 text-zinc-400">
+                            You logged more qualifying sessions than most people on the platform this year.
                         </p>
                     </div>
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">You</div>
+                            <div className="mt-3 text-5xl font-black text-white">{communityStats.user_stats.total_content}</div>
+                            <div className="mt-2 text-sm text-zinc-400">qualified sessions</div>
+                        </div>
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Median</div>
+                            <div className="mt-3 text-5xl font-black text-white">{Math.round(communityStats.median_total)}</div>
+                            <div className="mt-2 text-sm text-zinc-400">qualified sessions</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         ] : []),
 
-        // Slide 7.6: You vs Community
-        ...(communityStats && communityStats.total_users >= 10 ? [
-            <div key="community" className="h-full flex flex-col justify-center items-center p-8 bg-black text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-900/20 via-black to-black" />
-
-                {/* Massive Percentile Header */}
-                <div className="relative z-10 text-center mb-16">
-                    <span className="block text-xs font-mono text-amber-500 uppercase tracking-[0.4em] mb-4">Global Rank</span>
-                    <span className="block text-[15vw] leading-[0.9] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-orange-400 pb-8">
-                        TOP {Math.round(100 - communityStats.user_percentile.total_content)}%
-                    </span>
-                    <span className="block text-sm text-zinc-500 font-mono uppercase tracking-[0.2em] -mt-2">
-                        Among {communityStats.total_users.toLocaleString()} Viewers
-                    </span>
-                </div>
-
-                {/* Grid Stats */}
-                <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-24 text-center">
-                    {/* Total Volume */}
-                    <div className="group">
-                        <span className="block text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] mb-2 group-hover:text-amber-400 transition-colors">
-                            Total Volume
-                        </span>
-                        <div className="flex flex-col items-center">
-                            <span className="text-5xl md:text-6xl font-black text-white mb-2">
-                                {communityStats.user_stats.total_content}
-                            </span>
-                            <span className="text-xs text-zinc-600 uppercase tracking-widest">
-                                Avg: {Math.round(communityStats.avg_total_content)}
-                            </span>
+        ...(predictions ? [
+            <div key="forecast" className={`relative flex h-full flex-col justify-center overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+                <div className="absolute inset-0 bg-zinc-950" />
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                <div className="absolute right-20 top-12 h-48 w-48 rounded-full bg-cyan-400/6 blur-3xl" />
+                <div className="relative z-10 grid grid-cols-[0.84fr_1.16fr] gap-12">
+                    <div className="flex flex-col justify-center">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-cyan-300/75">If this keeps going</div>
+                        <h2 className="mt-6 text-6xl font-black leading-[0.92] tracking-tight text-white">The next chapter</h2>
+                        <p className="mt-5 max-w-lg text-lg leading-8 text-zinc-400">
+                            Your pattern still points toward {predictions.trending_genre || dominantGenre}, and probably with even more volume.
+                        </p>
+                        <div className="mt-10 border-l border-white/10 pl-6">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Read on the year</div>
+                            <p className="mt-4 max-w-md text-base leading-7 text-zinc-300">
+                                {predictions.growth_rate > 0
+                                    ? `You are trending upward at ${predictions.growth_rate}% and still orbiting around ${predictions.trending_genre || dominantGenre}.`
+                                    : `You are holding fairly steady, with ${predictions.trending_genre || dominantGenre} still defining the shape of your year.`}
+                            </p>
                         </div>
                     </div>
-
-                    {/* Active Streak */}
-                    <div className="group">
-                        <span className="block text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] mb-2 group-hover:text-orange-400 transition-colors">
-                            Active Streak
-                        </span>
-                        <div className="flex flex-col items-center">
-                            <div className="flex items-end gap-2 mb-2">
-                                <span className="text-5xl md:text-6xl font-black text-white">
-                                    {communityStats.user_stats.streak}
-                                </span>
-                                <span className="text-xl font-bold text-zinc-500 mb-2">Days</span>
+                    <div className="rounded-[36px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-8 shadow-[0_30px_90px_rgba(0,0,0,0.28)]">
+                        <div className="flex items-start justify-between gap-8 border-b border-white/8 pb-7">
+                            <div>
+                                <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Projected total</div>
+                                <div className="mt-5 text-[7vw] font-black leading-[0.88] tracking-tighter text-white">{predictions.projected_2027_total}</div>
+                                <div className="mt-4 flex items-center gap-2 text-sm font-bold text-zinc-300">
+                                    <TrendingUp size={15} className={predictions.growth_rate > 0 ? 'text-emerald-400' : 'text-red-400'} />
+                                    <span>{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% session growth</span>
+                                </div>
                             </div>
-                            <span className="text-xs text-zinc-600 uppercase tracking-widest">
-                                Avg: {Math.round(communityStats.avg_streak)}
-                            </span>
+                            <div className="min-w-[180px] rounded-[24px] border border-white/8 bg-black/20 p-5">
+                                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Next milestone</div>
+                                <div className="mt-4 text-5xl font-black leading-none tracking-tight text-white">{predictions.next_milestone.target}</div>
+                                <div className="mt-3 text-sm text-zinc-400">{predictions.next_milestone.remaining} sessions away</div>
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Rewatch Loyalty */}
-                    {/* Rewatch Loyalty */}
-                    <div className="group">
-                        <span className="block text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] mb-2 group-hover:text-purple-400 transition-colors">
-                            Loyalty
-                        </span>
-                        <div className="flex flex-col items-center">
-                            <div className="flex items-end gap-2 mb-2">
-                                <span className="text-5xl md:text-6xl font-black text-white">
-                                    {communityStats.user_stats.rewatches}
-                                </span>
-                                <span className="text-xl font-bold text-zinc-500 mb-2">Titles</span>
+                        <div className="mt-7 grid grid-cols-[0.78fr_1.22fr] gap-6">
+                            <div className="rounded-[26px] border border-white/8 bg-black/20 p-5">
+                                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Signal</div>
+                                <div className={`mt-4 text-sm font-black uppercase tracking-[0.22em] ${confidenceTone[predictions.confidence]}`}>
+                                    {predictions.confidence} confidence
+                                </div>
+                                <div className="mt-6 text-2xl font-black text-white">{viewingStyle}</div>
+                                <div className="mt-2 text-sm leading-6 text-zinc-400">
+                                    {viewingStyle} energy still looks intact.
+                                </div>
                             </div>
-                            <span className="text-xs text-zinc-600 uppercase tracking-widest">
-                                Avg: {Math.round(communityStats.avg_rewatch_count)}
-                            </span>
+                            <div className="rounded-[26px] border border-white/8 bg-black/20 p-5">
+                                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Forecast note</div>
+                                <p className="mt-4 text-sm leading-7 text-zinc-300">
+                                    If your current pace holds, next year trends toward more <span className="font-bold text-white">{predictions.trending_genre || dominantGenre}</span>, with enough room to clear <span className="font-bold text-white">{predictions.next_milestone.target}</span>.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        ] : []),
 
-                <p className="absolute bottom-12 font-mono text-[10px] uppercase tracking-[0.3em] opacity-40">
-                    {communityStats.user_percentile.total_content > 75 ? 'Community Leader' :
-                        communityStats.user_percentile.total_content > 50 ? 'Rising Star' : 'Viewer'}
+        <div key="summary" className={`relative flex h-full flex-col justify-between overflow-hidden py-16 text-white ${desktopSlideShell}`}>
+            <div className="absolute inset-0 bg-zinc-950" />
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+            <div className="relative z-10">
+                <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-zinc-500">StreamWrapp</div>
+                <h2 className="mt-5 text-6xl font-black leading-none tracking-tight text-white">{currentYear} recap</h2>
+            </div>
+            <div className="relative z-10 grid max-w-5xl grid-cols-4 gap-5">
+                <div className="rounded-[26px] bg-white/5 p-5">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Total</div>
+                    <div className="mt-3 text-4xl font-black text-white">{totalContent}</div>
+                </div>
+                <div className="rounded-[26px] bg-white/5 p-5">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Top vibe</div>
+                    <div className="mt-3 text-2xl font-black text-white">{dominantGenre}</div>
+                </div>
+                <div className="rounded-[26px] bg-white/5 p-5">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Streak</div>
+                    <div className="mt-3 text-4xl font-black text-white">{stats.max_streak}</div>
+                </div>
+                <div className="rounded-[26px] bg-gradient-to-br from-white/10 to-white/5 p-5">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-400">Archetype</div>
+                    <div className="mt-3 text-2xl font-black text-white">{viewingStyle}</div>
+                </div>
+            </div>
+            <div className="relative z-10 flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+                    Based on qualified sessions, not exact embedded-player playback
                 </p>
-            </div>
-        ] : []),
-
-        // Slide 8: Personality (Viewing DNA)
-        <div key="personality" className="h-full flex flex-col justify-center items-center p-8 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-black to-black" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[50vw] h-[50vw] bg-indigo-500/5 rounded-full blur-[100px]" />
-
-            {/* Massive Archetype Header */}
-            <div className="relative z-10 text-center mb-20">
-                <span className="block text-xs font-mono text-indigo-400 uppercase tracking-[0.4em] mb-4">{`Your ${currentYear} Archetype`}</span>
-                <span className="block text-[15vw] leading-[0.9] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 via-purple-300 to-pink-300 pb-8 transition-transform duration-700 hover:scale-[1.02]">
-                    {viewingStyle}
-                </span>
-            </div>
-
-            {/* Grid Stats */}
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-24 text-center w-full max-w-6xl">
-                {/* Top Vibe */}
-                <div className="group">
-                    <span className="block text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] mb-4 group-hover:text-purple-400 transition-colors">
-                        Top Vibe
-                    </span>
-                    <span className="block text-3xl md:text-4xl font-black text-white">
-                        {Object.keys(stats.genre_counts).sort((a, b) => stats.genre_counts[b] - stats.genre_counts[a])[0] || 'Eclectic'}
-                    </span>
-                </div>
-
-                {/* Diversity */}
-                <div className="group">
-                    <span className="block text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] mb-4 group-hover:text-pink-400 transition-colors">
-                        Range
-                    </span>
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-end gap-2">
-                            <span className="block text-5xl md:text-6xl font-black text-white">
-                                {Object.keys(stats.genre_counts).length}
-                            </span>
-                            <span className="text-lg font-bold text-zinc-500 mb-2">Genres</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Nostalgia */}
-                <div className="group">
-                    <span className="block text-[10px] font-mono text-zinc-600 uppercase tracking-[0.3em] mb-4 group-hover:text-indigo-400 transition-colors">
-                        Nostalgia
-                    </span>
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-end gap-2">
-                            <span className="block text-5xl md:text-6xl font-black text-white">
-                                {nostalgiaScore}%
-                            </span>
-                            <span className="text-lg font-bold text-zinc-500 mb-2">Retro</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <p className="absolute bottom-12 font-mono text-[10px] uppercase tracking-[0.3em] opacity-40">
-                {`StreamWrapp • ${currentYear} Edition`}
-            </p>
-        </div>,
-
-        // Slide 9: Summary - Minimalist Maximalism Redesign
-        <div key="summary" className="h-full flex flex-col justify-center items-center p-8 bg-zinc-950 text-white relative overflow-hidden">
-            {/* Background Texture */}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
-
-            {/* Massive Background Year - The "Maximalist" Element */}
-            <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none overflow-hidden">
-                <span className="text-[35vw] font-black tracking-tighter text-zinc-900/50 scale-150 transform rotate-[-5deg] mix-blend-color-dodge blur-sm">
-                    {currentYear}
-                </span>
-            </div>
-
-            <div className="relative z-20 w-full max-w-6xl flex flex-col h-full justify-between py-24">
-
-                {/* Header - The "Minimalist" Element */}
-                <div className="text-center">
-                    <h2 className="text-sm font-mono text-zinc-500 uppercase tracking-[0.5em] mb-2">StreamWrapp</h2>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white uppercase">The Final Cut</h1>
-                </div>
-
-                {/* Stats Layout - High Contrast Overlay */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 text-center md:text-left items-end">
-
-                    {/* Stat 1: Volume */}
-                    <div className="group flex flex-col items-center md:items-start border-l-2 border-zinc-800 pl-6 hover:border-white transition-colors duration-500">
-                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Total Volume</span>
-                        <span className="text-6xl md:text-7xl font-black text-white leading-[0.8]">
-                            {stats.total_movies + stats.total_shows}
-                        </span>
-                        <span className="text-sm font-bold text-zinc-600 mt-2">Qualified Sessions</span>
-                    </div>
-
-                    {/* Stat 2: Time */}
-                    <div className="group flex flex-col items-center md:items-start border-l-2 border-zinc-800 pl-6 hover:border-white transition-colors duration-500">
-                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Active Streak</span>
-                        <span className="text-6xl md:text-7xl font-black text-white leading-[0.8]">
-                            {stats.streak_days}
-                        </span>
-                        <span className="text-sm font-bold text-zinc-600 mt-2">Consecutive Days</span>
-                    </div>
-
-                    {/* Stat 3: Vibe */}
-                    <div className="group flex flex-col items-center md:items-start border-l-2 border-zinc-800 pl-6 hover:border-white transition-colors duration-500">
-                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Top Vibe</span>
-                        <span className="text-4xl md:text-5xl font-black text-white leading-[0.9] break-words max-w-[200px] uppercase">
-                            {Object.entries(stats.genre_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0] || '-'}
-                        </span>
-                        <span className="text-sm font-bold text-zinc-600 mt-2">Most Watched</span>
-                    </div>
-
-                    {/* Stat 4: Archetype */}
-                    <div className="group flex flex-col items-center md:items-start border-l-2 border-zinc-800 pl-6 hover:border-white transition-colors duration-500">
-                        <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Archetype</span>
-                        <span className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 leading-[0.9] uppercase">
-                            {viewingStyle.split(' ')[0]}
-                        </span>
-                        <span className="text-sm font-bold text-zinc-600 mt-2">Your Persona</span>
-                    </div>
-
-                </div>
-
-                {/* Footer Action */}
-                <div className="flex justify-center mt-12 relative z-50">
-                    <button
-                        onClick={onClose}
-                        className="group relative px-16 py-6 border border-zinc-700 hover:border-white bg-black hover:bg-zinc-900 transition-all duration-500 cursor-pointer pointer-events-auto"
-                    >
-                        <span className="relative z-10 text-xs font-black uppercase tracking-[0.4em] text-white group-hover:text-white transition-colors">
-                            {`Close Wrapped ${currentYear}`}
-                        </span>
-                        {/* Minimal corners */}
-                        <div className="absolute top-0 left-0 w-2 h-2 border-l border-t border-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute top-0 right-0 w-2 h-2 border-r border-t border-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute bottom-0 left-0 w-2 h-2 border-l border-b border-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute bottom-0 right-0 w-2 h-2 border-r border-b border-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </button>
-                </div>
-
-                <div className="absolute bottom-8 w-full text-center">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.5em] opacity-30 text-zinc-500">
-                        StreamWrapp • Generated {new Date().toLocaleDateString()}
-                    </p>
-                    <p className="mt-2 text-[9px] uppercase tracking-[0.25em] opacity-30 text-zinc-600">
-                        Based on sustained active sessions, not exact embedded-player playback
-                    </p>
-                </div>
+                <button
+                    onClick={onClose}
+                    className="rounded-full bg-white px-6 py-3 text-xs font-black uppercase tracking-[0.24em] text-black transition-colors hover:bg-zinc-200"
+                >
+                    Close Wrapped
+                </button>
             </div>
         </div>
     ];
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black text-white">
-
-            {/* Progress Bar (Centered & Minimal) */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 w-full max-w-sm flex gap-2 z-50 px-4 pointer-events-none">
+        <div className="fixed inset-0 z-[200] bg-black/92 text-white backdrop-blur-sm">
+            <div className="absolute inset-y-4 left-[92px] right-4 overflow-hidden rounded-[36px] border border-white/6 bg-[#09090c] shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+            <div className="pointer-events-none absolute left-8 right-20 top-6 z-50 flex gap-2">
                 {slides.map((_, idx) => (
-                    <div key={idx} className="h-1 flex-1 bg-zinc-900 rounded-full overflow-hidden">
-                        <div
-                            className={`h-full bg-zinc-600 transition-all duration-300 ${idx < currentSlide ? 'w-full' :
-                                idx === currentSlide ? 'w-full' : 'w-0'
-                                }`}
-                        />
+                    <div key={idx} className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/15">
+                        <div className={`h-full rounded-full bg-white/90 transition-all duration-300 ${idx <= currentSlide ? 'w-full' : 'w-0'}`} />
                     </div>
                 ))}
             </div>
 
-            {/* Close Button */}
             <button
                 onClick={onClose}
-                className="absolute top-8 right-8 z-50 p-3 bg-black/20 hover:bg-black/50 backdrop-blur-xl rounded-full text-white/70 hover:text-white border border-white/10 transition-all"
+                className="absolute right-6 top-5 z-[60] rounded-full border border-white/10 bg-black/30 p-3 text-white/80 backdrop-blur-md"
             >
-                <X size={24} />
+                <X size={20} />
             </button>
 
-            {/* Tap Navigation Zones */}
             <div className="absolute inset-0 z-30 flex">
-                <button
-                    type="button"
-                    aria-label="Previous slide"
-                    className="w-1/3 h-full cursor-w-resize bg-transparent"
-                    onClick={prevSlide}
-                />
-                <button
-                    type="button"
-                    aria-label="Next slide"
-                    className="w-2/3 h-full cursor-e-resize bg-transparent"
-                    onClick={nextSlide}
-                />
+                <button type="button" aria-label="Previous slide" className="h-full w-1/3 bg-transparent" onClick={prevSlide} />
+                <button type="button" aria-label="Next slide" className="h-full w-2/3 bg-transparent" onClick={nextSlide} />
             </div>
 
-            {/* Current Slide (Full Screen) */}
-            <div className="relative z-20 w-full h-full animate-in fade-in duration-500 pointer-events-none">
+            <div className="relative z-20 h-full w-full animate-in fade-in duration-300">
                 {slides[currentSlide]}
             </div>
+            </div>
+        </div>
+    );
+};
 
+const WrappedPosterMini: React.FC<{
+    movie?: Movie | null;
+    caption: string;
+    subcaption?: string;
+}> = ({ movie, caption, subcaption }) => {
+    return (
+        <div className="w-[220px]">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-[28px] border border-white/10 bg-zinc-950 shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
+                {movie?.imageUrl ? (
+                    <img src={movie.imageUrl} alt={movie.title} className="h-full w-full object-cover" />
+                ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-zinc-800 via-zinc-900 to-black" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black/5" />
+                <div className="absolute inset-x-0 bottom-0 p-4">
+                    <div className="rounded-[18px] border border-white/10 bg-black/45 p-3 backdrop-blur-xl">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/45">{caption}</div>
+                        <div className="mt-2 line-clamp-2 text-lg font-black leading-tight text-white">{movie?.title || 'Unknown title'}</div>
+                        {subcaption ? <div className="mt-1 text-xs text-zinc-400">{subcaption}</div> : null}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

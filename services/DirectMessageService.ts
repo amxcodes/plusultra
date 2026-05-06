@@ -181,6 +181,31 @@ export const DirectMessageService = {
         }
     },
 
+    async deleteDirectMessage(messageId: string): Promise<void> {
+        const { error } = await supabase.rpc('delete_direct_message', {
+            p_message_id: messageId,
+        });
+
+        if (error) {
+            throw error;
+        }
+    },
+
+    subscribeToUnreadDirectMessageCount(userId: string, onChange: () => void): () => void {
+        const channel = supabase
+            .channel(`direct-message-unread-count-${userId}`)
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'direct_messages', filter: `recipient_id=eq.${userId}` },
+                () => onChange()
+            )
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    },
+
     subscribeToInbox(userId: string, onChange: () => void): () => void {
         const conversationChannel = supabase
             .channel(`direct-conversations-${userId}`)

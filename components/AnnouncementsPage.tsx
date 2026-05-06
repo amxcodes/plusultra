@@ -1,73 +1,75 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
-import { Bell, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
+
+type AnnouncementItem = {
+    id: string;
+    title: string;
+    content: string;
+    type: 'warning' | 'success' | 'info' | string;
+    created_at: string;
+};
+
+const getTypeConfig = (type: string) => {
+    switch (type) {
+        case 'warning':
+            return {
+                label: 'Important',
+                className: 'text-amber-200 bg-amber-500/10',
+            };
+        case 'success':
+            return {
+                label: 'Shipped',
+                className: 'text-emerald-200 bg-emerald-500/10',
+            };
+        default:
+            return {
+                label: 'Update',
+                className: 'text-sky-200 bg-sky-500/10',
+            };
+    }
+};
 
 export const AnnouncementsPage: React.FC = () => {
     const { user } = useAuth();
-    const [announcements, setAnnouncements] = useState<any[]>([]);
+    const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const load = async () => {
             try {
                 const data = await SocialService.getAnnouncements();
-                setAnnouncements(data);
-                // Mark announcements as seen
+                setAnnouncements((data || []) as AnnouncementItem[]);
                 if (user?.id) {
                     await SocialService.markAnnouncementsSeen(user.id);
                 }
-            } catch (e) {
-                console.error("Failed to load announcements", e);
+            } catch (error) {
+                console.error('Failed to load announcements', error);
             } finally {
                 setLoading(false);
             }
         };
-        load();
-    }, [user?.id]);
 
-    const getTypeConfig = (type: string) => {
-        switch (type) {
-            case 'warning': return { color: 'text-amber-500', bg: 'bg-amber-500', label: 'Important' };
-            case 'success': return { color: 'text-emerald-500', bg: 'bg-emerald-500', label: 'New Feature' };
-            default: return { color: 'text-blue-500', bg: 'bg-blue-500', label: 'Update' };
-        }
-    };
+        void load();
+    }, [user?.id]);
 
     if (loading) {
         return (
-            <div className="w-full pl-24 pr-12 pt-20 min-h-screen">
-                <div className="max-w-3xl mx-auto">
-                    {/* Header Skeleton */}
-                    <div className="mb-16 animate-pulse">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-4 h-4 bg-white/5 rounded" />
-                            <div className="h-3 w-24 bg-white/5 rounded" />
-                        </div>
-                        <div className="h-12 w-64 bg-white/5 rounded mb-4" />
-                        <div className="h-5 w-96 bg-white/5 rounded" />
+            <div className="min-h-screen w-full pl-24 pr-12 pt-18 pb-24">
+                <div className="mx-auto max-w-[920px] animate-pulse">
+                    <div className="mb-10">
+                        <div className="mb-3 h-3 w-24 rounded bg-white/5" />
+                        <div className="mb-4 h-12 w-72 rounded bg-white/5" />
+                        <div className="h-5 w-80 rounded bg-white/5" />
                     </div>
-
-                    {/* Timeline Skeleton */}
-                    <div className="relative border-l border-white/5 ml-3 space-y-12">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="relative pl-12 animate-pulse">
-                                {/* Dot */}
-                                <div className="absolute -left-[5px] top-2.5 w-2.5 h-2.5 rounded-full bg-white/5 ring-4 ring-[#0f1014]" />
-
-                                <div className="flex flex-col gap-4">
-                                    <div className="flex items-baseline gap-4">
-                                        <div className="h-6 w-20 bg-white/5 rounded" />
-                                        <div className="h-4 w-32 bg-white/5 rounded" />
-                                    </div>
-                                    <div>
-                                        <div className="h-7 w-3/4 bg-white/5 rounded mb-3" />
-                                        <div className="space-y-2">
-                                            <div className="h-4 w-full bg-white/5 rounded" />
-                                            <div className="h-4 w-5/6 bg-white/5 rounded" />
-                                            <div className="h-4 w-4/6 bg-white/5 rounded" />
-                                        </div>
-                                    </div>
+                    <div className="space-y-10">
+                        {[1, 2, 3].map((item) => (
+                            <div key={item} className="border-t border-white/6 pt-8">
+                                <div className="mb-3 h-5 w-36 rounded bg-white/5" />
+                                <div className="mb-3 h-8 w-3/4 rounded bg-white/5" />
+                                <div className="space-y-2">
+                                    <div className="h-4 w-full rounded bg-white/5" />
+                                    <div className="h-4 w-5/6 rounded bg-white/5" />
                                 </div>
                             </div>
                         ))}
@@ -78,63 +80,68 @@ export const AnnouncementsPage: React.FC = () => {
     }
 
     return (
-        <div className="w-full pl-24 pr-12 pt-20 pb-40 min-h-screen animate-in fade-in duration-700">
-            <div className="max-w-3xl mx-auto">
-                {/* Header */}
-                <div className="mb-16">
-                    <div className="flex items-center gap-3 mb-4 text-zinc-500 uppercase tracking-[0.2em] text-[10px] font-bold">
-                        <Sparkles size={14} className="text-white" />
-                        Changelog
+        <div className="min-h-screen w-full pl-24 pr-12 pt-18 pb-24">
+            <div className="mx-auto max-w-[920px]">
+                <header className="mb-10">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">
+                        Announcements
                     </div>
-                    <h1 className="text-5xl font-black text-white tracking-tighter mb-4">
-                        What's New
+                    <h1 className="mt-3 text-[50px] font-semibold leading-none tracking-[-0.06em] text-white">
+                        Platform updates
                     </h1>
-                    <p className="text-zinc-400 text-lg">
-                        Latest updates, improvements, and fixes for the platform.
+                    <p className="mt-4 max-w-2xl text-[16px] leading-7 text-zinc-400">
+                        Important notices, release notes, and product changes in one clean stream.
                     </p>
-                </div>
+                </header>
 
-                {/* Timeline */}
-                <div className="relative border-l border-white/10 ml-3 space-y-12">
-                    {announcements.length > 0 ? (
-                        announcements.map((item) => {
+                {announcements.length === 0 ? (
+                    <div className="border-t border-white/6 py-14">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500">
+                            Nothing published
+                        </div>
+                        <div className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
+                            No announcements yet
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-zinc-500">
+                            Updates will appear here once they are published.
+                        </p>
+                    </div>
+                ) : (
+                    <section className="space-y-0">
+                        {announcements.map((item, index) => {
                             const config = getTypeConfig(item.type);
 
                             return (
-                                <div key={item.id} className="relative pl-12">
-                                    {/* Timeline Dot */}
-                                    <div className={`absolute -left-[5px] top-2.5 w-2.5 h-2.5 rounded-full ${config.bg} shadow-[0_0_10px_rgba(var(--tw-shadow-color),0.5)] ring-4 ring-[#0f1014]`} />
-
-                                    <div className="flex flex-col gap-4">
-                                        <div className="flex items-baseline gap-4">
-                                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-white/5 border border-white/5 ${config.color}`}>
-                                                {config.label}
-                                            </span>
-                                            <span className="text-xs font-medium text-zinc-500">
-                                                {new Date(item.created_at).toLocaleDateString(undefined, {
-                                                    month: 'long',
-                                                    day: 'numeric',
-                                                    year: 'numeric'
-                                                })}
-                                            </span>
-                                        </div>
-
-                                        <div>
-                                            <h3 className="text-xl font-bold text-white mb-2">{item.title}</h3>
-                                            <div className="prose prose-invert prose-sm text-zinc-400 leading-relaxed max-w-none">
-                                                <p>{item.content}</p>
-                                            </div>
+                                <article
+                                    key={item.id}
+                                    className={`grid gap-5 border-t border-white/6 py-8 md:grid-cols-[132px_minmax(0,1fr)] ${index === announcements.length - 1 ? 'border-b' : ''}`}
+                                >
+                                    <div className="space-y-3">
+                                        <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${config.className}`}>
+                                            {config.label}
+                                        </span>
+                                        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-500">
+                                            {new Date(item.created_at).toLocaleDateString(undefined, {
+                                                month: 'long',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                            })}
                                         </div>
                                     </div>
-                                </div>
+
+                                    <div>
+                                        <h2 className="text-[30px] font-semibold leading-tight tracking-[-0.045em] text-white">
+                                            {item.title}
+                                        </h2>
+                                        <p className="mt-4 max-w-3xl text-[15px] leading-7 text-zinc-400">
+                                            {item.content}
+                                        </p>
+                                    </div>
+                                </article>
                             );
-                        })
-                    ) : (
-                        <div className="pl-12 py-8">
-                            <p className="text-zinc-600 italic">No updates published yet.</p>
-                        </div>
-                    )}
-                </div>
+                        })}
+                    </section>
+                )}
             </div>
         </div>
     );

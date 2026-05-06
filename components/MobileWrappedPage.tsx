@@ -1,7 +1,8 @@
-
-import React, { useState, useEffect } from 'react';
-import { X, Film, Flame, RotateCcw, Calendar, TrendingUp } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { X, Film, Flame, RotateCcw, TrendingUp, Clapperboard, Tv, CalendarRange, Users, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { TmdbService } from '../services/tmdb';
+import { Movie } from '../types';
 
 interface WrappedStats {
     total_movies: number;
@@ -13,6 +14,7 @@ interface WrappedStats {
     binge_days: number;
     title_rewatch_counts: Record<string, number>;
     monthly_watches: Record<string, number>;
+    daily_watch_count?: Record<string, number>;
     first_watch_of_year?: {
         title: string;
         date: string;
@@ -66,53 +68,200 @@ interface MobileWrappedPageProps {
     onClose: () => void;
 }
 
+type HighlightCardMap = {
+    firstWatch?: Movie | null;
+    topRewatch?: Movie | null;
+    comfortShelf: Movie[];
+};
+
+const monthLabel = (monthKey?: string) => {
+    if (!monthKey) return 'Unknown';
+    const parsed = new Date(`${monthKey}-01`);
+    if (Number.isNaN(parsed.getTime())) return monthKey;
+    return parsed.toLocaleDateString('en-US', { month: 'long' });
+};
+
+const readableDate = (value?: string) => {
+    if (!value) return 'Unknown date';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+};
+
+const dedupeMovies = (items: Array<Movie | null | undefined>) => {
+    const seen = new Set<string>();
+    return items.filter((movie): movie is Movie => {
+        if (!movie) return false;
+        const key = String(movie.tmdbId || movie.id || movie.title).toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+};
+
+const movieKey = (movie?: Movie | null) => movie ? String(movie.tmdbId || movie.id || movie.title).toLowerCase() : null;
+
+const confidenceTone: Record<PredictiveInsights['confidence'], string> = {
+    high: 'text-emerald-300',
+    medium: 'text-amber-300',
+    low: 'text-zinc-400'
+};
+
+const fallbackCardGradient = [
+    'from-violet-500/25 via-fuchsia-500/10 to-zinc-950',
+    'from-emerald-500/25 via-cyan-500/10 to-zinc-950',
+    'from-amber-500/25 via-orange-500/10 to-zinc-950'
+];
+
+const WrappedTitleSpotlight: React.FC<{
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    movie?: Movie | null;
+    accent?: 'violet' | 'emerald' | 'amber';
+}> = ({ eyebrow, title, subtitle, movie, accent = 'violet' }) => {
+    const accentMap = {
+        violet: {
+            chip: 'text-violet-300 border-violet-300/20 bg-violet-300/10',
+            frame: 'border-violet-400/20',
+            glow: 'shadow-[0_30px_80px_rgba(91,33,182,0.22)]',
+            gradient: fallbackCardGradient[0]
+        },
+        emerald: {
+            chip: 'text-emerald-300 border-emerald-300/20 bg-emerald-300/10',
+            frame: 'border-emerald-400/20',
+            glow: 'shadow-[0_30px_80px_rgba(16,185,129,0.2)]',
+            gradient: fallbackCardGradient[1]
+        },
+        amber: {
+            chip: 'text-amber-300 border-amber-300/20 bg-amber-300/10',
+            frame: 'border-amber-400/20',
+            glow: 'shadow-[0_30px_80px_rgba(245,158,11,0.18)]',
+            gradient: fallbackCardGradient[2]
+        }
+    } as const;
+
+    const tone = accentMap[accent];
+
+    return (
+        <div className="w-full">
+            <div className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-mono uppercase tracking-[0.28em] ${tone.chip}`}>
+                {eyebrow}
+            </div>
+            <div className={`mt-5 overflow-hidden rounded-[34px] border bg-zinc-950/90 ${tone.frame} ${tone.glow}`}>
+                <div className="relative aspect-[4/5]">
+                    {movie?.imageUrl ? (
+                        <img
+                            src={movie.imageUrl}
+                            alt={movie.title}
+                            className="absolute inset-0 h-full w-full object-cover"
+                        />
+                    ) : (
+                        <div className={`absolute inset-0 bg-gradient-to-br ${tone.gradient}`} />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/10" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_45%)]" />
+                    <div className="absolute left-5 right-5 top-5 flex items-center justify-between">
+                        <div className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-white/70 backdrop-blur-xl">
+                            {movie?.mediaType === 'tv' ? 'Series' : 'Movie'}
+                        </div>
+                        {movie?.year ? (
+                            <div className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[10px] font-mono uppercase tracking-[0.24em] text-white/70 backdrop-blur-xl">
+                                {movie.year}
+                            </div>
+                        ) : null}
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 p-6">
+                        <div className="rounded-[26px] border border-white/10 bg-black/45 p-5 backdrop-blur-2xl">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-white/45">
+                                {subtitle}
+                            </div>
+                            <h3 className="mt-2 text-3xl font-black leading-[0.95] tracking-tight text-white">
+                                {title}
+                            </h3>
+                            {movie?.description ? (
+                                <p className="mt-3 line-clamp-3 text-sm leading-6 text-white/60">
+                                    {movie.description}
+                                </p>
+                            ) : null}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const MobileWrappedPosterCard: React.FC<{
+    movie?: Movie | null;
+    caption: string;
+    subcaption?: string;
+}> = ({ movie, caption, subcaption }) => {
+    return (
+        <div className="w-[44vw] max-w-[180px]">
+            <div className="relative aspect-[2/3] overflow-hidden rounded-[24px] border border-white/10 bg-zinc-950 shadow-[0_14px_32px_rgba(0,0,0,0.32)]">
+                {movie?.imageUrl ? (
+                    <img src={movie.imageUrl} alt={movie.title} className="h-full w-full object-cover" />
+                ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-zinc-800 via-zinc-900 to-black" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 p-3">
+                    <div className="rounded-[16px] border border-white/10 bg-black/45 p-3 backdrop-blur-xl">
+                        <div className="text-[9px] font-mono uppercase tracking-[0.2em] text-white/45">{caption}</div>
+                        <div className="mt-2 line-clamp-2 text-base font-black leading-tight text-white">{movie?.title || 'Unknown title'}</div>
+                        {subcaption ? <div className="mt-1 text-[11px] text-zinc-400">{subcaption}</div> : null}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose }) => {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState<WrappedStats | null>(null);
     const [communityStats, setCommunityStats] = useState<CommunityStats | null>(null);
     const [predictions, setPredictions] = useState<PredictiveInsights | null>(null);
+    const [highlightCards, setHighlightCards] = useState<HighlightCardMap>({ comfortShelf: [] });
     const [currentSlide, setCurrentSlide] = useState(0);
     const currentYear = new Date().getFullYear();
     const nextYear = currentYear + 1;
 
     useEffect(() => {
         fetchWrappedStats();
-        // Lock body scroll
         document.body.style.overflow = 'hidden';
         return () => {
             document.body.style.overflow = 'auto';
         };
     }, []);
 
+    useEffect(() => {
+        if (!stats) return;
+        hydrateHighlightCards(stats);
+    }, [stats]);
+
     const fetchWrappedStats = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // Enforce minimum loading time of 2.5s to show animation
             const minLoadTime = new Promise(resolve => setTimeout(resolve, 2500));
-
-            // Fetch user stats
-            const statsPromise = supabase
-                .rpc('get_private_profile', {
-                    p_user_id: user.id
-                })
-                .single();
+            const statsPromise = supabase.rpc('get_private_profile', {
+                p_user_id: user.id
+            }).single();
 
             const [result] = await Promise.all([statsPromise, minLoadTime]);
             const profile = result.data as WrappedProfileResponse | null;
 
             if (profile?.stats) {
                 setStats(profile.stats);
+                setPredictions(calculatePredictions(profile.stats));
 
-                // Calculate predictions from user stats
-                const predictions = calculatePredictions(profile.stats);
-                setPredictions(predictions);
-
-                // Fetch community stats
                 try {
-                    const { data: communityData, error: communityError } = await supabase
-                        .rpc('get_community_stats', { p_user_id: user.id });
+                    const { data: communityData, error: communityError } = await supabase.rpc('get_community_stats', {
+                        p_user_id: user.id
+                    });
 
                     if (communityError) {
                         console.error('Error fetching community stats:', communityError);
@@ -130,11 +279,57 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         }
     };
 
+    const hydrateHighlightCards = async (userStats: WrappedStats) => {
+        const firstWatchTitle = userStats.first_watch_of_year?.title?.trim();
+        const topRewatchTitle = Object.entries(userStats.title_rewatch_counts || {})
+            .sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0]?.trim();
+        const comfortTitles = Object.entries(userStats.title_rewatch_counts || {})
+            .sort(([, a], [, b]) => (b as number) - (a as number))
+            .slice(0, 3)
+            .map(([title]) => title?.trim())
+            .filter((value): value is string => Boolean(value));
+
+        const lookups: Promise<[Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null]>[] = [];
+
+        if (firstWatchTitle) {
+            lookups.push(
+                TmdbService.search(firstWatchTitle, { type: userStats.first_watch_of_year?.type === 'tv' ? 'tv' : 'movie' })
+                    .then(results => ['firstWatch', results[0] || null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+                    .catch(() => ['firstWatch', null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+            );
+        }
+
+        if (topRewatchTitle) {
+            lookups.push(
+                TmdbService.search(topRewatchTitle, { type: 'multi' })
+                    .then(results => ['topRewatch', results[0] || null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+                    .catch(() => ['topRewatch', null] as [Exclude<keyof HighlightCardMap, 'comfortShelf'>, Movie | null])
+            );
+        }
+
+        if (lookups.length === 0 && comfortTitles.length === 0) return;
+
+        const resolved = lookups.length > 0 ? await Promise.all(lookups) : [];
+        const comfortShelf = (await Promise.all(
+            comfortTitles.map(title =>
+                TmdbService.search(title, { type: 'multi' })
+                    .then(results => results[0] || null)
+                    .catch(() => null)
+            )
+        )).filter((movie): movie is Movie => Boolean(movie));
+        setHighlightCards(prev => {
+            const next = { ...prev };
+            resolved.forEach(([key, movie]) => {
+                next[key] = movie;
+            });
+            next.comfortShelf = comfortShelf;
+            return next;
+        });
+    };
+
     const calculatePredictions = (userStats: WrappedStats): PredictiveInsights => {
         const monthlyData = Object.entries(userStats.monthly_watches || {});
         const totalContent = userStats.total_movies + userStats.total_shows;
-
-        // Calculate trend (last 6 months vs first 6 months)
         const sortedMonths = monthlyData.sort((a, b) => a[0].localeCompare(b[0]));
         const recentMonths = sortedMonths.slice(-6);
         const earlierMonths = sortedMonths.slice(0, Math.min(6, sortedMonths.length - 6));
@@ -146,23 +341,17 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             ? earlierMonths.reduce((sum, [, count]) => sum + (count as number), 0) / earlierMonths.length
             : recentAvg;
 
-        // Calculate growth rate
         const growthRate = earlierAvg > 0 ? ((recentAvg - earlierAvg) / earlierAvg) * 100 : 0;
-
-        // Project 2027 (12 months * recent average with growth adjustment)
         const baseProjection = recentAvg * 12;
         const trendAdjustment = growthRate > 0 ? baseProjection * (growthRate / 100) * 0.5 : 0;
         const projected2027 = Math.round(baseProjection + trendAdjustment);
 
-        // Confidence based on data completeness
         const dataCompleteness = monthlyData.length / 12;
         const trendStability = Math.abs(growthRate) < 20 ? 1 : Math.abs(growthRate) < 50 ? 0.7 : 0.4;
         const confidenceScore = dataCompleteness * trendStability;
-
         const confidence: 'high' | 'medium' | 'low' =
             confidenceScore > 0.7 ? 'high' : confidenceScore > 0.4 ? 'medium' : 'low';
 
-        // Find trending genre (comparing Q4 vs Q1)
         let trendingGenre: string | null = null;
         let genreTrendDirection: 'increasing' | 'stable' | 'decreasing' = 'stable';
 
@@ -174,7 +363,6 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             }
         }
 
-        // Calculate next milestone
         const milestones = [50, 100, 250, 500, 750, 1000, 1500, 2000];
         const nextMilestoneValue = milestones.find(m => m > totalContent) || totalContent + 100;
 
@@ -200,210 +388,401 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         if (currentSlide > 0) setCurrentSlide(c => c - 1);
     };
 
-    if (loading) return (
-        <div className="fixed inset-0 bg-[#0f1014] z-[100] flex flex-col items-center justify-center space-y-8">
-            <div className="relative animate-bounce-slow">
-                {/* Mobile Optimized Ghost */}
-                <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]">
-                    <path d="M50 10 C 25 10 10 35 15 65 C 18 80 25 85 30 85 C 35 85 40 80 45 80 C 50 80 55 85 60 85 C 65 85 75 80 85 65 C 90 35 75 10 50 10 Z" fill="white" />
-                    <ellipse cx="40" cy="42" rx="6" ry="8" fill="#1a1a1a" />
-                    <ellipse cx="60" cy="42" rx="6" ry="8" fill="#1a1a1a" />
-                    <circle cx="42" cy="38" r="2.5" fill="white" />
-                    <circle cx="62" cy="38" r="2.5" fill="white" />
-                    <ellipse cx="38" cy="52" rx="4" ry="2" fill="#FFB7B2" opacity="0.6" />
-                    <ellipse cx="62" cy="52" rx="4" ry="2" fill="#FFB7B2" opacity="0.6" />
-                    <path d="M45 50 Q 50 54 55 50" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
-                    <path d="M28 22 C 28 22, 10 5, 45 5" stroke="#EF4444" strokeWidth="0" fill="#EF4444" />
-                    <path d="M25 20 C 25 20, 45 -5, 75 20 Z" fill="#EF4444" />
-                    <circle cx="78" cy="20" r="7" fill="white" />
-                    <path d="M22 22 H 78 Q 50 32 22 22 Z" fill="white" />
-                </svg>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-                <span className="text-white text-base font-mono tracking-widest uppercase animate-pulse">
-                    {`Loading ${currentYear} session recap...`}
-                </span>
-            </div>
-        </div>
+    const totalContent = stats ? stats.total_movies + stats.total_shows : 0;
+    const nostalgiaScore = totalContent > 0 && stats ? Math.round((stats.rewatch_count / totalContent) * 100) : 0;
+    const viewingStyle = nostalgiaScore >= 15 ? 'Comfort Seeker' : 'Explorer';
+    const peakMonth = stats ? Object.entries(stats.monthly_watches || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0] : null;
+    const peakMonthName = monthLabel(peakMonth?.[0]);
+    const peakMonthCount = Number(peakMonth?.[1] || 0);
+    const topRewatch = stats ? Object.entries(stats.title_rewatch_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0] : null;
+    const topGenres = useMemo(
+        () => stats ? Object.entries(stats.genre_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 5) : [],
+        [stats]
     );
+    const dominantGenre = topGenres[0]?.[0] || '-';
+    const moviePercent = totalContent > 0 && stats ? Math.round((stats.total_movies / totalContent) * 100) : 0;
+    const showPercent = 100 - moviePercent;
+    const topDay = stats ? Object.entries(stats.daily_watch_count || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0] : null;
+    const topDayDate = topDay?.[0] ? readableDate(topDay[0]) : 'Unknown day';
+    const topDayCount = Number(topDay?.[1] || 0);
+    const previousYearStats = stats?.past_years?.[String(currentYear - 1)];
+    const previousYearTotal = previousYearStats ? (previousYearStats.total_movies || 0) + (previousYearStats.total_shows || 0) : 0;
+    const yoyDelta = previousYearTotal > 0 ? totalContent - previousYearTotal : 0;
+    const yoyDirection = yoyDelta > 0 ? 'up' : yoyDelta < 0 ? 'down' : 'flat';
+    const firstWatchKey = movieKey(highlightCards.firstWatch);
+    const topRewatchKey = movieKey(highlightCards.topRewatch);
+    const comfortShelf = dedupeMovies(highlightCards.comfortShelf || []).filter(movie => {
+        const key = movieKey(movie);
+        return key !== firstWatchKey && key !== topRewatchKey;
+    });
+    const compareCards = dedupeMovies([highlightCards.firstWatch, highlightCards.topRewatch]).slice(0, 2);
+    const posterMosaic = dedupeMovies(comfortShelf).slice(0, 4);
+    const rewatchCountsByTitle = stats?.title_rewatch_counts || {};
+
+    if (loading) {
+        return (
+            <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center space-y-8 bg-[#0f1014]">
+                <div className="relative animate-bounce-slow">
+                    <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_15px_rgba(255,255,255,0.15)]">
+                        <path d="M50 10 C 25 10 10 35 15 65 C 18 80 25 85 30 85 C 35 85 40 80 45 80 C 50 80 55 85 60 85 C 65 85 75 80 85 65 C 90 35 75 10 50 10 Z" fill="white" />
+                        <ellipse cx="40" cy="42" rx="6" ry="8" fill="#1a1a1a" />
+                        <ellipse cx="60" cy="42" rx="6" ry="8" fill="#1a1a1a" />
+                        <circle cx="42" cy="38" r="2.5" fill="white" />
+                        <circle cx="62" cy="38" r="2.5" fill="white" />
+                        <ellipse cx="38" cy="52" rx="4" ry="2" fill="#FFB7B2" opacity="0.6" />
+                        <ellipse cx="62" cy="52" rx="4" ry="2" fill="#FFB7B2" opacity="0.6" />
+                        <path d="M45 50 Q 50 54 55 50" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round" />
+                        <path d="M25 20 C 25 20, 45 -5, 75 20 Z" fill="#EF4444" />
+                        <circle cx="78" cy="20" r="7" fill="white" />
+                        <path d="M22 22 H 78 Q 50 32 22 22 Z" fill="white" />
+                    </svg>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                    <span className="animate-pulse text-center text-base font-mono uppercase tracking-widest text-white">
+                        {`Loading ${currentYear} session recap...`}
+                    </span>
+                </div>
+            </div>
+        );
+    }
 
     if (!stats) return null;
 
-    // Derived Stats
-    const totalContent = stats.total_movies + stats.total_shows;
-    const nostalgiaScore = totalContent > 0 ? Math.round((stats.rewatch_count / totalContent) * 100) : 0;
-    const movieRatio = totalContent > 0 ? stats.total_movies / totalContent : 0;
-    const viewingStyle = nostalgiaScore >= 15 ? "Comfort Seeker" : "Explorer";
-    const peakMonth = Object.entries(stats.monthly_watches || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0];
-    const peakMonthName = peakMonth ? new Date(peakMonth[0] + '-01').toLocaleDateString('en-US', { month: 'long' }) : 'Unknown';
-    const peakMonthCount = peakMonth ? peakMonth[1] : 0;
-    const topRewatch = Object.entries(stats.title_rewatch_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0];
-
     const slides = [
-        // Slide 1: Intro (Mobile)
-        <div key="intro" className="h-full flex flex-col justify-center items-center px-6 py-16 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-indigo-900/30 via-black to-black animate-pulse-slow" />
-            <h1 className="text-[22vw] font-black tracking-tighter text-center flex flex-col items-center z-10 leading-[0.88]">
-                <span className="animate-slide-up-fade delay-300">{currentYear}</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 animate-slide-up-fade delay-700">WRAPPED</span>
+        <div key="intro" className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-black to-black" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_40%)]" />
+            <h1 className="z-10 flex flex-col items-center text-center text-[22vw] font-black leading-[0.88] tracking-tighter">
+                <span>{currentYear}</span>
+                <span className="bg-gradient-to-b from-white to-white/45 bg-clip-text text-transparent">WRAPPED</span>
             </h1>
-            <p className="mt-6 text-[11px] text-white/50 font-mono tracking-[0.28em] uppercase z-10 text-center animate-fade-in delay-1000">
+            <p className="z-10 mt-6 text-center text-[11px] font-mono uppercase tracking-[0.28em] text-white/50">
                 Your Year in Cinema
             </p>
         </div>,
 
-        // Slide 2: The Volume
-        <div key="volume" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-bl from-emerald-900/20 via-black to-black" />
-            <Film className="absolute -bottom-10 -right-10 w-56 h-56 text-emerald-900/10 rotate-12 pointer-events-none" />
-
-            <h2 className="text-emerald-500/80 text-[10px] font-bold tracking-[0.3em] uppercase mb-8 z-10">The Volume</h2>
-
+        <div key="volume" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-bl from-emerald-900/20 via-black to-black" />
+            <Film className="absolute -bottom-10 -right-10 h-56 w-56 rotate-12 text-emerald-900/10" />
+            <h2 className="relative z-10 mb-8 text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500/80">The Volume</h2>
             <div className="relative z-10 w-full">
-                <span className="block text-[23vw] leading-[0.82] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-emerald-600/50 pb-2">
+                <span className="block bg-gradient-to-r from-emerald-200 to-emerald-600/50 bg-clip-text pb-2 text-[23vw] font-black leading-[0.82] tracking-tighter text-transparent">
                     {totalContent}
                 </span>
-                <span className="block text-2xl font-light text-zinc-400 tracking-tight mt-2">
+                <span className="mt-2 block text-2xl font-light tracking-tight text-zinc-400">
                     Qualified Sessions
                 </span>
                 <p className="mt-3 text-[10px] uppercase tracking-[0.2em] text-zinc-600">
                     Movies plus qualified TV episode sessions
                 </p>
             </div>
-
-            <div className="mt-16 flex flex-col gap-6 relative z-10 w-full">
-                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                    <span className="text-sm text-zinc-500 uppercase tracking-widest">Movie Sessions</span>
+            <div className="relative z-10 mt-16 flex w-full flex-col gap-6">
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <span className="text-sm uppercase tracking-widest text-zinc-500">Movie Sessions</span>
                     <span className="text-3xl font-bold text-white">{stats.total_movies}</span>
                 </div>
-                <div className="flex justify-between items-center border-b border-white/10 pb-4">
-                    <span className="text-sm text-zinc-500 uppercase tracking-widest">Episode Sessions</span>
+                <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <span className="text-sm uppercase tracking-widest text-zinc-500">Episode Sessions</span>
                     <span className="text-3xl font-bold text-white">{stats.total_shows}</span>
                 </div>
             </div>
         </div>,
 
-        // Slide 3: The Vibe
-        <div key="vibe" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-pink-900/20 via-black to-black" />
-            <h2 className="text-pink-500/80 text-[10px] font-bold tracking-[0.3em] uppercase mb-12 z-10">The Vibe</h2>
-
-            <div className="flex flex-col gap-4 relative z-10 w-full">
-                {Object.entries(stats.genre_counts || {})
-                    .sort(([, a], [, b]) => (b as number) - (a as number))
-                    .slice(0, 5)
-                    .map(([genre, count], index) => {
-                        const isTop = index === 0;
-                        return (
-                            <div key={genre} className={`flex items-baseline justify-between ${isTop ? 'mb-4' : ''}`}>
-                                <span className={`font-black tracking-tighter uppercase break-words ${isTop ? 'text-[14vw] text-white pl-3 border-l-4 border-pink-500' : 'text-xl text-zinc-600'}`}>
-                                    {genre}
-                                </span>
-                                {isTop && <span className="text-xl font-mono text-pink-400">{count}</span>}
-                            </div>
-                        );
-                    })}
+        <div key="split" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/12 via-black to-violet-900/12" />
+            <div className="relative z-10">
+                <h2 className="mb-6 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400/75">Format Split</h2>
+                <h3 className="max-w-xs text-5xl font-black leading-none tracking-tight text-white">
+                    {moviePercent >= showPercent ? 'Cinema leaned year' : 'Series leaned year'}
+                </h3>
+                <p className="mt-4 max-w-xs text-base leading-7 text-zinc-400">
+                    Your wrapped tilted {moviePercent >= showPercent ? 'toward films' : 'toward episodic watching'} more often than not.
+                </p>
+            </div>
+            <div className="relative z-10 mt-12 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl">
+                <div className="flex h-5 overflow-hidden rounded-full bg-white/5">
+                    <div className="flex items-center justify-start bg-white px-3 text-[9px] font-black uppercase tracking-[0.24em] text-black" style={{ width: `${Math.max(moviePercent, 8)}%` }}>
+                        {moviePercent > 18 ? `${moviePercent}%` : ''}
+                    </div>
+                    <div className="flex items-center justify-end bg-zinc-700/70 px-3 text-[9px] font-black uppercase tracking-[0.24em] text-white/75" style={{ width: `${Math.max(showPercent, 8)}%` }}>
+                        {showPercent > 18 ? `${showPercent}%` : ''}
+                    </div>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-4">
+                    <div className="rounded-[22px] border border-white/10 bg-black/40 p-4">
+                        <Clapperboard className="mb-3 h-5 w-5 text-white/70" />
+                        <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Movies</div>
+                        <div className="mt-1 text-3xl font-black text-white">{stats.total_movies}</div>
+                    </div>
+                    <div className="rounded-[22px] border border-white/10 bg-black/40 p-4">
+                        <Tv className="mb-3 h-5 w-5 text-white/70" />
+                        <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Episodes</div>
+                        <div className="mt-1 text-3xl font-black text-white">{stats.total_shows}</div>
+                    </div>
+                </div>
             </div>
         </div>,
 
-        // Slide 4: Habits
-        <div key="habits" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-black text-white relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-orange-900/10 via-black to-blue-900/10" />
-            <h2 className="text-zinc-500/80 text-[10px] font-bold tracking-[0.3em] uppercase mb-16 z-10">Habits</h2>
+        <div key="first-watch" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-900/18 via-black to-black" />
+            <WrappedTitleSpotlight
+                eyebrow="First watch"
+                title={stats.first_watch_of_year?.title || 'No first watch saved'}
+                subtitle={stats.first_watch_of_year ? `${stats.first_watch_of_year.type === 'tv' ? 'Series start' : 'Movie night'} • ${readableDate(stats.first_watch_of_year.date)}` : 'No first watch data captured yet'}
+                movie={highlightCards.firstWatch || undefined}
+                accent="violet"
+            />
+        </div>,
 
-            <div className="flex flex-col gap-12 relative z-10 w-full">
-                <div>
-                    <span className="block text-[15vw] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-orange-200 to-orange-600/50 mb-2">
-                        {stats.max_streak} DAYS
-                    </span>
+        <div key="genres" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-900/20 via-black to-black" />
+            <h2 className="relative z-10 mb-12 text-[10px] font-bold uppercase tracking-[0.3em] text-pink-500/80">The Vibe</h2>
+            <div className="relative z-10 flex w-full flex-col gap-4">
+                {topGenres.map(([genre, count], index) => {
+                    const isTop = index === 0;
+                    return (
+                        <div key={genre} className={`flex items-baseline justify-between ${isTop ? 'mb-4' : ''}`}>
+                            <span className={`break-words uppercase tracking-tighter ${isTop ? 'border-l-4 border-pink-500 pl-3 text-[14vw] font-black text-white' : 'text-xl font-black text-zinc-600'}`}>
+                                {genre}
+                            </span>
+                            {isTop ? <span className="text-xl font-mono text-pink-400">{count}</span> : null}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>,
+
+        <div key="peak-month" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-sky-900/16 via-black to-zinc-950" />
+            <div className="relative z-10">
+                <h2 className="mb-5 text-[10px] font-bold uppercase tracking-[0.3em] text-sky-400/80">Peak Month</h2>
+                <div className="text-6xl font-black leading-none tracking-tight text-white">{peakMonthName}</div>
+                <p className="mt-4 max-w-xs text-base leading-7 text-zinc-400">
+                    This was the point where your year felt busiest.
+                </p>
+            </div>
+            <div className="relative z-10 mt-10 rounded-[30px] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
+                <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">Qualified sessions in that month</div>
+                <div className="mt-3 text-[18vw] font-black leading-none tracking-tighter text-white">{peakMonthCount}</div>
+                {previousYearTotal > 0 ? (
+                    <div className="mt-6 border-t border-white/10 pt-5">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">{currentYear - 1} vs {currentYear}</div>
+                        <div className="mt-2 text-2xl font-black text-white">
+                            {yoyDirection === 'up' ? '+' : yoyDirection === 'down' ? '-' : ''}{Math.abs(yoyDelta)}
+                        </div>
+                        <div className="mt-1 text-sm text-zinc-400">
+                            sessions {yoyDirection === 'up' ? 'above' : yoyDirection === 'down' ? 'below' : 'matching'} last year
+                        </div>
+                    </div>
+                ) : null}
+            </div>
+        </div>,
+
+        <div key="habits" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-900/10 via-black to-blue-900/10" />
+            <h2 className="relative z-10 mb-12 text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500/80">Habits</h2>
+            <div className="relative z-10 flex w-full flex-col gap-5">
+                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
                     <div className="flex items-center gap-2 text-zinc-500">
                         <Flame size={16} className="text-orange-500" />
                         <span className="text-[10px] font-mono uppercase tracking-widest">Longest Streak</span>
                     </div>
+                    <div className="mt-3 text-[15vw] font-black leading-none tracking-tighter text-white">{stats.max_streak}</div>
+                    <div className="mt-1 text-xl font-light text-zinc-400">days in a row</div>
                 </div>
-
-                <div>
-                    <span className="block text-[15vw] font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-blue-600/50 mb-2">
-                        {stats.rewatch_count} TITLES
-                    </span>
+                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
                     <div className="flex items-center gap-2 text-zinc-500">
-                        <RotateCcw size={16} className="text-blue-500" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest">Repeat Sessions</span>
+                        <CalendarRange size={16} className="text-sky-400" />
+                        <span className="text-[10px] font-mono uppercase tracking-widest">Most intense day</span>
+                    </div>
+                    <div className="mt-3 text-5xl font-black leading-none tracking-tight text-white">{topDayCount || stats.binge_days}</div>
+                    <div className="mt-2 text-sm leading-6 text-zinc-400">
+                        {topDayCount > 0 ? `${topDayDate} was your busiest watch day.` : `${stats.binge_days} binge days cleared the threshold this year.`}
                     </div>
                 </div>
             </div>
         </div>,
 
-        // Slide 5: Predictive Insights (Mobile)
-        ...(predictions ? [
-            <div key="predictions" className="h-full flex flex-col justify-center items-start px-6 py-16 bg-zinc-950 text-white relative overflow-hidden">
-                <div className="absolute inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
-                <div className="absolute top-10 right-0 opacity-10 font-black text-9xl text-white rotate-90 origin-top-right">{nextYear}</div>
+        <div key="rewatch" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-900/18 via-black to-black" />
+            <WrappedTitleSpotlight
+                eyebrow="Repeat return"
+                title={topRewatch?.[0] || 'No repeat title yet'}
+                subtitle={topRewatch ? `${topRewatch[1]} completed returns • comfort-watch signal` : 'No major rewatch title recorded yet'}
+                movie={highlightCards.topRewatch || undefined}
+                accent="amber"
+            />
+        </div>,
 
-                <div className="relative z-10 w-full h-full flex flex-col justify-center gap-12">
-                    <div>
-                        <h2 className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest mb-1">Future Forecast</h2>
-                        <h1 className="text-3xl font-black text-white uppercase leading-none">The Next Chapter</h1>
-                    </div>
 
-                    <div className="grid gap-8">
-                        <div className="bg-zinc-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm">
-                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-1">Projected Total</span>
-                            <span className="text-[15vw] font-black text-white leading-none">{predictions.projected_2027_total}</span>
-                            <div className="mt-2 flex items-center gap-2">
-                                <TrendingUp size={14} className={predictions.growth_rate > 0 ? 'text-green-500' : 'text-red-500'} />
-                                <span className="text-xs text-zinc-400 font-bold">{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% Session Growth</span>
+        ...(compareCards.length >= 2 ? [
+            <div key="compare-cards" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+                <div className="absolute inset-0 bg-gradient-to-br from-violet-950/20 via-black to-amber-950/16" />
+                <div className="relative z-10">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/45">Two ends of the year</div>
+                    <h3 className="mt-5 max-w-xs text-5xl font-black leading-[0.92] tracking-tight text-white">
+                        How it opened, and where you kept returning
+                    </h3>
+                    <p className="mt-4 max-w-sm text-base leading-7 text-zinc-400">
+                        One title kicked the year off. Another became the place you returned to when the year needed something familiar.
+                    </p>
+                </div>
+                <div className="relative z-10 mt-8 flex justify-between gap-4">
+                    <MobileWrappedPosterCard
+                        movie={compareCards[0]}
+                        caption="First watch"
+                        subcaption={stats.first_watch_of_year ? readableDate(stats.first_watch_of_year.date) : undefined}
+                    />
+                    <MobileWrappedPosterCard
+                        movie={compareCards[1]}
+                        caption="Most revisited"
+                        subcaption={topRewatch ? `${topRewatch[1]} returns` : undefined}
+                    />
+                </div>
+            </div>
+        ] : []),
+
+        ...(comfortShelf.length > 0 ? [
+            <div key="comfort-shelf" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-950/22 via-black to-black" />
+                <div className="relative z-10">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-amber-200/70">Comfort shelf</div>
+                    <h3 className="mt-5 max-w-sm text-5xl font-black leading-[0.92] tracking-tight text-white">
+                        The posters you kept reaching for
+                    </h3>
+                    <p className="mt-4 max-w-sm text-base leading-7 text-zinc-400">
+                        These are the titles that held the strongest repeat pull in your wrapped.
+                    </p>
+                </div>
+                <div className="relative z-10 mt-8 flex gap-4 overflow-x-auto pb-2">
+                    {comfortShelf.slice(0, 3).map((movie, index) => (
+                        <MobileWrappedPosterCard
+                            key={`${movie.id}-${index}`}
+                            movie={movie}
+                            caption={`Return ${index + 1}`}
+                            subcaption={rewatchCountsByTitle[movie.title] ? `${rewatchCountsByTitle[movie.title]} returns` : undefined}
+                        />
+                    ))}
+                </div>
+            </div>
+        ] : []),
+
+        ...(posterMosaic.length >= 3 ? [
+            <div key="poster-mosaic" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] via-black to-black" />
+                <div className="relative z-10">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.28em] text-white/45">Your year in posters</div>
+                    <h3 className="mt-5 max-w-xs text-5xl font-black leading-[0.92] tracking-tight text-white">
+                        A quick visual of what your wrapped looked like
+                    </h3>
+                    <p className="mt-4 max-w-sm text-base leading-7 text-zinc-400">
+                        Not every title, just the cards that best summarize how your year felt on screen.
+                    </p>
+                </div>
+                <div className="relative z-10 mt-8 grid grid-cols-2 gap-4">
+                    {posterMosaic.map((movie, index) => (
+                        <div key={`${movie.id}-${index}`} className="relative aspect-[2/3] overflow-hidden rounded-[24px] border border-white/10 bg-zinc-950">
+                            <img src={movie.imageUrl} alt={movie.title} className="h-full w-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent" />
+                            <div className="absolute inset-x-0 bottom-0 p-3">
+                                <div className="rounded-[14px] border border-white/10 bg-black/45 p-3 backdrop-blur-xl">
+                                    <div className="line-clamp-2 text-sm font-black leading-tight text-white">{movie.title}</div>
+                                </div>
                             </div>
                         </div>
+                    ))}
+                </div>
+            </div>
+        ] : []),
 
-                        {predictions.next_milestone && (
-                            <div className="bg-zinc-900/50 p-6 rounded-2xl border border-white/5 backdrop-blur-sm">
-                                <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest block mb-1">Next Milestone</span>
-                                <span className="text-[13vw] font-black text-white leading-none">{predictions.next_milestone.target}</span>
-                                <span className="text-xs text-zinc-400 block mt-2">{predictions.next_milestone.remaining} sessions away</span>
-                            </div>
-                        )}
+        ...(communityStats ? [
+            <div key="community" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
+                <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-900/16 via-black to-black" />
+                <div className="relative z-10">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-mono uppercase tracking-[0.28em] text-zinc-400">
+                        <Users size={12} className="text-fuchsia-300" />
+                        Community check
+                    </div>
+                    <h3 className="mt-6 max-w-xs text-5xl font-black leading-[0.95] tracking-tight text-white">
+                        Top {Math.max(1, 100 - Math.round(communityStats.user_percentile.total_content))}%
+                    </h3>
+                    <p className="mt-4 max-w-xs text-base leading-7 text-zinc-400">
+                        You out-watched most of the community on qualified sessions this year.
+                    </p>
+                </div>
+                <div className="relative z-10 mt-10 grid grid-cols-2 gap-4">
+                    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">You</div>
+                        <div className="mt-2 text-4xl font-black text-white">{communityStats.user_stats.total_content}</div>
+                        <div className="mt-1 text-sm text-zinc-400">qualified sessions</div>
+                    </div>
+                    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">Median</div>
+                        <div className="mt-2 text-4xl font-black text-white">{Math.round(communityStats.median_total)}</div>
+                        <div className="mt-1 text-sm text-zinc-400">qualified sessions</div>
                     </div>
                 </div>
             </div>
         ] : []),
 
-        // Slide 6: Summary (Mobile)
-        <div key="summary" className="h-full flex flex-col justify-between px-6 pt-16 pb-10 bg-zinc-950 text-white relative overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 mix-blend-overlay" />
+        ...(predictions ? [
+            <div key="predictions" className="relative flex h-full flex-col justify-center overflow-hidden bg-zinc-950 px-6 py-16 text-white">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
+                <div className="absolute right-0 top-10 origin-top-right rotate-90 text-9xl font-black text-white/10">{nextYear}</div>
+                <div className="relative z-10 flex h-full flex-col justify-center gap-10">
+                    <div>
+                        <h2 className="mb-1 text-[10px] font-mono uppercase tracking-widest text-cyan-500">Future Forecast</h2>
+                        <h1 className="text-3xl font-black uppercase leading-none text-white">The Next Chapter</h1>
+                    </div>
+                    <div className="grid gap-5">
+                        <div className="rounded-[28px] border border-white/5 bg-zinc-900/50 p-6 backdrop-blur-sm">
+                            <span className="mb-1 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">Projected Total</span>
+                            <span className="text-[15vw] font-black leading-none text-white">{predictions.projected_2027_total}</span>
+                            <div className="mt-2 flex items-center gap-2">
+                                <TrendingUp size={14} className={predictions.growth_rate > 0 ? 'text-green-500' : 'text-red-500'} />
+                                <span className="text-xs font-bold text-zinc-400">{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% session growth</span>
+                            </div>
+                            <div className={`mt-3 text-[10px] font-mono uppercase tracking-[0.24em] ${confidenceTone[predictions.confidence]}`}>
+                                {predictions.confidence} confidence
+                            </div>
+                        </div>
+                        <div className="rounded-[28px] border border-white/5 bg-zinc-900/50 p-6 backdrop-blur-sm">
+                            <span className="mb-1 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">Next milestone</span>
+                            <span className="text-[13vw] font-black leading-none text-white">{predictions.next_milestone.target}</span>
+                            <span className="mt-2 block text-xs text-zinc-400">{predictions.next_milestone.remaining} sessions away</span>
+                            <div className="mt-4 flex items-center gap-2 text-sm text-zinc-300">
+                                <Sparkles size={14} className="text-cyan-300" />
+                                <span>{predictions.trending_genre || dominantGenre} still looks like your lane.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ] : []),
 
-            {/* Header */}
+        <div key="summary" className="relative flex h-full flex-col justify-between overflow-hidden bg-zinc-950 px-6 pb-10 pt-16 text-white">
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
             <div className="relative z-10 text-center">
-                <h2 className="text-[10px] font-mono text-zinc-500 uppercase tracking-[0.3em] mb-2">StreamWrapp</h2>
-                <h1 className="text-3xl font-black tracking-tighter text-white uppercase">{`${currentYear} Recap`}</h1>
+                <h2 className="mb-2 text-[10px] font-mono uppercase tracking-[0.3em] text-zinc-500">StreamWrapp</h2>
+                <h1 className="text-3xl font-black uppercase tracking-tighter text-white">{`${currentYear} Recap`}</h1>
             </div>
-
-            {/* Stats Grid */}
-            <div className="relative z-10 grid grid-cols-2 gap-4 gap-y-8 w-full">
-                <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-2xl">
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Total</span>
-                    <span className="text-3xl font-black text-white">{stats.total_movies + stats.total_shows}</span>
+            <div className="relative z-10 grid w-full grid-cols-2 gap-4 gap-y-8">
+                <div className="flex flex-col items-center rounded-2xl bg-white/5 p-4 text-center">
+                    <span className="mb-1 text-[9px] font-mono uppercase tracking-widest text-zinc-500">Total</span>
+                    <span className="text-3xl font-black text-white">{totalContent}</span>
                 </div>
-                <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-2xl">
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Streak</span>
-                    <span className="text-3xl font-black text-white">{stats.streak_days}</span>
+                <div className="flex flex-col items-center rounded-2xl bg-white/5 p-4 text-center">
+                    <span className="mb-1 text-[9px] font-mono uppercase tracking-widest text-zinc-500">Top vibe</span>
+                    <span className="text-3xl font-black text-white">{dominantGenre}</span>
                 </div>
-                <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-2xl col-span-2">
-                    <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-1">Top Vibe</span>
-                    <span className="text-2xl font-black text-white uppercase leading-tight break-words text-center">
-                        {Object.entries(stats.genre_counts || {}).sort(([, a], [, b]) => (b as number) - (a as number))[0]?.[0] || '-'}
-                    </span>
-                </div>
-                <div className="flex flex-col items-center text-center p-4 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl col-span-2 border border-white/10">
-                    <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-widest mb-1">Archetype</span>
-                    <span className="text-2xl font-black text-white uppercase text-center break-words">{viewingStyle}</span>
+                <div className="col-span-2 flex flex-col items-center rounded-2xl bg-gradient-to-br from-white/10 to-white/5 p-4 text-center">
+                    <span className="mb-1 text-[9px] font-mono uppercase tracking-widest text-zinc-400">Archetype</span>
+                    <span className="text-2xl font-black uppercase text-white">{viewingStyle}</span>
                 </div>
             </div>
-
-            {/* Close Action */}
             <button
                 onClick={onClose}
-                className="relative z-20 w-full py-4 bg-white text-black font-black uppercase tracking-widest text-xs rounded-xl hover:bg-zinc-200 transition-colors pointer-events-auto"
+                className="relative z-20 w-full rounded-xl bg-white py-4 text-xs font-black uppercase tracking-widest text-black transition-colors hover:bg-zinc-200"
             >
                 Close Wrapped
             </button>
@@ -414,48 +793,42 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
     ];
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black text-white overscroll-contain">
+        <div className="fixed inset-0 z-[200] overscroll-contain bg-black text-white">
+            <div className="absolute left-0 right-0 top-0 z-[60] h-1 bg-black" />
 
-            {/* Safe Area Top Spacing */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-black z-[60]" />
-
-            {/* Progress Bar */}
-            <div className="absolute top-4 left-4 right-4 z-50 flex gap-1.5 pt-safe pointer-events-none">
+            <div className="pointer-events-none absolute left-4 right-4 top-4 z-50 flex gap-1.5 pt-safe">
                 {slides.map((_, idx) => (
-                    <div key={idx} className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden">
+                    <div key={idx} className="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
                         <div
-                            className={`h-full bg-white transition-all duration-300 ${idx < currentSlide ? 'w-full' : idx === currentSlide ? 'w-full' : 'w-0'}`}
+                            className={`h-full bg-white transition-all duration-300 ${idx <= currentSlide ? 'w-full' : 'w-0'}`}
                         />
                     </div>
                 ))}
             </div>
 
-            {/* Close */}
             <button
                 onClick={onClose}
-                className="absolute top-8 right-6 z-[60] p-2 bg-black/20 backdrop-blur-md rounded-full text-white/80"
+                className="absolute right-6 top-8 z-[60] rounded-full bg-black/20 p-2 text-white/80 backdrop-blur-md"
             >
                 <X size={20} />
             </button>
 
-            {/* Navigation Zones */}
             <div className="absolute inset-0 z-30 flex">
                 <button
                     type="button"
                     aria-label="Previous slide"
-                    className="w-1/3 h-full active:bg-white/5 transition-colors bg-transparent"
+                    className="h-full w-1/3 bg-transparent transition-colors active:bg-white/5"
                     onClick={prevSlide}
                 />
                 <button
                     type="button"
                     aria-label="Next slide"
-                    className="w-2/3 h-full active:bg-white/5 transition-colors bg-transparent"
+                    className="h-full w-2/3 bg-transparent transition-colors active:bg-white/5"
                     onClick={nextSlide}
                 />
             </div>
 
-            {/* Content */}
-            <div className="relative z-20 w-full h-full animate-in fade-in duration-300 pointer-events-none">
+            <div className="pointer-events-none relative z-20 h-full w-full animate-in fade-in duration-300">
                 {slides[currentSlide]}
             </div>
         </div>

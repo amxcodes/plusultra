@@ -148,13 +148,17 @@ function StreamApp() {
     };
 
     void refreshUnreadMessages();
-    const unsubscribe = SocialService.subscribeToInbox(user.id, () => {
+    const unsubscribeInbox = SocialService.subscribeToInbox(user.id, () => {
+      void refreshUnreadMessages();
+    });
+    const unsubscribeUnreadCount = SocialService.subscribeToUnreadDirectMessageCount(user.id, () => {
       void refreshUnreadMessages();
     });
 
     return () => {
       isMounted = false;
-      unsubscribe();
+      unsubscribeInbox();
+      unsubscribeUnreadCount();
     };
   }, [user?.id]);
 
