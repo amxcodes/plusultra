@@ -6,7 +6,17 @@ type PrivateNotificationProfile = {
 };
 
 export const NotificationService = {
+    async pruneExpiredDirectMessageNotifications(userId: string) {
+        const { error } = await supabase.rpc('prune_expired_direct_message_notifications', {
+            p_user_id: userId
+        });
+
+        if (error) throw error;
+    },
+
     async getNotifications(userId: string) {
+        await this.pruneExpiredDirectMessageNotifications(userId);
+
         const { data, error } = await supabase
             .from('notifications')
             .select('*')
@@ -18,6 +28,8 @@ export const NotificationService = {
     },
 
     async getUnreadCounts(userId: string) {
+        await this.pruneExpiredDirectMessageNotifications(userId);
+
         // Get user's last seen timestamps
         const { data } = await supabase
             .rpc('get_private_profile', {

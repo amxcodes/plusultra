@@ -256,64 +256,95 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
         todayActiveSeconds: 0,
     });
 
+    const mobileTabs = [
+        { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
+        { id: 'users', icon: Users, label: 'Users' },
+        { id: 'guests', icon: Link2, label: 'Guests' },
+        { id: 'announcements', icon: Megaphone, label: 'Alerts' },
+        { id: 'requests', icon: MessageSquarePlus, label: 'Requests' },
+        { id: 'sessions', icon: Database, label: 'Sessions' },
+        { id: 'presence', icon: Wifi, label: 'Presence' },
+        { id: 'providers', icon: Plus, label: 'Providers' },
+        { id: 'health', icon: Activity, label: 'Health' },
+        { id: 'settings', icon: Settings, label: 'Settings' }
+    ] as const;
+
+    const mobilePanel = 'rounded-[24px] border border-[#232323] bg-[#141414]';
+    const mobileInset = 'rounded-[18px] border border-[#2e2e2e] bg-[#181818]';
+    const mobileLabel = 'text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]';
+    const mobileButton = 'rounded-[14px] border border-[#303030] bg-[#181818] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-300';
+
     if (!isAdmin) return <div className="p-10 text-center text-red-500">Access Denied</div>;
 
     return (
-        <div className="min-h-screen bg-[#0f1014] pb-24 pt-6 px-4">
-            <h1 className="text-2xl font-bold text-white mb-6">Admin Panel</h1>
-
-            {/* Mobile Tab Nav - Compact Icons */}
-            <div className="flex justify-between mb-6 bg-zinc-900/50 p-1.5 rounded-2xl border border-white/5 overflow-x-auto gap-2">
-                {[
-                    { id: 'overview', icon: LayoutDashboard },
-                    { id: 'users', icon: Users },
-                    { id: 'guests', icon: Link2 },
-                    { id: 'announcements', icon: Megaphone },
-                    { id: 'requests', icon: MessageSquarePlus },
-                    { id: 'sessions', icon: Database },
-                    { id: 'presence', icon: Wifi },
-                    { id: 'providers', icon: Plus },
-                    { id: 'health', icon: Activity },
-                    { id: 'settings', icon: Settings }
-                ].map(item => (
-                    <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id as any)}
-                        className={`flex items-center justify-center p-3 rounded-xl transition-all shrink-0 ${activeTab === item.id
-                            ? 'bg-zinc-800 text-white shadow-lg'
-                            : 'text-zinc-500 hover:text-zinc-300'
-                            }`}
-                        title={item.id}
-                    >
-                        <item.icon size={20} />
-                    </button>
-                ))}
-            </div>
+        <div className="min-h-screen bg-[#0f1014] px-4 pb-24 pt-6">
+            <div className="space-y-4">
+                <div className="rounded-[28px] border border-[#232323] bg-[#131419] p-4 shadow-[0_20px_50px_rgba(0,0,0,0.24)]">
+                    <div className="rounded-[22px] border border-[#232323] bg-[#111111] px-5 py-5 text-white">
+                        <div className={mobileLabel}>Platform control</div>
+                        <h1 className="mt-3 text-2xl font-black tracking-tight text-white">Admin Panel</h1>
+                        <p className="mt-2 text-sm leading-6 text-[#9a9a9a]">Compact control for users, access, content, health, and platform settings.</p>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                        <div className="rounded-[18px] border border-[#26272c] bg-[#17181d] px-3 py-3">
+                            <div className={mobileLabel}>Users</div>
+                            <div className="mt-2 text-2xl font-black text-white">{stats.totalUsers}</div>
+                        </div>
+                        <div className="rounded-[18px] border border-[#26272c] bg-[#17181d] px-3 py-3">
+                            <div className={mobileLabel}>Playlists</div>
+                            <div className="mt-2 text-2xl font-black text-white">{stats.totalPlaylists}</div>
+                        </div>
+                        <div className="rounded-[18px] border border-[#d76357] bg-[#211311] px-3 py-3">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#f0a39a]">Alerts</div>
+                            <div className="mt-2 text-2xl font-black text-white">{stats.activeAnnouncements}</div>
+                        </div>
+                    </div>
+                    <div className="mt-3 rounded-[22px] border border-[#232323] bg-[#0f0f0f] p-3">
+                        <div className="mb-3 px-1 text-[10px] font-mono uppercase tracking-[0.24em] text-[#8d8578]">Control cluster</div>
+                        <div className="grid grid-cols-4 gap-2">
+                            {mobileTabs.map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setActiveTab(item.id as any)}
+                                    className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-[14px] border px-2 py-2.5 transition-all ${
+                                        activeTab === item.id
+                                            ? 'border-[#e36457] bg-[#2c1614] text-[#ffd4cf]'
+                                            : 'border-[#2a2a2a] bg-[#141414] text-[#8b8b8b]'
+                                    }`}
+                                    title={item.label}
+                                >
+                                    <item.icon size={16} />
+                                    <span className="max-w-full truncate text-[9px] font-mono uppercase tracking-[0.14em]">{item.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
 
             {loading ? (
                 <div className="animate-pulse space-y-4">
-                    <div className="h-24 bg-zinc-900 rounded-xl" />
-                    <div className="h-24 bg-zinc-900 rounded-xl" />
+                    <div className="h-24 rounded-[20px] bg-zinc-900" />
+                    <div className="h-24 rounded-[20px] bg-zinc-900" />
                 </div>
             ) : (
                 <div className="space-y-6">
                     {/* OVERVIEW */}
                     {activeTab === 'overview' && (
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                            <div className={`${mobilePanel} p-4`}>
                                 <Users size={20} className="text-zinc-500 mb-2" />
                                 <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
                                 <div className="text-xs text-zinc-500">Total Users</div>
                             </div>
-                            <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                            <div className={`${mobilePanel} p-4`}>
                                 <Activity size={20} className="text-zinc-500 mb-2" />
                                 <div className="text-2xl font-bold text-white">{stats.totalPlaylists}</div>
                                 <div className="text-xs text-zinc-500">Total Playlists</div>
                             </div>
-                            <div className="col-span-2 bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+                            <div className="col-span-2 rounded-[20px] border border-[#d76357] bg-[#211311] p-4">
                                 <AlertTriangle size={20} className="text-zinc-500 mb-2" />
                                 <div className="text-2xl font-bold text-white">{stats.activeAnnouncements}</div>
-                                <div className="text-xs text-zinc-500">Active Announcements</div>
+                                <div className="text-xs text-[#f0a39a]">Active Announcements</div>
                             </div>
                         </div>
                     )}
@@ -324,7 +355,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                             {users.map(u => {
                                 const isCurrentUser = u.id === user?.id;
                                 return (
-                                <div key={u.id} className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 flex flex-col gap-3">
+                                <div key={u.id} className={`${mobilePanel} flex flex-col gap-3 p-4`}>
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden shrink-0">
@@ -377,15 +408,15 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                     </div>
 
                                     {/* Role Selection */}
-                                    <div className="flex items-center justify-between bg-black/20 p-2 rounded-lg">
-                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Role</span>
+                                    <div className={`${mobileInset} flex items-center justify-between p-2.5`}>
+                                        <span className="pl-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[#8d8578]">Role</span>
                                         <select
                                             value={u.role}
                                             disabled={isCurrentUser}
                                             onChange={(e) => handleRoleChange(u, e.target.value)}
-                                            className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border bg-transparent outline-none ${u.role === 'admin' ? 'text-white border-white' :
-                                                u.role === 'moderator' ? 'text-zinc-300 border-zinc-600' :
-                                                    'text-zinc-500 border-zinc-800'
+                                            className={`rounded-[12px] border bg-transparent px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] outline-none ${u.role === 'admin' ? 'border-[#e36457] text-[#ffd4cf]' :
+                                                u.role === 'moderator' ? 'border-[#4a4a4a] text-zinc-300' :
+                                                    'border-[#303030] text-zinc-500'
                                                 }`}
                                         >
                                             <option value="user" className="bg-zinc-900 text-zinc-400">User</option>
@@ -400,8 +431,8 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                     )}
 
                                     {/* Streaming Permission */}
-                                    <div className="flex items-center justify-between bg-black/20 p-2 rounded-lg">
-                                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest pl-1">Stream Content</span>
+                                    <div className={`${mobileInset} flex items-center justify-between p-2.5`}>
+                                        <span className="pl-1 text-[10px] font-mono uppercase tracking-[0.18em] text-[#8d8578]">Stream Content</span>
                                         <button
                                             onClick={async () => {
                                                 const newValue = !u.can_stream;
@@ -415,7 +446,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                     error('Failed to update permission');
                                                 }
                                             }}
-                                            className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded transition-all ${u.can_stream ? 'bg-green-500 text-black shadow-[0_0_10px_rgba(34,197,94,0.3)]' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                            className={`rounded-[12px] border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-all ${u.can_stream ? 'border-green-500/20 bg-green-500/10 text-green-300' : 'border-red-500/20 bg-red-500/10 text-red-300'
                                                 }`}
                                         >
                                             {u.can_stream ? 'Allowed' : 'Blocked'}
@@ -434,8 +465,9 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     {activeTab === 'announcements' && (
                         <div className="space-y-4">
                             {/* Create Form - Premium Mobile UI */}
-                            <div className="bg-gradient-to-br from-zinc-900 via-zinc-900/90 to-black border border-white/5 p-5 rounded-2xl shadow-xl">
-                                <h3 className="text-sm font-bold text-white mb-4 flex items-center justify-between">
+                            <div className={`${mobilePanel} p-5`}>
+                                <div className={mobileLabel}>Broadcast control</div>
+                                <h3 className="mb-4 mt-1 flex items-center justify-between text-sm font-black uppercase tracking-[0.18em] text-white">
                                     <span className="flex items-center gap-2">
                                         <div className="p-1.5 bg-white/10 rounded-lg">
                                             <Megaphone size={14} className="text-white" />
@@ -451,7 +483,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             placeholder="Brief headline..."
                                             value={newAnnouncement.title}
                                             onChange={(e) => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/5 outline-none transition-all"
+                                            className="w-full rounded-[16px] border border-[#303030] bg-[#181818] px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition-all focus:border-[#e36457]"
                                         />
                                     </div>
 
@@ -462,7 +494,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             value={newAnnouncement.content}
                                             onChange={(e) => setNewAnnouncement(prev => ({ ...prev, content: e.target.value }))}
                                             rows={3}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-white/20 focus:bg-white/5 outline-none resize-none transition-all"
+                                            className="w-full resize-none rounded-[16px] border border-[#303030] bg-[#181818] px-4 py-3 text-sm text-white placeholder:text-zinc-600 outline-none transition-all focus:border-[#e36457]"
                                         />
                                     </div>
 
@@ -479,7 +511,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                     onClick={() => setNewAnnouncement(prev => ({ ...prev, type: type.id as any }))}
                                                     className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl border transition-all duration-300 ${newAnnouncement.type === type.id
                                                         ? `${type.bg} ${type.border} ${type.color} ring-1 ring-inset ring-white/10`
-                                                        : 'bg-zinc-900/50 border-white/5 text-zinc-600 hover:bg-zinc-800'
+                                                        : 'bg-[#181818] border-[#303030] text-zinc-600 hover:border-[#4a4a4a]'
                                                         }`}
                                                 >
                                                     <type.icon size={14} strokeWidth={2.5} />
@@ -492,7 +524,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                     <button
                                         onClick={handleCreateAnnouncement}
                                         disabled={!newAnnouncement.title || !newAnnouncement.content}
-                                        className="w-full mt-2 bg-white text-black font-black py-3.5 rounded-xl text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 shadow-lg shadow-white/10"
+                                        className="mt-2 w-full rounded-[16px] border border-[#e36457] bg-[#2c1614] py-3.5 text-xs font-black uppercase tracking-[0.18em] text-[#ffd4cf] transition-all active:scale-95 disabled:scale-100 disabled:opacity-50"
                                     >
                                         Publish Now
                                     </button>
@@ -508,7 +540,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                             {/* Improved List Items */}
                             <div className="space-y-3 pb-8">
                                 {announcements.map(a => (
-                                    <div key={a.id} className="bg-zinc-900/40 p-4 rounded-2xl border border-white/5 relative overflow-hidden group">
+                                    <div key={a.id} className="group relative overflow-hidden rounded-[20px] border border-[#232323] bg-[#141414] p-4">
                                         {/* Contextual Border Left */}
                                         <div className={`absolute inset-y-0 left-0 w-1 ${a.type === 'warning' ? 'bg-yellow-500' : a.type === 'success' ? 'bg-green-500' : 'bg-blue-500'
                                             }`} />
@@ -556,35 +588,40 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     {/* REQUESTS TAB (New Mobile) */}
                     {activeTab === 'requests' && (
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-bold text-white">Requests</h3>
-                                <span className="text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded text-xs">
-                                    {adminRequests.length}
-                                </span>
+                            <div className={`${mobilePanel} flex items-start justify-between gap-4 p-4`}>
+                                <div>
+                                    <div className={mobileLabel}>Request queue</div>
+                                    <h3 className="mt-2 text-lg font-black text-white">Requests</h3>
+                                    <p className="mt-1 text-[11px] leading-5 text-zinc-500">Review submitted titles, close fulfilled items, and remove stale requests.</p>
+                                </div>
+                                <div className={`${mobileInset} min-w-[72px] px-3 py-2 text-right`}>
+                                    <div className={mobileLabel}>Open</div>
+                                    <div className="mt-1 text-2xl font-black text-white">{adminRequests.length}</div>
+                                </div>
                             </div>
 
                             {adminRequests.length === 0 ? (
-                                <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-zinc-800 rounded-2xl opacity-50">
+                                <div className={`${mobilePanel} flex flex-col items-center justify-center border border-dashed border-[#2a2a2a] py-12 opacity-60`}>
                                     <MessageSquarePlus size={24} className="text-zinc-600 mb-2" />
                                     <p className="text-zinc-500 text-xs font-medium">No requests found</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
                                     {adminRequests.map(req => (
-                                        <div key={req.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                                            <div className="flex gap-3 p-3">
-                                                <div className="w-12 aspect-[2/3] bg-zinc-800 rounded overflow-hidden shrink-0">
-                                                    <img src={req.poster_path} className="w-full h-full object-cover" />
+                                        <div key={req.id} className={`${mobilePanel} overflow-hidden p-3`}>
+                                            <div className="flex gap-3">
+                                                <div className="h-[88px] w-[62px] shrink-0 overflow-hidden rounded-[14px] border border-[#2e2e2e] bg-[#181818]">
+                                                    <img src={req.poster_path} className="h-full w-full object-cover" />
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="text-sm font-bold text-white truncate">{req.title}</h4>
-                                                    <div className="flex items-center gap-2 text-[10px] text-zinc-500 mb-1">
+                                                <div className="min-w-0 flex-1">
+                                                    <h4 className="truncate text-sm font-bold text-white">{req.title}</h4>
+                                                    <div className="mb-1 mt-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
                                                         <span className="uppercase">{req.media_type}</span>
                                                         <span>•</span>
                                                         <span>{new Date(req.created_at).toLocaleDateString()}</span>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border ${req.status === 'fulfilled' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                        <span className={`rounded-[12px] border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${req.status === 'fulfilled' ? 'border-green-500/20 bg-green-500/10 text-green-300' : 'border-[#303030] bg-[#181818] text-zinc-400'
                                                             }`}>
                                                             {req.status}
                                                         </span>
@@ -594,7 +631,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-col gap-2 justify-center ml-1">
+                                                <div className="ml-1 flex flex-col justify-center gap-2">
                                                     <button
                                                         onClick={async () => {
                                                             const confirmed = await confirm({
@@ -612,7 +649,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                                 error('Failed to delete request');
                                                             }
                                                         }}
-                                                        className="p-2 bg-zinc-800/50 hover:bg-red-500/10 hover:text-red-500 text-zinc-500 rounded-lg transition-colors"
+                                                        className="rounded-[12px] border border-[#4a1e1a] bg-[#231514] p-2 text-[#f0a39a] transition-colors"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
@@ -626,7 +663,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                                                 console.error(e);
                                                             }
                                                         }}
-                                                        className={`p-2 rounded-lg transition-colors ${req.status === 'fulfilled' ? 'text-green-500 bg-green-500/10' : 'text-zinc-500 bg-zinc-800/50 hover:text-white'}`}
+                                                        className={`rounded-[12px] border p-2 transition-colors ${req.status === 'fulfilled' ? 'border-green-500/20 bg-green-500/10 text-green-300' : 'border-[#303030] bg-[#181818] text-zinc-300'}`}
                                                     >
                                                         {req.status === 'fulfilled' ? <Check size={16} /> : <Check size={16} className="opacity-30" />}
                                                     </button>
@@ -641,79 +678,83 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
 
                     {/* SETTINGS - Only essential mobile settings */}
                     {activeTab === 'settings' && (
-                        <div className="bg-zinc-900 p-6 rounded-xl border border-zinc-800 space-y-6">
-                            <div className="flex items-center justify-between">
+                        <div className={`${mobilePanel} space-y-4 p-4`}>
+                            <div className="mb-1">
+                                <div className={mobileLabel}>Platform switches</div>
+                                <h3 className="mt-2 text-lg font-black text-white">Settings</h3>
+                                <p className="mt-1 text-[11px] leading-5 text-zinc-500">Mobile control surface for signups, history resets, and wrapped availability.</p>
+                            </div>
+                            <div className={`${mobileInset} flex items-center justify-between px-4 py-3`}>
                                 <div>
-                                    <div className="text-white font-bold text-sm">Registration</div>
-                                    <div className="text-zinc-500 text-[10px]">Allow new signups</div>
+                                    <div className={mobileLabel}>Registration</div>
+                                    <div className="mt-1 text-sm font-bold text-white">Allow new signups</div>
                                 </div>
                                 <div
                                     onClick={() => handleToggleSetting('registration_enabled', appSettings.registration_enabled)}
-                                    className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${appSettings.registration_enabled === 'true' ? 'bg-white' : 'bg-zinc-800'}`}
+                                    className={`relative h-6 w-10 cursor-pointer rounded-full transition-colors ${appSettings.registration_enabled === 'true' ? 'bg-[#e36457]' : 'bg-[#242424]'}`}
                                 >
-                                    <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${appSettings.registration_enabled === 'true' ? 'translate-x-4' : ''}`} />
+                                    <div className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-[#0f1014] transition-transform ${appSettings.registration_enabled === 'true' ? 'translate-x-4' : ''}`} />
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between">
+                            <div className={`${mobileInset} flex items-center justify-between px-4 py-3`}>
                                 <div>
-                                    <div className="text-white font-bold text-sm">Clear History</div>
-                                    <div className="text-zinc-500 text-[10px]">History and wrapped reset</div>
+                                    <div className={mobileLabel}>Clear history</div>
+                                    <div className="mt-1 text-sm font-bold text-white">History and wrapped reset</div>
                                 </div>
                                 <div
                                     onClick={() => handleToggleSetting('clear_history_enabled', appSettings.clear_history_enabled)}
-                                    className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${appSettings.clear_history_enabled === 'true' ? 'bg-white' : 'bg-zinc-800'}`}
+                                    className={`relative h-6 w-10 cursor-pointer rounded-full transition-colors ${appSettings.clear_history_enabled === 'true' ? 'bg-[#e36457]' : 'bg-[#242424]'}`}
                                 >
-                                    <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${appSettings.clear_history_enabled === 'true' ? 'translate-x-4' : ''}`} />
+                                    <div className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-[#0f1014] transition-transform ${appSettings.clear_history_enabled === 'true' ? 'translate-x-4' : ''}`} />
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between">
+                            <div className={`${mobileInset} flex items-center justify-between px-4 py-3`}>
                                 <div>
-                                    <div className="text-white font-bold text-sm flex items-center gap-2">
+                                    <div className={mobileLabel}>Wrapped override</div>
+                                    <div className="mt-1 flex items-center gap-2 text-sm font-bold text-white">
                                         <Trophy size={14} className="text-zinc-400" />
-                                        Wrapped Override
+                                        Force wrapped on
                                     </div>
-                                    <div className="text-zinc-500 text-[10px]">Force wrapped on for everyone</div>
                                 </div>
                                 <div
                                     onClick={() => handleToggleSetting(WRAPPED_SETTING_KEY, appSettings[WRAPPED_SETTING_KEY] || 'false')}
-                                    className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'bg-white' : 'bg-zinc-800'}`}
+                                    className={`relative h-6 w-10 cursor-pointer rounded-full transition-colors ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'bg-[#e36457]' : 'bg-[#242424]'}`}
                                 >
-                                    <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'translate-x-4' : ''}`} />
+                                    <div className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-[#0f1014] transition-transform ${appSettings[WRAPPED_SETTING_KEY] === 'true' ? 'translate-x-4' : ''}`} />
                                 </div>
                             </div>
-                            <p className="text-xs text-zinc-600 pt-4 text-center">These controls now map directly to the session-based wrapped backend.</p>
+                            <p className="px-1 pt-1 text-[11px] leading-5 text-zinc-500">These controls map directly to the session-based wrapped backend and global sign-up behavior.</p>
                         </div>
                     )}
 
                     {activeTab === 'sessions' && (
                         <div className="space-y-4">
-                            <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                            <div className={`${mobilePanel} p-4`}>
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <h2 className="text-lg font-bold text-white">Recent View Sessions</h2>
-                                        <p className="text-[11px] text-zinc-500 mt-1">
-                                            Inspect recent heartbeats and see why a session has or has not qualified yet.
-                                        </p>
+                                        <div className={mobileLabel}>Session tracking</div>
+                                        <h2 className="mt-2 text-lg font-black text-white">Recent view sessions</h2>
+                                        <p className="mt-1 text-[11px] leading-5 text-zinc-500">Check heartbeats, qualification state, and how much time each session still needs.</p>
                                     </div>
                                     <button
                                         onClick={loadViewSessions}
                                         disabled={isLoadingViewSessions}
-                                        className="p-2 bg-zinc-800 rounded-lg text-white border border-zinc-700 disabled:opacity-50"
+                                        className="rounded-[12px] border border-[#303030] bg-[#181818] p-2 text-white disabled:opacity-50"
                                     >
                                         <RefreshCw size={16} className={isLoadingViewSessions ? 'animate-spin' : ''} />
                                     </button>
                                 </div>
 
-                                <div className="mt-4 flex items-center justify-between bg-black/20 p-3 rounded-xl">
+                                <div className={`${mobileInset} mt-4 flex items-center justify-between px-4 py-3`}>
                                     <div>
-                                        <div className="text-white font-bold text-sm">Pending Only</div>
-                                        <div className="text-zinc-500 text-[10px]">Show sessions still below the qualification threshold</div>
+                                        <div className={mobileLabel}>Pending only</div>
+                                        <div className="mt-1 text-sm font-bold text-white">Show unqualified sessions</div>
                                     </div>
                                     <div
                                         onClick={() => setOnlyPendingSessions(prev => !prev)}
-                                        className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${onlyPendingSessions ? 'bg-white' : 'bg-zinc-800'}`}
+                                        className={`relative h-6 w-10 cursor-pointer rounded-full transition-colors ${onlyPendingSessions ? 'bg-[#e36457]' : 'bg-[#242424]'}`}
                                     >
-                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${onlyPendingSessions ? 'translate-x-4' : ''}`} />
+                                        <div className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-[#0f1014] transition-transform ${onlyPendingSessions ? 'translate-x-4' : ''}`} />
                                     </div>
                                 </div>
                             </div>
@@ -727,7 +768,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             : 'text-zinc-300 bg-zinc-800 border-zinc-700';
 
                                     return (
-                                        <div key={session.id} className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800">
+                                        <div key={session.id} className={`${mobilePanel} p-4`}>
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <div className="text-white font-bold text-sm">{session.title || `TMDB ${session.tmdb_id}`}</div>
@@ -743,15 +784,15 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-3 mt-4 text-[10px]">
-                                                <div className="bg-black/20 rounded-xl p-3">
-                                                    <div className="text-zinc-500 uppercase tracking-wider mb-1">Active Time</div>
+                                                <div className={`${mobileInset} p-3`}>
+                                                    <div className={mobileLabel}>Active</div>
                                                     <div className="text-white font-bold">{formatDuration(session.active_seconds)}</div>
-                                                    <div className="text-zinc-600 mt-1">Threshold {formatDuration(session.threshold_seconds)}</div>
+                                                    <div className="mt-1 text-[10px] text-zinc-500">Target {formatDuration(session.threshold_seconds)}</div>
                                                 </div>
-                                                <div className="bg-black/20 rounded-xl p-3">
-                                                    <div className="text-zinc-500 uppercase tracking-wider mb-1">Remaining</div>
+                                                <div className={`${mobileInset} p-3`}>
+                                                    <div className={mobileLabel}>Remaining</div>
                                                     <div className="text-white font-bold">{session.is_qualified ? 'Qualified' : formatDuration(session.remaining_seconds)}</div>
-                                                    <div className="text-zinc-600 mt-1">{new Date(session.last_heartbeat_at).toLocaleTimeString()}</div>
+                                                    <div className="mt-1 text-[10px] text-zinc-500">{new Date(session.last_heartbeat_at).toLocaleTimeString()}</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -759,7 +800,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                 })}
 
                                 {!isLoadingViewSessions && viewSessions.length === 0 && (
-                                    <div className="bg-zinc-900/60 p-8 rounded-2xl border border-dashed border-zinc-800 text-center text-zinc-500 text-sm">
+                                    <div className={`${mobilePanel} border border-dashed border-[#2a2a2a] p-8 text-center text-sm text-zinc-500`}>
                                         No sessions match the current filters.
                                     </div>
                                 )}
@@ -770,52 +811,49 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     {activeTab === 'presence' && (
                         <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
-                                    <Wifi size={18} className="text-zinc-500 mb-2" />
-                                    <div className="text-2xl font-bold text-white">{presenceSummary.onlineCount}</div>
-                                    <div className="text-xs text-zinc-500">Online now</div>
+                                <div className={`${mobilePanel} p-4`}>
+                                    <div className={mobileLabel}>Online now</div>
+                                    <div className="mt-2 text-2xl font-black text-white">{presenceSummary.onlineCount}</div>
                                 </div>
-                                <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
-                                    <Activity size={18} className="text-zinc-500 mb-2" />
-                                    <div className="text-2xl font-bold text-white">{formatDuration(presenceSummary.todayActiveSeconds)}</div>
-                                    <div className="text-xs text-zinc-500">Tracked today</div>
+                                <div className={`${mobilePanel} p-4`}>
+                                    <div className={mobileLabel}>Tracked today</div>
+                                    <div className="mt-2 text-2xl font-black text-white">{formatDuration(presenceSummary.todayActiveSeconds)}</div>
                                 </div>
                             </div>
 
-                            <div className="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+                            <div className={`${mobilePanel} p-4`}>
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <h2 className="text-lg font-bold text-white">Platform Presence</h2>
-                                        <p className="text-[11px] text-zinc-500 mt-1">
-                                            Who is online now and how long they have stayed active in the app.
-                                        </p>
+                                        <div className={mobileLabel}>Live presence</div>
+                                        <h2 className="mt-2 text-lg font-black text-white">Platform presence</h2>
+                                        <p className="mt-1 text-[11px] leading-5 text-zinc-500">See who is online, how long they have stayed active, and the most recent path captured.</p>
                                     </div>
                                     <button
                                         onClick={loadPresenceUsers}
                                         disabled={isLoadingPresence}
-                                        className="p-2 bg-zinc-800 rounded-lg text-white border border-zinc-700 disabled:opacity-50"
+                                        className="rounded-[12px] border border-[#303030] bg-[#181818] p-2 text-white disabled:opacity-50"
                                     >
                                         <RefreshCw size={16} className={isLoadingPresence ? 'animate-spin' : ''} />
                                     </button>
                                 </div>
 
-                                <div className="mt-4 flex items-center justify-between bg-black/20 p-3 rounded-xl">
+                                <div className={`${mobileInset} mt-4 flex items-center justify-between px-4 py-3`}>
                                     <div>
-                                        <div className="text-white font-bold text-sm">Online Only</div>
-                                        <div className="text-zinc-500 text-[10px]">Hide offline users from the admin list</div>
+                                        <div className={mobileLabel}>Online only</div>
+                                        <div className="mt-1 text-sm font-bold text-white">Hide offline users</div>
                                     </div>
                                     <div
                                         onClick={() => setOnlineOnlyPresence(prev => !prev)}
-                                        className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer ${onlineOnlyPresence ? 'bg-white' : 'bg-zinc-800'}`}
+                                        className={`relative h-6 w-10 cursor-pointer rounded-full transition-colors ${onlineOnlyPresence ? 'bg-[#e36457]' : 'bg-[#242424]'}`}
                                     >
-                                        <div className={`absolute top-1 left-1 w-4 h-4 bg-black rounded-full transition-transform ${onlineOnlyPresence ? 'translate-x-4' : ''}`} />
+                                        <div className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-[#0f1014] transition-transform ${onlineOnlyPresence ? 'translate-x-4' : ''}`} />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 {presenceUsers.map(user => (
-                                    <div key={user.user_id} className="bg-zinc-900/60 p-4 rounded-2xl border border-zinc-800">
+                                    <div key={user.user_id} className={`${mobilePanel} p-4`}>
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-11 h-11 rounded-full overflow-hidden bg-zinc-800 shrink-0">
@@ -839,27 +877,27 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-3 mt-4 text-[10px]">
-                                            <div className="bg-black/20 rounded-xl p-3">
-                                                <div className="text-zinc-500 uppercase tracking-wider mb-1">Current</div>
+                                            <div className={`${mobileInset} p-3`}>
+                                                <div className={mobileLabel}>Current</div>
                                                 <div className="text-white font-bold">{user.is_online ? formatDuration(user.current_online_seconds) : 'Not active'}</div>
-                                                <div className="text-zinc-600 mt-1">
+                                                <div className="mt-1 text-[10px] text-zinc-500">
                                                     {user.current_session_started_at ? `Started ${new Date(user.current_session_started_at).toLocaleTimeString()}` : 'No live session'}
                                                 </div>
                                             </div>
-                                            <div className="bg-black/20 rounded-xl p-3">
-                                                <div className="text-zinc-500 uppercase tracking-wider mb-1">Today</div>
+                                            <div className={`${mobileInset} p-3`}>
+                                                <div className={mobileLabel}>Totals</div>
                                                 <div className="text-white font-bold">{formatDuration(user.today_active_seconds)}</div>
-                                                <div className="text-zinc-600 mt-1">{user.session_count} total sessions</div>
+                                                <div className="mt-1 text-[10px] text-zinc-500">{user.session_count} sessions today</div>
                                             </div>
                                         </div>
 
-                                        <div className="mt-3 bg-black/20 rounded-xl p-3 text-[10px]">
+                                        <div className={`${mobileInset} mt-3 p-3 text-[10px]`}>
                                             <div className="flex items-center justify-between gap-3">
-                                                <span className="text-zinc-500 uppercase tracking-wider">Last Seen</span>
-                                                <span className="text-zinc-400">{user.last_seen_at ? new Date(user.last_seen_at).toLocaleString() : 'No presence yet'}</span>
+                                                <span className={mobileLabel}>Last seen</span>
+                                                <span className="text-zinc-400">{user.last_seen_at ? new Date(user.last_seen_at).toLocaleTimeString() : 'No presence yet'}</span>
                                             </div>
                                             <div className="flex items-center justify-between gap-3 mt-2">
-                                                <span className="text-zinc-500 uppercase tracking-wider">Lifetime</span>
+                                                <span className={mobileLabel}>Lifetime</span>
                                                 <span className="text-white font-bold">{formatDuration(user.total_active_seconds)}</span>
                                             </div>
                                             <div className="mt-2 text-zinc-600 truncate">{user.last_path || 'No recent path captured'}</div>
@@ -868,7 +906,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                                 ))}
 
                                 {!isLoadingPresence && presenceUsers.length === 0 && (
-                                    <div className="bg-zinc-900/60 p-8 rounded-2xl border border-dashed border-zinc-800 text-center text-zinc-500 text-sm">
+                                    <div className={`${mobilePanel} border border-dashed border-[#2a2a2a] p-8 text-center text-sm text-zinc-500`}>
                                         No presence rows yet.
                                     </div>
                                 )}
@@ -939,6 +977,7 @@ export const MobileAdminDashboard: React.FC<MobileAdminDashboardProps> = ({ onNa
                     )}
                 </div>
             )}
+            </div>
         </div>
     );
 }

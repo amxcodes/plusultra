@@ -491,7 +491,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                 error('Failed to update status');
                                                             }
                                                         }}
-                                                        className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-widest font-bold hover:scale-105 active:scale-95 transition-all ${req.status === 'fulfilled' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'}`}
+                                                        className={`rounded-[14px] border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-all ${req.status === 'fulfilled' ? 'border-green-500/20 bg-green-500/10 text-green-300' : 'border-[#393939] bg-[#1a1a1a] text-zinc-300 hover:border-[#555]'}`}
                                                         title="Click to toggle status"
                                                     >
                                                         {req.status}
@@ -521,7 +521,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                 error('Failed to delete request');
                                                             }
                                                         }}
-                                                        className="text-zinc-500 hover:text-red-500 transition-colors p-2"
+                                                        className="rounded-[14px] border border-transparent p-2 text-zinc-500 transition-colors hover:border-[#4a1e1a] hover:bg-[#231514] hover:text-red-400"
                                                         title="Delete Request"
                                                     >
                                                         <Trash2 size={16} />
@@ -598,11 +598,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     <table className="w-full text-left">
                                         <thead className={tableHead}>
                                             <tr>
-                                                <th className="px-6 py-3">Session</th>
-                                                <th className="px-6 py-3">Status</th>
-                                                <th className="px-6 py-3">Active Time</th>
-                                                <th className="px-6 py-3">Heartbeat</th>
-                                                <th className="px-6 py-3">Started</th>
+                                                <th className="px-6 py-3">Title</th>
+                                                <th className="px-6 py-3">State</th>
+                                                <th className="px-6 py-3">Progress</th>
+                                                <th className="px-6 py-3">Activity</th>
                                             </tr>
                                         </thead>
                                         <tbody className={tableBody}>
@@ -620,12 +619,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                 <div className="text-white font-medium">
                                                                     {session.title || `TMDB ${session.tmdb_id}`}
                                                                 </div>
-                                                                <div className="text-zinc-500 text-xs">
-                                                                    {(session.username || 'Unknown user')} • {getSessionLabel(session)}
+                                                            <div className="text-zinc-500 text-xs">
+                                                                    {(session.username || 'Unknown user')} · {getSessionLabel(session)}
                                                                 </div>
                                                                 <div className="text-zinc-600 text-[11px] font-mono">
-                                                                    {session.tmdb_id} • {session.session_id.slice(0, 12)}
-                                                                    {session.provider_id ? ` • ${session.provider_id}` : ''}
+                                                                    {session.provider_id || `TMDB ${session.tmdb_id}`}
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -636,7 +634,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                 </span>
                                                                 <div className="text-xs text-zinc-500">
                                                                     {session.is_qualified
-                                                                        ? `Qualified ${session.qualified_at ? new Date(session.qualified_at).toLocaleString() : 'recently'}`
+                                                                    ? `Qualified ${session.qualified_at ? new Date(session.qualified_at).toLocaleDateString() : 'recently'}`
                                                                         : `${formatDuration(session.remaining_seconds)} remaining`}
                                                                 </div>
                                                             </div>
@@ -644,15 +642,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                         <td className="px-6 py-4">
                                                             <div className="text-white font-medium">{formatDuration(session.active_seconds)}</div>
                                                             <div className="text-zinc-500 text-xs">
-                                                                Threshold {formatDuration(session.threshold_seconds)}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-zinc-400 text-xs">
-                                                            {new Date(session.last_heartbeat_at).toLocaleString()}
-                                                        </td>
-                                                        <td className="px-6 py-4 text-zinc-500 text-xs">
-                                                            {new Date(session.started_at).toLocaleString()}
-                                                        </td>
+                                                            Target {formatDuration(session.threshold_seconds)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-zinc-300 text-xs">
+                                                            {new Date(session.last_heartbeat_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                        <div className="text-zinc-600 text-[11px] font-mono">
+                                                            {new Date(session.started_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                        </div>
+                                                    </td>
                                                     </tr>
                                                 );
                                             })}
@@ -770,10 +770,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             <tr>
                                                 <th className="px-6 py-3">User</th>
                                                 <th className="px-6 py-3">Status</th>
-                                                <th className="px-6 py-3">Current Session</th>
-                                                <th className="px-6 py-3">Today</th>
-                                                <th className="px-6 py-3">Lifetime</th>
-                                                <th className="px-6 py-3">Last Seen</th>
+                                                <th className="px-6 py-3">Session</th>
+                                                <th className="px-6 py-3">Totals</th>
+                                                <th className="px-6 py-3">Seen</th>
                                             </tr>
                                         </thead>
                                         <tbody className={tableBody}>
@@ -803,8 +802,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                 {user.is_online ? <Wifi size={10} /> : <WifiOff size={10} />}
                                                                 {user.is_online ? 'Online' : 'Offline'}
                                                             </span>
-                                                            <div className="text-xs text-zinc-500">
-                                                                {user.last_path || 'No recent path captured'}
+                                                            <div className="max-w-[220px] truncate text-xs text-zinc-500">
+                                                                {user.last_path || 'No recent path'}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -814,20 +813,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                         </div>
                                                         <div className="text-zinc-500 text-xs">
                                                             {user.current_session_started_at
-                                                                ? `Started ${new Date(user.current_session_started_at).toLocaleTimeString()}`
-                                                                : `${user.session_count} tracked sessions`}
+                                                                ? `Started ${new Date(user.current_session_started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                                                                : `${user.session_count} sessions`}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="text-white font-medium">{formatDuration(user.today_active_seconds)}</div>
-                                                        <div className="text-zinc-500 text-xs">Today</div>
+                                                        <div className="text-zinc-500 text-xs">{formatDuration(user.total_active_seconds)} total</div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <div className="text-white font-medium">{formatDuration(user.total_active_seconds)}</div>
-                                                        <div className="text-zinc-500 text-xs">{user.session_count} sessions</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-zinc-400 text-xs">
-                                                        {user.last_seen_at ? new Date(user.last_seen_at).toLocaleString() : 'No presence yet'}
+                                                        <div className="text-zinc-300 text-xs">
+                                                            {user.last_seen_at ? new Date(user.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}
+                                                        </div>
+                                                        <div className="text-zinc-600 text-[11px] font-mono">
+                                                            {user.last_seen_at ? new Date(user.last_seen_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'No data'}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -854,11 +854,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {/* SYSTEM HEALTH TAB - VIBRANT & MINIMAL */}
                     {activeTab === 'health' && (
-                        <div className="h-[calc(100vh-140px)] flex flex-col">
+                        <div className="flex h-[calc(100vh-140px)] flex-col">
                             {/* Header */}
-                            <div className="flex items-center justify-between mb-6 shrink-0">
+                            <div className="mb-6 flex shrink-0 items-center justify-between">
                                 <div>
-                                    <h3 className="text-3xl font-bold text-white tracking-tighter flex items-center gap-3">
+                                    <div className={panelSubtle}>Infrastructure</div>
+                                    <h3 className="mt-2 flex items-center gap-3 text-3xl font-black tracking-tighter text-white">
                                         System Status
                                         <div className="flex gap-1">
                                             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -866,7 +867,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse delay-150" />
                                         </div>
                                     </h3>
-                                    <p className="text-zinc-500 font-medium">Real-time Infrastructure Monitoring</p>
+                                    <p className="font-medium text-[#9a9a9a]">Real-time infrastructure monitoring</p>
                                 </div>
                                 <div className="flex gap-4 items-center">
                                     {healthChecks.length > 0 && (
@@ -888,7 +889,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             setIsCheckingHealth(false);
                                         }}
                                         disabled={isCheckingHealth}
-                                        className="h-12 w-12 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:scale-100"
+                                        className="flex h-12 w-12 items-center justify-center rounded-full border border-[#e36457] bg-[#2c1614] text-[#ffd4cf] transition-all hover:scale-105 active:scale-95 disabled:scale-100 disabled:opacity-50"
                                     >
                                         <Activity size={24} className={isCheckingHealth ? 'animate-spin' : ''} />
                                     </button>
@@ -904,7 +905,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     return (
                                         <div
                                             key={check.service}
-                                            className={`relative group flex flex-col justify-between p-5 rounded-2xl border transition-all duration-500 overflow-hidden ${isHealthy
+                                            className={`relative group flex flex-col justify-between overflow-hidden rounded-[24px] border p-5 transition-all duration-500 ${isHealthy
                                                 ? 'bg-gradient-to-br from-green-500/10 to-emerald-900/10 border-green-500/20 hover:border-green-500/50 hover:bg-green-500/20'
                                                 : isDegraded
                                                     ? 'bg-gradient-to-br from-yellow-500/10 to-orange-900/10 border-yellow-500/20 hover:border-yellow-500/50 hover:bg-yellow-500/20'
@@ -951,7 +952,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 })}
 
                                 {healthChecks.length === 0 && (
-                                    <div className="col-span-full h-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 group cursor-pointer hover:bg-zinc-900/30 transition-colors"
+                                    <div className="group col-span-full flex h-full cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-[#2f2f2f] bg-[#141414] transition-colors hover:bg-[#191919]"
                                         onClick={async () => {
                                             setIsCheckingHealth(true);
                                             const results = await HealthService.checkAll();
@@ -973,22 +974,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {/* SETTINGS TAB - MINIMAL BENTO VIEWPORT DESIGN */}
                     {activeTab === 'settings' && (
-                        <div className="h-[calc(100vh-140px)] flex flex-col">
+                        <div className="flex h-[calc(100vh-140px)] flex-col">
                             {/* Header */}
-                            <div className="flex items-center justify-between mb-6 shrink-0">
+                            <div className="mb-6 flex shrink-0 items-center justify-between">
                                 <div>
-                                    <h3 className="text-3xl font-bold text-white tracking-tighter flex items-center gap-3">
+                                    <div className={panelSubtle}>Global configuration</div>
+                                    <h3 className="mt-2 flex items-center gap-3 text-3xl font-black tracking-tighter text-white">
                                         <Settings size={28} className="text-zinc-500" />
                                         System Configuration
                                     </h3>
-                                    <p className="text-zinc-500 font-medium">Global platform settings and feature flags.</p>
+                                    <p className="font-medium text-[#9a9a9a]">Global platform settings and feature flags.</p>
                                 </div>
                             </div>
 
                             {/* Bento Grid */}
                             <div className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 grid-rows-2 gap-4 h-full pb-4">
                                 {/* 1. Site Domain (Spans 2 columns) */}
-                                <div className="lg:col-span-2 flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                <div className="lg:col-span-2 flex flex-col justify-between rounded-[24px] border border-[#232323] bg-[#141414] p-6 lg:p-8">
                                     <div>
                                         <div className="flex items-center gap-4 mb-2">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
@@ -1001,8 +1003,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         </div>
                                     </div>
                                     <div className="mt-8 flex gap-3 max-w-xl">
-                                        <div className="flex-1 flex items-center bg-black/50 border border-white/10 rounded-xl focus-within:border-white/20 transition-all">
-                                            <span className="text-zinc-600 font-mono text-sm pl-4 select-none">https://</span>
+                                        <div className="flex flex-1 items-center rounded-xl border border-[#2e2e2e] bg-[#181818] transition-all focus-within:border-[#e36457]">
+                                            <span className="select-none pl-4 font-mono text-sm text-zinc-600">https://</span>
                                             <input
                                                 type="text"
                                                 value={appSettings.site_url?.replace('https://', '').replace('http://', '') || ''}
@@ -1013,7 +1015,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         </div>
                                         <button
                                             onClick={() => handleSaveSetting('site_url', appSettings.site_url)}
-                                            className="px-6 bg-white text-black font-semibold rounded-xl hover:bg-zinc-200 active:scale-95 transition-all text-sm"
+                                            className="rounded-xl border border-[#e36457] bg-[#2c1614] px-6 text-sm font-semibold text-[#ffd4cf] transition-all hover:bg-[#3a1d19] active:scale-95"
                                         >
                                             Save
                                         </button>
@@ -1021,7 +1023,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
 
                                 {/* 2. Support / Donation URL */}
-                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                <div className="flex flex-col justify-between rounded-[24px] border border-[#232323] bg-[#141414] p-6 lg:p-8">
                                     <div>
                                         <div className="flex items-center gap-4 mb-2">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
@@ -1039,11 +1041,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             value={appSettings.donation_url || ''}
                                             onChange={(e) => setAppSettings((prev: any) => ({ ...prev, donation_url: e.target.value }))}
                                             placeholder="https://ko-fi.com/..."
-                                            className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-zinc-700 focus:border-white/20 outline-none transition-all font-mono text-sm"
+                                            className="w-full rounded-xl border border-[#2e2e2e] bg-[#181818] px-4 py-3 font-mono text-sm text-white placeholder:text-zinc-700 transition-all focus:border-[#e36457] outline-none"
                                         />
                                         <button
                                             onClick={() => handleSaveSetting('donation_url', appSettings.donation_url)}
-                                            className="w-full py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 active:scale-95 transition-all text-sm"
+                                            className="w-full rounded-xl border border-[#2e2e2e] bg-[#181818] py-3 text-sm font-semibold text-white transition-all hover:border-[#4a4a4a] hover:bg-[#1d1d1d] active:scale-95"
                                         >
                                             Update Link
                                         </button>
@@ -1051,7 +1053,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
 
                                 {/* 3. Registration Toggle */}
-                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                <div className="flex flex-col justify-between rounded-[24px] border border-[#232323] bg-[#141414] p-6 lg:p-8">
                                     <div>
                                         <div className="flex items-center gap-4 mb-2">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
@@ -1084,7 +1086,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
 
                                 {/* 4. Clear History Toggle */}
-                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                <div className="flex flex-col justify-between rounded-[24px] border border-[#232323] bg-[#141414] p-6 lg:p-8">
                                     <div>
                                         <div className="flex items-center gap-4 mb-2">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
@@ -1117,7 +1119,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
 
                                 {/* 5. Wrapped Override Toggle */}
-                                <div className="flex flex-col justify-between p-6 lg:p-8 rounded-[24px] border border-white/5 bg-[#0f1014]">
+                                <div className="flex flex-col justify-between rounded-[24px] border border-[#232323] bg-[#141414] p-6 lg:p-8">
                                     <div>
                                         <div className="flex items-center gap-4 mb-2">
                                             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400">
@@ -1272,18 +1274,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <div className="text-zinc-600 text-xs font-mono">{u.id.slice(0, 8)}</div>
+                                                            <div className="text-zinc-600 text-[11px] font-mono">{u.id.slice(0, 8)}</div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-3">
-                                                        <div className="flex gap-2 text-xs">
-                                                            <span className="text-zinc-500">
-                                                                {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} qualified sessions
-                                                            </span>
-                                                            <span className="text-zinc-700">•</span>
-                                                            <span className="text-zinc-500">
+                                                        <div className="space-y-1 text-xs">
+                                                            <div className="text-zinc-400">
+                                                                {((u.stats?.total_movies || 0) + (u.stats?.total_shows || 0)) || 0} sessions
+                                                            </div>
+                                                            <div className="text-zinc-600">
                                                                 {allPlaylists.filter(p => p.user_id === u.id).length} playlists
-                                                            </span>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-3">
@@ -1309,9 +1310,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                     error('Failed to update role');
                                                                 }
                                                             }}
-                                                            className={`text-[10px] px-2 py-1 rounded border uppercase tracking-wider font-bold cursor-pointer ${u.role === 'admin' ? 'bg-white text-black border-white' :
-                                                                u.role === 'moderator' ? 'bg-zinc-800 text-zinc-300 border-zinc-700' :
-                                                                    'bg-transparent text-zinc-500 border-zinc-800'
+                                                            className={`cursor-pointer rounded-[14px] border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] ${u.role === 'admin' ? 'border-[#e36457] bg-[#2c1614] text-[#ffd4cf]' :
+                                                                u.role === 'moderator' ? 'border-[#454545] bg-[#1a1a1a] text-zinc-300' :
+                                                                    'border-[#303030] bg-transparent text-zinc-500'
                                                                 }`}
                                                         >
                                                             <option value="admin">Admin</option>
@@ -1339,9 +1340,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                     error('Failed to update permission');
                                                                 }
                                                             }}
-                                                            className={`px-3 py-1 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${u.can_stream
-                                                                ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20'
-                                                                : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                                                            className={`rounded-[14px] border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-colors ${u.can_stream
+                                                                ? 'border-green-500/20 bg-green-500/10 text-green-300 hover:bg-green-500/15'
+                                                                : 'border-red-500/20 bg-red-500/10 text-red-300 hover:bg-red-500/15'
                                                                 }`}
                                                         >
                                                             {u.can_stream ? 'Allowed' : 'Blocked'}
@@ -1354,7 +1355,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button
                                                                 onClick={() => onNavigate('profile', { id: u.id })}
-                                                                className="text-xs text-zinc-500 hover:text-white font-bold transition-colors"
+                                                                className="rounded-[14px] border border-[#303030] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 transition-colors hover:border-[#4a4a4a] hover:text-white"
                                                             >
                                                                 View
                                                             </button>
@@ -1392,7 +1393,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                         setLoading(false);
                                                                     }
                                                                 }}
-                                                                className="p-2 text-zinc-700 hover:text-red-500 rounded transition-colors opacity-0 group-hover:opacity-100"
+                                                                className="rounded-[14px] border border-transparent p-2 text-zinc-700 opacity-0 transition-colors group-hover:opacity-100 hover:border-[#4a1e1a] hover:bg-[#231514] hover:text-red-400"
                                                                 title="Delete User"
                                                             >
                                                                 <Trash2 size={14} />
@@ -1422,9 +1423,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     <div key={a.id} className="group flex items-start justify-between rounded-[22px] border border-[#232323] bg-[#141414] p-5 transition-colors hover:border-[#434343]">
                                         <div>
                                             <div className="flex items-center gap-3 mb-2">
-                                                <span className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-widest font-bold ${a.type === 'warning' ? 'border-zinc-700 text-zinc-400' :
-                                                    a.type === 'success' ? 'bg-white text-black border-white' :
-                                                        'border-zinc-800 text-zinc-500'
+                                                <span className={`rounded-[12px] border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${a.type === 'warning' ? 'border-[#5a4430] bg-[#221813] text-[#f0b982]' :
+                                                    a.type === 'success' ? 'border-green-500/20 bg-green-500/10 text-green-300' :
+                                                        'border-[#303030] bg-[#181818] text-zinc-500'
                                                     }`}>
                                                     {a.type}
                                                 </span>
@@ -1436,14 +1437,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => handleToggleAnnouncement(a.id, a.is_active)}
-                                                className={`p-2 rounded transition-colors ${a.is_active ? 'text-white' : 'text-zinc-700 hover:text-zinc-400'}`}
+                                                className={`rounded-[14px] border p-2 transition-colors ${a.is_active ? 'border-[#303030] text-white hover:border-[#4a4a4a]' : 'border-transparent text-zinc-700 hover:border-[#303030] hover:text-zinc-400'}`}
                                                 title="Toggle Active"
                                             >
                                                 <Power size={14} />
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteAnnouncement(a.id)}
-                                                className="p-2 text-zinc-700 hover:text-red-500 rounded transition-colors"
+                                                className="rounded-[14px] border border-transparent p-2 text-zinc-700 transition-colors hover:border-[#4a1e1a] hover:bg-[#231514] hover:text-red-400"
                                                 title="Delete"
                                             >
                                                 <Trash2 size={14} />
@@ -1478,9 +1479,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             <button
                                                 key={type}
                                                 onClick={() => setNewAnnouncement(prev => ({ ...prev, type: type as any }))}
-                                                className={`flex-1 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors border ${newAnnouncement.type === type
-                                                    ? 'bg-white text-black border-white'
-                                                    : 'bg-transparent text-zinc-600 border-zinc-800 hover:border-zinc-700'
+                                                className={`flex-1 rounded-[14px] border py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-colors ${newAnnouncement.type === type
+                                                    ? 'border-[#e36457] bg-[#2c1614] text-[#ffd4cf]'
+                                                    : 'border-[#303030] bg-transparent text-zinc-600 hover:border-[#4a4a4a]'
                                                     }`}
                                             >
                                                 {type}
@@ -1557,7 +1558,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                         <span className="text-zinc-400 text-xs">{p.profiles?.username || 'Unknown'}</span>
                                                     </td>
                                                     <td className="px-6 py-3">
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-wider font-bold ${p.is_public ? 'border-zinc-700 text-zinc-400' : 'border-red-900/50 text-red-700'
+                                                        <span className={`rounded-[12px] border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${p.is_public ? 'border-[#303030] bg-[#181818] text-zinc-400' : 'border-red-500/20 bg-red-500/10 text-red-300'
                                                             }`}>
                                                             {p.is_public ? 'Public' : 'Private'}
                                                         </span>
@@ -1573,11 +1574,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                                     console.error(e);
                                                                 }
                                                             }}
-                                                            className={`text-[10px] font-bold px-3 py-1.5 rounded transition-colors uppercase tracking-wider ${!p.is_public
-                                                                ? 'opacity-20 cursor-not-allowed text-zinc-600 border border-zinc-800'
+                                                            className={`rounded-[14px] border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-colors ${!p.is_public
+                                                                ? 'cursor-not-allowed border-[#262626] text-zinc-700 opacity-30'
                                                                 : p.is_featured
-                                                                    ? 'bg-white text-black hover:bg-zinc-200'
-                                                                    : 'bg-transparent border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500'
+                                                                    ? 'border-[#e36457] bg-[#2c1614] text-[#ffd4cf] hover:bg-[#3a1d19]'
+                                                                    : 'border-[#303030] bg-transparent text-zinc-400 hover:border-[#4a4a4a] hover:text-white'
                                                                 }`}
                                                         >
                                                             {p.is_featured ? 'Active' : 'Promote'}
@@ -1628,7 +1629,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 <span className="text-xs font-bold text-white truncate">{m.metadata?.title || m.tmdb_id}</span>
                                                 <button
                                                     onClick={() => handleRemoveFeaturedMovie(m.id)}
-                                                    className="mt-2 text-[10px] bg-red-500/10 text-red-500 border border-red-500/20 py-1 rounded hover:bg-red-500 hover:text-white transition-colors uppercase font-bold tracking-wider"
+                                                    className="mt-2 rounded-[12px] border border-red-500/20 bg-red-500/10 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-red-300 transition-colors hover:bg-red-500 hover:text-white"
                                                 >
                                                     Remove
                                                 </button>
