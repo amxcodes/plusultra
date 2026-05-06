@@ -188,17 +188,18 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
 
     return (
         <div className="space-y-5">
-            <div className={`border border-zinc-800 rounded-2xl overflow-hidden ${compact ? 'bg-zinc-900' : 'bg-zinc-900/20'}`}>
-                <div className={`${compact ? 'p-5' : 'p-5 border-b border-zinc-800/80'} flex flex-col gap-3 md:flex-row md:items-center md:justify-between`}>
+            <div className={`overflow-hidden rounded-[28px] border border-[#232323] ${compact ? 'bg-[#111111]' : 'bg-[#111111] shadow-[0_18px_40px_rgba(0,0,0,0.16)]'}`}>
+                <div className={`${compact ? 'p-5' : 'border-b border-[#232323] p-5'} flex flex-col gap-3 md:flex-row md:items-center md:justify-between`}>
                     <div>
-                        <h3 className="font-bold text-white text-base">Provider Control</h3>
-                        <p className="text-zinc-500 text-sm">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[#8d8578]">Routing matrix</div>
+                        <h3 className="mt-2 text-base font-black text-white">Provider Control</h3>
+                        <p className="mt-2 text-sm text-[#9a9a9a]">
                             Enable, reorder, and add embed or direct providers. Use <code>{'{{tmdbId}}'}</code>, <code>{'{{season}}'}</code>, and <code>{'{{episode}}'}</code> in templates.
                         </p>
                     </div>
                     <button
                         onClick={handleAddClick}
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 bg-black/40 text-white text-sm font-medium hover:border-zinc-500 transition-colors"
+                        className="inline-flex items-center justify-center gap-2 rounded-[16px] border border-[#e36457] bg-[#2a1613] px-4 py-2 text-sm font-medium text-[#ffd4cf] transition-colors hover:bg-[#3a1d19]"
                     >
                         <Plus size={14} />
                         New Provider
@@ -207,7 +208,7 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
 
                 <div className={compact ? 'p-4 space-y-3' : 'p-5 space-y-3'}>
                     {loading ? (
-                        <div className="text-sm text-zinc-500">Loading providers...</div>
+                        <div className="text-sm text-[#8e8e8e]">Loading providers...</div>
                     ) : sortedProviders.map(provider => (
                         <div 
                             key={provider.id} 
@@ -217,9 +218,9 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
                             onDragOver={handleDragOver}
                             onDrop={(e) => handleDrop(e, provider.id)}
                             onDragEnd={handleDragEnd}
-                            className={`border ${dragOverId === provider.id ? 'border-zinc-500 bg-white/5' : 'border-zinc-800 bg-black/20'} rounded-xl p-4 transition-all flex items-center gap-4 ${draggedId === provider.id ? 'opacity-50' : 'opacity-100'} shadow-sm`}
+                            className={`flex items-center gap-4 rounded-[18px] border p-4 shadow-sm transition-all ${dragOverId === provider.id ? 'border-[#e36457] bg-[#1d1514]' : 'border-[#2f2f2f] bg-[#181818]'} ${draggedId === provider.id ? 'opacity-50' : 'opacity-100'}`}
                         >
-                            <div className="cursor-grab text-zinc-600 hover:text-white shrink-0 active:cursor-grabbing flex flex-col items-center p-2 rounded-lg hover:bg-white/5 transition-colors">
+                            <div className="flex shrink-0 cursor-grab flex-col items-center rounded-[14px] p-2 text-[#6f6f6f] transition-colors hover:bg-white/5 hover:text-white active:cursor-grabbing">
                                 <GripVertical size={20} />
                             </div>
                             <div className="flex-1 min-w-0">

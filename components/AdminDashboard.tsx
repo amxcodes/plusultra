@@ -317,113 +317,116 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         return 'Episode session';
     };
 
+    const adminTabs = [
+        'overview',
+        'users',
+        'guests',
+        'announcements',
+        'playlists',
+        'featured',
+        'providers',
+        'settings',
+        'requests',
+        'sessions',
+        'presence',
+        'health',
+    ] as const;
+
+    const tabLabels: Record<(typeof adminTabs)[number], string> = {
+        overview: 'Overview',
+        users: 'Users',
+        guests: 'Guest Access',
+        announcements: 'Announcements',
+        playlists: 'Playlists',
+        featured: 'Featured Movies',
+        providers: 'Providers',
+        settings: 'Settings',
+        requests: 'Requests',
+        sessions: 'View Sessions',
+        presence: 'Presence',
+        health: 'System Health',
+    };
+
+    const panelShell = 'overflow-hidden rounded-[28px] border border-[#232323] bg-[#111111] shadow-[0_18px_40px_rgba(0,0,0,0.16)]';
+    const panelHeader = 'flex items-center justify-between border-b border-[#232323] bg-[#141414] px-5 py-4';
+    const panelTitle = 'text-sm font-black uppercase tracking-[0.18em] text-white';
+    const panelSubtle = 'text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]';
+    const tableHead = 'bg-[#161616] text-[#7f786d] text-[10px] font-mono uppercase tracking-[0.22em]';
+    const tableBody = 'divide-y divide-[#232323] text-sm';
+    const filterInput = 'w-full rounded-[16px] border border-[#2e2e2e] bg-[#181818] px-4 py-2.5 text-sm text-white placeholder:text-[#666] focus:border-[#e36457] focus:outline-none';
+    const chipButton = 'inline-flex items-center justify-center gap-2 rounded-[16px] border border-[#2e2e2e] bg-[#181818] px-4 py-2 text-sm font-medium text-white transition-colors hover:border-[#4a4a4a]';
+
     if (!isAdmin) return <div className="p-20 text-center text-red-500">Access Denied</div>;
 
     return (
-        <div className="min-h-screen bg-[#0f1014] pt-6 px-4 md:pl-[88px] md:pr-8 pb-20">
-            <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Admin Dashboard</h1>
-            <p className="text-zinc-500 mb-8 text-sm">Platform management and insights</p>
+        <div className="min-h-screen bg-[#0f1014] px-4 pb-20 pt-6 text-black md:pl-[104px] md:pr-8">
+            <div className="mx-auto max-w-[1480px]">
+                <div className="rounded-[36px] border border-[#232428] bg-[#131419] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.28)] md:p-6">
+                    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                        <div className="rounded-[28px] border border-[#232323] bg-[#111111] px-6 py-6 text-white">
+                            <div className="text-[11px] font-mono uppercase tracking-[0.28em] text-[#9c9486]">Platform control</div>
+                            <h1 className="mt-4 text-4xl font-black tracking-tight text-white">Admin Dashboard</h1>
+                            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#9e9e9e]">
+                                Operational control for users, guest links, provider routing, announcements, and platform health.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="rounded-[24px] border border-[#26272c] bg-[#17181d] px-4 py-4">
+                                <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[#8d8578]">Users</div>
+                                <div className="mt-3 text-3xl font-black tracking-tight text-white">{stats.totalUsers}</div>
+                            </div>
+                            <div className="rounded-[24px] border border-[#26272c] bg-[#17181d] px-4 py-4">
+                                <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[#8d8578]">Playlists</div>
+                                <div className="mt-3 text-3xl font-black tracking-tight text-white">{stats.totalPlaylists}</div>
+                            </div>
+                            <div className="rounded-[24px] border border-[#d76357] bg-[#211311] px-4 py-4 text-white">
+                                <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-[#f0a39a]">Live alerts</div>
+                                <div className="mt-3 text-3xl font-black tracking-tight text-white">{stats.activeAnnouncements}</div>
+                            </div>
+                        </div>
+                    </div>
 
-            {/* Tabs */}
-            <div className="flex gap-6 mb-8 border-b border-zinc-800/50 overflow-x-auto">
-                <button
-                    onClick={() => setActiveTab('overview')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'overview' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Overview
-                </button>
-                <button
-                    onClick={() => setActiveTab('users')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'users' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Users
-                </button>
-                <button
-                    onClick={() => setActiveTab('guests')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'guests' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Guest Access
-                </button>
-                <button
-                    onClick={() => setActiveTab('announcements')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'announcements' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Announcements
-                </button>
-                <button
-                    onClick={() => setActiveTab('playlists')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'playlists' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Playlists
-                </button>
-                <button
-                    onClick={() => setActiveTab('featured')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'featured' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Featured Movies
-                </button>
-                <button
-                    onClick={() => setActiveTab('providers')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'providers' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Providers
-                </button>
-                <button
-                    onClick={() => setActiveTab('settings')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'settings' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Settings
-                </button>
-                <button
-                    onClick={() => setActiveTab('requests')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'requests' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Requests
-                </button>
-                <button
-                    onClick={() => setActiveTab('sessions')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'sessions' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    View Sessions
-                </button>
-                <button
-                    onClick={() => setActiveTab('presence')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'presence' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    Presence
-                </button>
-                <button
-                    onClick={() => setActiveTab('health')}
-                    className={`pb-3 text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'health' ? 'text-white border-b border-white' : 'text-zinc-500 hover:text-zinc-300'}`}
-                >
-                    System Health
-                </button>
-            </div>
+                    <div className="mt-4 rounded-[28px] border border-[#232323] bg-[#0f0f0f] p-3">
+                        <div className="mb-3 px-2 text-[10px] font-mono uppercase tracking-[0.28em] text-[#827a6e]">Control cluster</div>
+                        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+                            {adminTabs.map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`min-w-0 rounded-[18px] border px-3 py-3 text-center text-[10px] font-mono uppercase tracking-[0.18em] transition-all ${
+                                        activeTab === tab
+                                            ? 'border-[#e36457] bg-[#2c1614] text-[#ffd4cf]'
+                                            : 'border-[#2a2a2a] bg-[#141414] text-[#8b8b8b] hover:border-[#4a4a4a] hover:text-[#d8d8d8]'
+                                    }`}
+                                >
+                                    <span className="block truncate">{tabLabels[tab]}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
 
             {loading ? (
-                <div className="space-y-8">
-                    {/* Skeleton for Overview/Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-pulse">
+                <div className="mt-6 space-y-6">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 animate-pulse">
                         {[1, 2, 3].map(i => (
-                            <div key={i} className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
-                                <div className="h-4 w-24 bg-white/5 rounded mb-4" />
-                                <div className="h-10 w-16 bg-white/10 rounded" />
+                            <div key={i} className="rounded-[24px] border border-[#232323] bg-[#101010] p-6">
+                                <div className="mb-4 h-3 w-24 rounded bg-white/5" />
+                                <div className="h-10 w-16 rounded bg-white/10" />
                             </div>
                         ))}
                     </div>
-
-                    {/* Skeleton for Tables/Lists */}
-                    <div className="border border-zinc-800 rounded-lg overflow-hidden animate-pulse">
-                        <div className="p-4 border-b border-zinc-800 bg-zinc-900/30">
-                            <div className="h-5 w-32 bg-white/5 rounded" />
+                    <div className="overflow-hidden rounded-[28px] border border-[#232323] bg-[#101010] animate-pulse">
+                        <div className="border-b border-[#232323] p-4">
+                            <div className="h-5 w-32 rounded bg-white/5" />
                         </div>
                         <div className="p-6 space-y-4">
                             {[1, 2, 3, 4].map(i => (
                                 <div key={i} className="flex items-center gap-4">
                                     <div className="h-10 w-10 rounded-full bg-white/5" />
                                     <div className="flex-1 space-y-2">
-                                        <div className="h-4 w-32 bg-white/5 rounded" />
-                                        <div className="h-3 w-48 bg-white/5 rounded" />
+                                        <div className="h-4 w-32 rounded bg-white/5" />
+                                        <div className="h-3 w-48 rounded bg-white/5" />
                                     </div>
                                 </div>
                             ))}
@@ -431,17 +434,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </div>
                 </div>
             ) : (
-                <div className="space-y-8">
+                <div className="mt-6 space-y-8">
                     {/* SYSTEM HEALTH TAB */}
                     {/* REQUESTS TAB */}
                     {activeTab === 'requests' && (
-                        <div className="border border-zinc-800 rounded-lg overflow-hidden">
-                            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
-                                <h3 className="font-bold text-white text-sm">Manage Requests</h3>
+                        <div className={panelShell}>
+                            <div className={panelHeader}>
+                                <div>
+                                    <div className={panelSubtle}>Demand queue</div>
+                                    <h3 className={`${panelTitle} mt-1`}>Manage Requests</h3>
+                                </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
-                                    <thead className="bg-zinc-900/50 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                    <thead className={tableHead}>
                                         <tr>
                                             <th className="px-6 py-3">Movie / Show</th>
                                             <th className="px-6 py-3">Status</th>
@@ -450,7 +456,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             <th className="px-6 py-3 text-right">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-zinc-800/50 text-sm">
+                                    <tbody className={tableBody}>
                                         {adminRequests.map(req => (
                                             <tr key={req.id} className="hover:bg-zinc-900/30 transition-colors group">
                                                 <td className="px-6 py-3 flex items-center gap-3">
@@ -534,11 +540,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {activeTab === 'sessions' && (
                         <div className="space-y-5">
-                            <div className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-900/20">
-                                <div className="p-5 border-b border-zinc-800/80 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className={panelShell}>
+                                <div className="flex flex-col gap-4 border-b border-[#232323] bg-[#141414] p-5 lg:flex-row lg:items-center lg:justify-between">
                                     <div>
-                                        <h3 className="font-bold text-white text-base">Recent View Sessions</h3>
-                                        <p className="text-zinc-500 text-sm">
+                                        <div className={panelSubtle}>Heartbeat review</div>
+                                        <h3 className="mt-1 text-base font-black text-white">Recent View Sessions</h3>
+                                        <p className="text-sm text-[#9a9a9a]">
                                             Inspect recent heartbeat sessions, qualification thresholds, and why a movie or episode session did or did not count yet.
                                         </p>
                                     </div>
@@ -561,7 +568,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         <button
                                             onClick={loadViewSessions}
                                             disabled={isLoadingViewSessions}
-                                            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 bg-black/40 text-white text-sm font-medium hover:border-zinc-500 transition-colors disabled:opacity-50"
+                                            className={`${chipButton} disabled:opacity-50`}
                                         >
                                             <RefreshCw size={14} className={isLoadingViewSessions ? 'animate-spin' : ''} />
                                             Refresh
@@ -569,7 +576,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     </div>
                                 </div>
 
-                                <div className="p-5 border-b border-zinc-800/80 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="flex flex-col gap-3 border-b border-[#232323] bg-[#121212] p-5 lg:flex-row lg:items-center lg:justify-between">
                                     <div className="relative max-w-md w-full">
                                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                                         <input
@@ -577,7 +584,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             placeholder="Search by user, title, TMDB id, or session id"
                                             value={viewSessionsSearch}
                                             onChange={(e) => setViewSessionsSearch(e.target.value)}
-                                            className="w-full bg-black/50 text-sm text-white pl-9 pr-4 py-2.5 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none placeholder:text-zinc-600"
+                                            className={`${filterInput} pl-9`}
                                         />
                                     </div>
                                     <div className="text-xs text-zinc-500">
@@ -589,7 +596,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
-                                        <thead className="bg-zinc-900/40 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                        <thead className={tableHead}>
                                             <tr>
                                                 <th className="px-6 py-3">Session</th>
                                                 <th className="px-6 py-3">Status</th>
@@ -598,7 +605,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 <th className="px-6 py-3">Started</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-zinc-800/60 text-sm">
+                                        <tbody className={tableBody}>
                                             {filteredViewSessions.map(session => {
                                                 const stateClasses = session.qualification_state === 'qualified'
                                                     ? 'border-green-500/30 bg-green-500/10 text-green-300'
@@ -669,7 +676,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     {activeTab === 'presence' && (
                         <div className="space-y-5">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="border border-zinc-800 rounded-2xl bg-zinc-900/30 p-5">
+                                <div className="rounded-[24px] border border-[#232323] bg-[#141414] p-5">
                                     <div className="flex items-center gap-2 text-zinc-500 text-xs uppercase tracking-wider mb-3">
                                         <Wifi size={14} />
                                         Online Now
@@ -677,7 +684,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     <div className="text-3xl font-bold text-white">{presenceSummary.onlineCount}</div>
                                     <p className="text-zinc-500 text-sm mt-2">Users with a heartbeat in the last 90 seconds.</p>
                                 </div>
-                                <div className="border border-zinc-800 rounded-2xl bg-zinc-900/30 p-5">
+                                <div className="rounded-[24px] border border-[#232323] bg-[#141414] p-5">
                                     <div className="flex items-center gap-2 text-zinc-500 text-xs uppercase tracking-wider mb-3">
                                         <Activity size={14} />
                                         Today
@@ -685,7 +692,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     <div className="text-3xl font-bold text-white">{formatDuration(presenceSummary.todayActiveSeconds)}</div>
                                     <p className="text-zinc-500 text-sm mt-2">Visible app time tracked across the loaded users today.</p>
                                 </div>
-                                <div className="border border-zinc-800 rounded-2xl bg-zinc-900/30 p-5">
+                                <div className="rounded-[24px] border border-[#232323] bg-[#141414] p-5">
                                     <div className="flex items-center gap-2 text-zinc-500 text-xs uppercase tracking-wider mb-3">
                                         <Users size={14} />
                                         Lifetime
@@ -695,11 +702,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
                             </div>
 
-                            <div className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-900/20">
-                                <div className="p-5 border-b border-zinc-800/80 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className={panelShell}>
+                                <div className="flex flex-col gap-4 border-b border-[#232323] bg-[#141414] p-5 lg:flex-row lg:items-center lg:justify-between">
                                     <div>
-                                        <h3 className="font-bold text-white text-base">Platform Presence</h3>
-                                        <p className="text-zinc-500 text-sm">
+                                        <div className={panelSubtle}>Live activity</div>
+                                        <h3 className="mt-1 text-base font-black text-white">Platform Presence</h3>
+                                        <p className="text-sm text-[#9a9a9a]">
                                             See who is online right now and how long each user has been active on the platform.
                                         </p>
                                     </div>
@@ -722,7 +730,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         <button
                                             onClick={loadPresenceUsers}
                                             disabled={isLoadingPresence}
-                                            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 bg-black/40 text-white text-sm font-medium hover:border-zinc-500 transition-colors disabled:opacity-50"
+                                            className={`${chipButton} disabled:opacity-50`}
                                         >
                                             <RefreshCw size={14} className={isLoadingPresence ? 'animate-spin' : ''} />
                                             Refresh
@@ -730,7 +738,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     </div>
                                 </div>
 
-                                <div className="p-5 border-b border-zinc-800/80 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                <div className="flex flex-col gap-3 border-b border-[#232323] bg-[#121212] p-5 lg:flex-row lg:items-center lg:justify-between">
                                     <div className="relative max-w-md w-full">
                                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                                         <input
@@ -738,7 +746,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             placeholder="Search by username or recent path"
                                             value={presenceSearch}
                                             onChange={(e) => setPresenceSearch(e.target.value)}
-                                            className="w-full bg-black/50 text-sm text-white pl-9 pr-4 py-2.5 rounded-xl border border-zinc-800 focus:border-zinc-600 outline-none placeholder:text-zinc-600"
+                                            className={`${filterInput} pl-9`}
                                         />
                                     </div>
                                     <div className="flex items-center gap-3">
@@ -758,7 +766,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
-                                        <thead className="bg-zinc-900/40 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                        <thead className={tableHead}>
                                             <tr>
                                                 <th className="px-6 py-3">User</th>
                                                 <th className="px-6 py-3">Status</th>
@@ -768,7 +776,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 <th className="px-6 py-3">Last Seen</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-zinc-800/60 text-sm">
+                                        <tbody className={tableBody}>
                                             {filteredPresenceUsers.map(user => (
                                                 <tr key={user.user_id} className="hover:bg-zinc-900/30 transition-colors align-top">
                                                     <td className="px-6 py-4">
@@ -1147,22 +1155,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <div className="rounded-[24px] border border-[#232323] bg-[#141414] p-6">
                                 <div className="flex items-center gap-3 mb-4">
                                     <Users size={16} className="text-zinc-500" />
                                     <span className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Total Users</span>
                                 </div>
                                 <h3 className="text-4xl font-bold text-white tracking-tighter">{stats.totalUsers}</h3>
                             </div>
-                            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+                            <div className="rounded-[24px] border border-[#232323] bg-[#141414] p-6">
                                 <div className="flex items-center gap-3 mb-4">
                                     <Activity size={16} className="text-zinc-500" />
                                     <span className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Total Playlists</span>
                                 </div>
                                 <h3 className="text-4xl font-bold text-white tracking-tighter">{stats.totalPlaylists}</h3>
                             </div>
-                            <div className="bg-zinc-900/50 border border-zinc-800 p-6 rounded-lg">
+                            <div className="rounded-[24px] border border-[#232323] bg-[#141414] p-6">
                                 <div className="flex items-center gap-3 mb-4">
                                     <AlertTriangle size={16} className="text-zinc-500" />
                                     <span className="text-zinc-500 text-xs font-medium uppercase tracking-wider">Active Announcements</span>
@@ -1176,24 +1184,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     {activeTab === 'users' && (
                         <div className="space-y-6">
                             {/* Stats Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                                <div className="rounded-[22px] border border-[#232323] bg-[#141414] p-4">
                                     <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Total Users</div>
                                     <div className="text-3xl font-black text-white">{users.length}</div>
                                 </div>
-                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                                <div className="rounded-[22px] border border-[#232323] bg-[#141414] p-4">
                                     <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Admins</div>
                                     <div className="text-3xl font-black text-white">
                                         {users.filter(u => u.role === 'admin').length}
                                     </div>
                                 </div>
-                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                                <div className="rounded-[22px] border border-[#232323] bg-[#141414] p-4">
                                     <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Moderators</div>
                                     <div className="text-3xl font-black text-white">
                                         {users.filter(u => u.role === 'moderator').length}
                                     </div>
                                 </div>
-                                <div className="bg-zinc-900/50 border border-zinc-800 p-4 rounded-lg">
+                                <div className="rounded-[22px] border border-[#232323] bg-[#141414] p-4">
                                     <div className="text-zinc-500 text-xs uppercase tracking-wider mb-1">Regular Users</div>
                                     <div className="text-3xl font-black text-white">
                                         {users.filter(u => u.role === 'user').length}
@@ -1202,9 +1210,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             </div>
 
                             {/* Users Table */}
-                            <div className="border border-zinc-800 rounded-lg overflow-hidden">
-                                <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
-                                    <h3 className="font-bold text-white text-sm">User Management</h3>
+                            <div className={panelShell}>
+                                <div className={panelHeader}>
+                                    <div>
+                                        <div className={panelSubtle}>Identity control</div>
+                                        <h3 className={`${panelTitle} mt-1`}>User Management</h3>
+                                    </div>
                                     <div className="flex gap-3">
                                         <div className="relative">
                                             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -1213,13 +1224,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 placeholder="Search users..."
                                                 value={userSearch}
                                                 onChange={(e) => setUserSearch(e.target.value)}
-                                                className="bg-black/50 text-xs text-white pl-9 pr-4 py-2 rounded border border-zinc-800 focus:border-zinc-600 outline-none w-64 placeholder:text-zinc-600"
+                                                className={`${filterInput} w-64 pl-9 text-xs`}
                                             />
                                         </div>
                                         <select
                                             value={roleFilter}
                                             onChange={(e) => setRoleFilter(e.target.value as any)}
-                                            className="bg-black/50 text-xs text-white px-3 py-2 rounded border border-zinc-800 focus:border-zinc-600 outline-none"
+                                            className="rounded-[16px] border border-[#2e2e2e] bg-[#181818] px-3 py-2 text-xs text-white focus:border-[#e36457] focus:outline-none"
                                         >
                                             <option value="all">All Roles</option>
                                             <option value="admin">Admins</option>
@@ -1230,7 +1241,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left">
-                                        <thead className="bg-zinc-900/50 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                        <thead className={tableHead}>
                                             <tr>
                                                 <th className="px-6 py-3">User</th>
                                                 <th className="px-6 py-3">Stats</th>
@@ -1240,7 +1251,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                                 <th className="px-6 py-3 text-right">Actions</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-zinc-800/50 text-sm">
+                                        <tbody className={tableBody}>
                                             {filteredUsers.map(u => {
                                                 const isCurrentUser = u.id === user?.id;
                                                 return (
@@ -1404,11 +1415,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {/* ANNOUNCEMENTS TAB */}
                     {activeTab === 'announcements' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                             {/* List */}
                             <div className="lg:col-span-2 space-y-3">
                                 {announcements.map(a => (
-                                    <div key={a.id} className="border border-zinc-800 p-5 rounded-lg flex justify-between items-start group hover:border-zinc-700 transition-colors bg-zinc-900/20">
+                                    <div key={a.id} className="group flex items-start justify-between rounded-[22px] border border-[#232323] bg-[#141414] p-5 transition-colors hover:border-[#434343]">
                                         <div>
                                             <div className="flex items-center gap-3 mb-2">
                                                 <span className={`text-[10px] px-2 py-0.5 rounded border uppercase tracking-widest font-bold ${a.type === 'warning' ? 'border-zinc-700 text-zinc-400' :
@@ -1440,28 +1451,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         </div>
                                     </div>
                                 ))}
-                                {announcements.length === 0 && <div className="text-zinc-600 text-sm text-center py-10 border border-zinc-900 border-dashed rounded-lg">No announcements found.</div>}
+                                {announcements.length === 0 && <div className="rounded-[22px] border border-dashed border-[#2f2f2f] py-10 text-center text-sm text-zinc-600">No announcements found.</div>}
                             </div>
 
                             {/* Create Form */}
-                            <div className="border border-zinc-800 p-5 rounded-lg h-fit sticky top-24 bg-zinc-900/30">
-                                <h3 className="font-bold text-white mb-4 flex items-center gap-2 text-sm">
-                                    Create Announcement
-                                </h3>
+                            <div className="sticky top-24 h-fit rounded-[24px] border border-[#232323] bg-[#141414] p-5">
+                                <div className={panelSubtle}>Broadcast control</div>
+                                <h3 className="mb-4 mt-1 text-sm font-black uppercase tracking-[0.18em] text-white">Create Announcement</h3>
                                 <div className="space-y-3">
                                     <input
                                         type="text"
                                         placeholder="Title"
                                         value={newAnnouncement.title}
                                         onChange={(e) => setNewAnnouncement(prev => ({ ...prev, title: e.target.value }))}
-                                        className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-xs text-white focus:border-zinc-600 outline-none"
+                                        className={`${filterInput} text-xs`}
                                     />
                                     <textarea
                                         placeholder="Message content..."
                                         value={newAnnouncement.content}
                                         onChange={(e) => setNewAnnouncement(prev => ({ ...prev, content: e.target.value }))}
                                         rows={4}
-                                        className="w-full bg-black border border-zinc-800 rounded px-3 py-2 text-xs text-white focus:border-zinc-600 outline-none resize-none"
+                                        className={`${filterInput} resize-none text-xs`}
                                     />
                                     <div className="flex gap-2">
                                         {['info', 'warning', 'success'].map(type => (
@@ -1479,7 +1489,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                     </div>
                                     <button
                                         onClick={handleCreateAnnouncement}
-                                        className="w-full bg-white hover:bg-zinc-200 text-black font-bold py-2 rounded-lg text-xs transition-colors mt-2"
+                                        className="mt-2 w-full rounded-[16px] border border-[#e36457] bg-[#2c1614] py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#ffd4cf] transition-colors hover:bg-[#3a1d19]"
                                     >
                                         Publish Announcement
                                     </button>
@@ -1490,9 +1500,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {/* PLAYLISTS TAB */}
                     {activeTab === 'playlists' && (
-                        <div className="border border-zinc-800 rounded-lg overflow-hidden">
-                            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/30">
-                                <h3 className="font-bold text-white text-sm">User Playlists</h3>
+                        <div className={panelShell}>
+                            <div className={panelHeader}>
+                                <div>
+                                    <div className={panelSubtle}>Community curation</div>
+                                    <h3 className={`${panelTitle} mt-1`}>User Playlists</h3>
+                                </div>
                                 <div className="relative">
                                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
                                     <input
@@ -1500,13 +1513,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         placeholder="Search playlists..."
                                         value={playlistSearch}
                                         onChange={(e) => setPlaylistSearch(e.target.value)}
-                                        className="bg-black/50 text-xs text-white pl-9 pr-4 py-2 rounded border border-zinc-800 focus:border-zinc-600 outline-none w-64 placeholder:text-zinc-600"
+                                        className={`${filterInput} w-64 pl-9 text-xs`}
                                     />
                                 </div>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
-                                    <thead className="bg-zinc-900/50 text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                                    <thead className={tableHead}>
                                         <tr>
                                             <th className="px-6 py-3">Playlist</th>
                                             <th className="px-6 py-3">Content</th>
@@ -1515,7 +1528,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             <th className="px-6 py-3 text-right">Featured</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-zinc-800/50 text-sm">
+                                    <tbody className={tableBody}>
                                         {filteredPlaylists.map(p => {
                                             const cover = p.playlist_items?.[0]?.metadata?.poster_path;
                                             return (
@@ -1588,11 +1601,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                     {/* FEATURED MOVIES TAB */}
                     {activeTab === 'featured' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                             {/* Featured List */}
                             <div className="lg:col-span-2 space-y-4">
-                                <div className="p-4 border border-zinc-800 rounded-lg bg-zinc-900/30 flex justify-between items-center">
-                                    <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                                <div className="flex items-center justify-between rounded-[24px] border border-[#232323] bg-[#141414] p-4">
+                                    <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-white">
                                         <Film size={14} className="text-zinc-500" /> Global Featured
                                     </h3>
                                     <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
@@ -1602,7 +1615,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                     {featuredMovies.map(m => (
-                                        <div key={m.id} className="relative group aspect-[2/3] bg-zinc-900 rounded-lg overflow-hidden border border-zinc-800">
+                                        <div key={m.id} className="relative group aspect-[2/3] overflow-hidden rounded-[20px] border border-[#232323] bg-[#141414]">
                                             {m.metadata?.poster_path || m.metadata?.imageUrl ? (
                                                 <img src={`https://image.tmdb.org/t/p/w300${m.metadata.poster_path || (m.metadata.imageUrl?.includes('tmdb') ? m.metadata.imageUrl.split('w500')[1] : '')}`} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="Movie" />
                                             ) : (
@@ -1623,7 +1636,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                         </div>
                                     ))}
                                     {featuredMovies.length === 0 && (
-                                        <div className="col-span-full py-12 text-center text-zinc-600 text-xs border border-dashed border-zinc-800 rounded-lg">
+                                        <div className="col-span-full rounded-[22px] border border-dashed border-[#2f2f2f] py-12 text-center text-xs text-zinc-600">
                                             No movies featured yet.
                                         </div>
                                     )}
@@ -1631,8 +1644,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                             </div>
 
                             {/* Add Featured Form */}
-                            <div className="border border-zinc-800 p-5 rounded-lg h-fit sticky top-24 bg-zinc-900/30">
-                                <h3 className="font-bold text-white mb-4 flex items-center gap-2 text-sm">
+                            <div className="sticky top-24 h-fit rounded-[24px] border border-[#232323] bg-[#141414] p-5">
+                                <div className={panelSubtle}>Editorial slot</div>
+                                <h3 className="mb-4 mt-1 flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-white">
                                     Add Featured Content
                                 </h3>
                                 <div className="space-y-4">
@@ -1644,7 +1658,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                                             value={movieSearchQuery}
                                             onChange={(e) => setMovieSearchQuery(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleSearchMovies()}
-                                            className="w-full bg-black border border-zinc-800 rounded px-3 pl-9 py-2 text-xs text-white focus:border-zinc-600 outline-none"
+                                            className={`${filterInput} pl-9 text-xs`}
                                         />
                                         <button
                                             onClick={handleSearchMovies}
@@ -1687,8 +1701,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         </div>
                     )}
                 </div>
-            )
-            }
-        </div >
+            )}
+            </div>
+        </div>
     );
 };

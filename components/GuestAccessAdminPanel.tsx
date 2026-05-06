@@ -163,17 +163,17 @@ export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ co
     return (
         <div className="space-y-6">
             <div className={`grid gap-5 ${compact ? 'grid-cols-1' : 'grid-cols-1 xl:grid-cols-[1.2fr_1fr]'}`}>
-                <section className="border border-white/10 rounded-3xl bg-zinc-950/70 p-6">
+                <section className="rounded-[30px] border border-[#232323] bg-[#111111] p-6 text-white shadow-[0_18px_40px_rgba(0,0,0,0.18)]">
                     <div className="flex items-start gap-4">
-                        <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                            <UserRoundPlus size={18} className="text-white" />
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border border-[#383838] bg-[#191919]">
+                            <UserRoundPlus size={18} className="text-[#f1f1f1]" />
                         </div>
                         <div className="min-w-0 flex-1">
-                            <div className="text-[11px] uppercase tracking-[0.24em] text-zinc-500 font-bold mb-2">
+                            <div className="mb-2 text-[11px] font-mono uppercase tracking-[0.24em] text-[#90897e]">
                                 New Guest Link
                             </div>
-                            <h3 className="text-2xl font-black text-white tracking-tight">Create temporary guest access</h3>
-                            <p className="text-sm text-zinc-400 mt-2">
+                            <h3 className="text-2xl font-black tracking-tight text-white">Create temporary guest access</h3>
+                            <p className="mt-2 text-sm text-[#9a9a9a]">
                                 The link creates a hidden guest account when it is redeemed. The raw link is only copyable right after creation.
                             </p>
                         </div>
@@ -181,18 +181,18 @@ export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ co
 
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
                         <div>
-                            <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 mb-2 block">
+                            <label className="mb-2 block text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]">
                                 Expires At
                             </label>
                             <input
                                 type="datetime-local"
                                 value={expiresAt}
                                 onChange={(e) => setExpiresAt(e.target.value)}
-                                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/20"
+                                className="w-full rounded-[18px] border border-[#393939] bg-[#181818] px-4 py-3 text-sm text-white focus:border-[#e36457] focus:outline-none"
                             />
                         </div>
                         <div>
-                            <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 mb-2 block">
+                            <label className="mb-2 block text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]">
                                 Max Uses
                             </label>
                             <input
@@ -201,11 +201,11 @@ export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ co
                                 max={25}
                                 value={maxUses}
                                 onChange={(e) => setMaxUses(Math.max(1, Math.min(25, Number(e.target.value) || 1)))}
-                                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/20"
+                                className="w-full rounded-[18px] border border-[#393939] bg-[#181818] px-4 py-3 text-sm text-white focus:border-[#e36457] focus:outline-none"
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="text-[10px] uppercase tracking-widest font-bold text-zinc-500 mb-2 block">
+                            <label className="mb-2 block text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]">
                                 Internal Note
                             </label>
                             <input
@@ -213,7 +213,7 @@ export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ co
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
                                 placeholder="Optional note for admins"
-                                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-white/20"
+                                className="w-full rounded-[18px] border border-[#393939] bg-[#181818] px-4 py-3 text-sm text-white placeholder:text-[#666] focus:border-[#e36457] focus:outline-none"
                             />
                         </div>
                     </div>
