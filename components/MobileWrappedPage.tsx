@@ -449,75 +449,77 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
     if (!stats) return null;
 
     const slides = [
-        <div key="intro" className="relative flex h-full flex-col items-center justify-center overflow-hidden bg-black px-6 py-16 text-white">
+        <div key="intro" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-black to-black" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_40%)]" />
-            <h1 className="z-10 flex flex-col items-center text-center text-[22vw] font-black leading-[0.88] tracking-tighter">
-                <span>{currentYear}</span>
-                <span className="bg-gradient-to-b from-white to-white/45 bg-clip-text text-transparent">WRAPPED</span>
-            </h1>
-            <p className="z-10 mt-6 text-center text-[11px] font-mono uppercase tracking-[0.28em] text-white/50">
-                Your Year in Cinema
-            </p>
+            <div className="relative z-10">
+                <div className="text-[10px] font-mono uppercase tracking-[0.34em] text-white/45">Your year in cinema</div>
+                <h1 className="mt-6 text-[22vw] font-black leading-[0.86] tracking-tighter text-white">
+                    {currentYear}
+                    <span className="block bg-gradient-to-b from-white to-white/45 bg-clip-text text-transparent">WRAPPED</span>
+                </h1>
+                <p className="mt-5 max-w-xs text-base leading-7 text-zinc-400">
+                    The titles, returns, streaks, and sessions that shaped how your year actually felt.
+                </p>
+            </div>
         </div>,
 
         <div key="volume" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
-            <div className="absolute inset-0 bg-gradient-to-bl from-emerald-900/20 via-black to-black" />
-            <Film className="absolute -bottom-10 -right-10 h-56 w-56 rotate-12 text-emerald-900/10" />
-            <h2 className="relative z-10 mb-8 text-[10px] font-bold uppercase tracking-[0.3em] text-emerald-500/80">The Volume</h2>
-            <div className="relative z-10 w-full">
-                <span className="block bg-gradient-to-r from-emerald-200 to-emerald-600/50 bg-clip-text pb-2 text-[23vw] font-black leading-[0.82] tracking-tighter text-transparent">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/18 via-black to-black" />
+            <Film className="absolute -bottom-12 -right-12 h-56 w-56 rotate-12 text-emerald-900/10" />
+            <div className="relative z-10">
+                <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-emerald-300/75">What you put in</div>
+                <div className="mt-6 bg-gradient-to-r from-emerald-100 to-emerald-500/50 bg-clip-text text-[23vw] font-black leading-[0.82] tracking-tighter text-transparent">
                     {totalContent}
-                </span>
-                <span className="mt-2 block text-2xl font-light tracking-tight text-zinc-400">
-                    Qualified Sessions
-                </span>
-                <p className="mt-3 text-[10px] uppercase tracking-[0.2em] text-zinc-600">
-                    Movies plus qualified TV episode sessions
-                </p>
-            </div>
-            <div className="relative z-10 mt-16 flex w-full flex-col gap-6">
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                    <span className="text-sm uppercase tracking-widest text-zinc-500">Movie Sessions</span>
-                    <span className="text-3xl font-bold text-white">{stats.total_movies}</span>
                 </div>
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                    <span className="text-sm uppercase tracking-widest text-zinc-500">Episode Sessions</span>
-                    <span className="text-3xl font-bold text-white">{stats.total_shows}</span>
+                <div className="mt-3 text-2xl font-light tracking-tight text-zinc-400">qualified sessions made the cut</div>
+            </div>
+            <div className="relative z-10 mt-12 grid grid-cols-2 gap-4">
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Movies</div>
+                    <div className="mt-3 text-4xl font-black text-white">{stats.total_movies}</div>
+                </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Episodes</div>
+                    <div className="mt-3 text-4xl font-black text-white">{stats.total_shows}</div>
                 </div>
             </div>
         </div>,
 
         <div key="split" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/12 via-black to-violet-900/12" />
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/14 via-black to-violet-900/10" />
             <div className="relative z-10">
-                <h2 className="mb-6 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400/75">Format Split</h2>
-                <h3 className="max-w-xs text-5xl font-black leading-none tracking-tight text-white">
+                <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-cyan-300/75">How you watched</div>
+                <h2 className="mt-6 max-w-sm text-5xl font-black leading-[0.92] tracking-tight text-white">
                     {moviePercent >= showPercent ? 'Cinema leaned year' : 'Series leaned year'}
-                </h3>
-                <p className="mt-4 max-w-xs text-base leading-7 text-zinc-400">
-                    Your wrapped tilted {moviePercent >= showPercent ? 'toward films' : 'toward episodic watching'} more often than not.
+                </h2>
+                <p className="mt-4 max-w-sm text-base leading-7 text-zinc-400">
+                    You spent more of this year {moviePercent >= showPercent ? 'chasing standalone movie nights' : 'living inside episode-to-episode momentum'}.
                 </p>
             </div>
-            <div className="relative z-10 mt-12 overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-5 backdrop-blur-2xl">
-                <div className="flex h-5 overflow-hidden rounded-full bg-white/5">
-                    <div className="flex items-center justify-start bg-white px-3 text-[9px] font-black uppercase tracking-[0.24em] text-black" style={{ width: `${Math.max(moviePercent, 8)}%` }}>
-                        {moviePercent > 18 ? `${moviePercent}%` : ''}
+            <div className="relative z-10 mt-8 rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                <div className="flex items-end justify-between border-b border-white/10 pb-4">
+                    <div>
+                        <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Split this year</div>
+                        <div className="mt-2 text-2xl font-black text-white">{moviePercent}% / {showPercent}%</div>
                     </div>
-                    <div className="flex items-center justify-end bg-zinc-700/70 px-3 text-[9px] font-black uppercase tracking-[0.24em] text-white/75" style={{ width: `${Math.max(showPercent, 8)}%` }}>
-                        {showPercent > 18 ? `${showPercent}%` : ''}
+                    <div className="text-right text-[11px] leading-5 text-zinc-400">
+                        <div>Films vs episodes</div>
+                        <div>across every qualified session</div>
                     </div>
                 </div>
                 <div className="mt-5 grid grid-cols-2 gap-4">
-                    <div className="rounded-[22px] border border-white/10 bg-black/40 p-4">
+                    <div className="rounded-[22px] border border-white/10 bg-black/35 p-4">
                         <Clapperboard className="mb-3 h-5 w-5 text-white/70" />
                         <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Movies</div>
-                        <div className="mt-1 text-3xl font-black text-white">{stats.total_movies}</div>
+                        <div className="mt-2 text-3xl font-black text-white">{stats.total_movies}</div>
+                        <div className="mt-2 text-xs text-zinc-400">{moviePercent}% of your wrapped</div>
                     </div>
-                    <div className="rounded-[22px] border border-white/10 bg-black/40 p-4">
+                    <div className="rounded-[22px] border border-white/10 bg-black/35 p-4">
                         <Tv className="mb-3 h-5 w-5 text-white/70" />
                         <div className="text-[10px] font-mono uppercase tracking-[0.24em] text-zinc-500">Episodes</div>
-                        <div className="mt-1 text-3xl font-black text-white">{stats.total_shows}</div>
+                        <div className="mt-2 text-3xl font-black text-white">{stats.total_shows}</div>
+                        <div className="mt-2 text-xs text-zinc-400">{showPercent}% of your wrapped</div>
                     </div>
                 </div>
             </div>
@@ -526,89 +528,93 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         <div key="first-watch" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
             <div className="absolute inset-0 bg-gradient-to-br from-violet-900/18 via-black to-black" />
             <WrappedTitleSpotlight
-                eyebrow="First watch"
+                eyebrow="Your opener"
                 title={stats.first_watch_of_year?.title || 'No first watch saved'}
-                subtitle={stats.first_watch_of_year ? `${stats.first_watch_of_year.type === 'tv' ? 'Series start' : 'Movie night'} • ${readableDate(stats.first_watch_of_year.date)}` : 'No first watch data captured yet'}
+                subtitle={stats.first_watch_of_year ? `${stats.first_watch_of_year.type === 'tv' ? 'Series start' : 'Movie night'} · ${readableDate(stats.first_watch_of_year.date)}` : 'No first watch data captured yet'}
                 movie={highlightCards.firstWatch || undefined}
                 accent="violet"
             />
         </div>,
 
         <div key="genres" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
-            <div className="absolute inset-0 bg-gradient-to-r from-pink-900/20 via-black to-black" />
-            <h2 className="relative z-10 mb-12 text-[10px] font-bold uppercase tracking-[0.3em] text-pink-500/80">The Vibe</h2>
-            <div className="relative z-10 flex w-full flex-col gap-4">
-                {topGenres.map(([genre, count], index) => {
-                    const isTop = index === 0;
-                    return (
-                        <div key={genre} className={`flex items-baseline justify-between ${isTop ? 'mb-4' : ''}`}>
-                            <span className={`break-words uppercase tracking-tighter ${isTop ? 'border-l-4 border-pink-500 pl-3 text-[14vw] font-black text-white' : 'text-xl font-black text-zinc-600'}`}>
-                                {genre}
-                            </span>
-                            {isTop ? <span className="text-xl font-mono text-pink-400">{count}</span> : null}
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-900/18 via-black to-black" />
+            <div className="relative z-10">
+                <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-pink-300/75">Your taste map</div>
+                <div className="mt-6 max-w-xs text-5xl font-black uppercase leading-[0.92] tracking-tight text-white">
+                    {dominantGenre}
+                </div>
+                <p className="mt-4 max-w-sm text-base leading-7 text-zinc-400">
+                    This genre showed up more than anything else in the year you built.
+                </p>
+            </div>
+            <div className="relative z-10 mt-8 grid gap-3">
+                {topGenres.map(([genre, count], index) => (
+                    <div key={genre} className={`flex items-center justify-between rounded-[22px] border px-4 py-4 ${index === 0 ? 'border-pink-400/20 bg-pink-400/10' : 'border-white/10 bg-white/[0.03]'}`}>
+                        <div className={`font-black uppercase tracking-tight ${index === 0 ? 'text-xl text-white' : 'text-base text-zinc-300'}`}>
+                            {genre}
                         </div>
-                    );
-                })}
+                        <div className={`text-[11px] font-mono uppercase tracking-[0.2em] ${index === 0 ? 'text-pink-200' : 'text-zinc-500'}`}>
+                            {count} sessions
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>,
 
         <div key="peak-month" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
             <div className="absolute inset-0 bg-gradient-to-br from-sky-900/16 via-black to-zinc-950" />
             <div className="relative z-10">
-                <h2 className="mb-5 text-[10px] font-bold uppercase tracking-[0.3em] text-sky-400/80">Peak Month</h2>
-                <div className="text-6xl font-black leading-none tracking-tight text-white">{peakMonthName}</div>
-                <p className="mt-4 max-w-xs text-base leading-7 text-zinc-400">
-                    This was the point where your year felt busiest.
+                <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-sky-300/75">Your busiest run</div>
+                <div className="mt-6 text-6xl font-black leading-none tracking-tight text-white">{peakMonthName}</div>
+                <p className="mt-4 max-w-sm text-base leading-7 text-zinc-400">
+                    This was the stretch where your year really accelerated.
                 </p>
             </div>
-            <div className="relative z-10 mt-10 rounded-[30px] border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
+            <div className="relative z-10 mt-8 rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
                 <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">Qualified sessions in that month</div>
-                <div className="mt-3 text-[18vw] font-black leading-none tracking-tighter text-white">{peakMonthCount}</div>
+                <div className="mt-4 text-[18vw] font-black leading-none tracking-tighter text-white">{peakMonthCount}</div>
                 {previousYearTotal > 0 ? (
                     <div className="mt-6 border-t border-white/10 pt-5">
                         <div className="text-[10px] font-mono uppercase tracking-[0.26em] text-zinc-500">{currentYear - 1} vs {currentYear}</div>
                         <div className="mt-2 text-2xl font-black text-white">
-                            {yoyDirection === 'up' ? '+' : yoyDirection === 'down' ? '-' : ''}{Math.abs(yoyDelta)}
+                            {yoyDelta > 0 ? '+' : yoyDelta < 0 ? '-' : ''}{Math.abs(yoyDelta)}
                         </div>
-                        <div className="mt-1 text-sm text-zinc-400">
-                            sessions {yoyDirection === 'up' ? 'above' : yoyDirection === 'down' ? 'below' : 'matching'} last year
-                        </div>
+                        <div className="mt-1 text-sm text-zinc-400">sessions compared with last year</div>
                     </div>
                 ) : null}
             </div>
         </div>,
 
         <div key="habits" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
-            <div className="absolute inset-0 bg-gradient-to-br from-orange-900/10 via-black to-blue-900/10" />
-            <h2 className="relative z-10 mb-12 text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500/80">Habits</h2>
-            <div className="relative z-10 flex w-full flex-col gap-5">
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-900/12 via-black to-blue-900/10" />
+            <div className="relative z-10 grid gap-4">
+                <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-5">
                     <div className="flex items-center gap-2 text-zinc-500">
-                        <Flame size={16} className="text-orange-500" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest">Longest Streak</span>
+                        <Flame size={16} className="text-orange-400" />
+                        <span className="text-[10px] font-mono uppercase tracking-[0.24em]">You kept showing up</span>
                     </div>
-                    <div className="mt-3 text-[15vw] font-black leading-none tracking-tighter text-white">{stats.max_streak}</div>
-                    <div className="mt-1 text-xl font-light text-zinc-400">days in a row</div>
+                    <div className="mt-4 text-[15vw] font-black leading-none tracking-tighter text-white">{stats.max_streak}</div>
+                    <div className="mt-2 text-xl font-light text-zinc-400">days in a row</div>
                 </div>
-                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5">
+                <div className="rounded-[26px] border border-white/10 bg-white/[0.03] p-5">
                     <div className="flex items-center gap-2 text-zinc-500">
-                        <CalendarRange size={16} className="text-sky-400" />
-                        <span className="text-[10px] font-mono uppercase tracking-widest">Most intense day</span>
+                        <CalendarRange size={16} className="text-sky-300" />
+                        <span className="text-[10px] font-mono uppercase tracking-[0.24em]">Your hardest binge day</span>
                     </div>
-                    <div className="mt-3 text-5xl font-black leading-none tracking-tight text-white">{topDayCount || stats.binge_days}</div>
-                    <div className="mt-2 text-sm leading-6 text-zinc-400">
-                        {topDayCount > 0 ? `${topDayDate} was your busiest watch day.` : `${stats.binge_days} binge days cleared the threshold this year.`}
+                    <div className="mt-4 text-5xl font-black leading-none tracking-tight text-white">{topDayCount || stats.binge_days}</div>
+                    <div className="mt-3 text-sm leading-6 text-zinc-400">
+                        {topDayCount > 0 ? `${topDayDate} was your busiest watch day.` : `${stats.binge_days} binge days crossed the threshold.`}
                     </div>
                 </div>
             </div>
         </div>,
 
         <div key="rewatch" className="relative flex h-full flex-col justify-center overflow-hidden bg-black px-6 py-16 text-white">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-900/18 via-black to-black" />
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-900/16 via-black to-black" />
             <WrappedTitleSpotlight
-                eyebrow="Repeat return"
+                eyebrow="Your comfort title"
                 title={topRewatch?.[0] || 'No repeat title yet'}
-                subtitle={topRewatch ? `${topRewatch[1]} completed returns • comfort-watch signal` : 'No major rewatch title recorded yet'}
+                subtitle={topRewatch ? `${topRewatch[1]} completed returns · comfort-watch signal` : 'No major rewatch title recorded yet'}
                 movie={highlightCards.topRewatch || undefined}
                 accent="amber"
             />
@@ -726,34 +732,38 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         ] : []),
 
         ...(predictions ? [
-            <div key="predictions" className="relative flex h-full flex-col justify-center overflow-hidden bg-zinc-950 px-6 py-16 text-white">
+            <div key="forecast" className="relative flex h-full flex-col justify-center overflow-hidden bg-zinc-950 px-6 py-16 text-white">
+                <div className="absolute inset-0 bg-zinc-950" />
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-                <div className="absolute right-0 top-10 origin-top-right rotate-90 text-9xl font-black text-white/10">{nextYear}</div>
-                <div className="relative z-10 flex h-full flex-col justify-center gap-10">
-                    <div>
-                        <h2 className="mb-1 text-[10px] font-mono uppercase tracking-widest text-cyan-500">Future Forecast</h2>
-                        <h1 className="text-3xl font-black uppercase leading-none text-white">The Next Chapter</h1>
+                <div className="absolute right-[-2rem] top-8 h-36 w-36 rounded-full bg-cyan-400/6 blur-3xl" />
+                <div className="relative z-10">
+                    <div className="text-[10px] font-mono uppercase tracking-[0.3em] text-cyan-300/75">If this keeps going</div>
+                    <h2 className="mt-6 max-w-sm text-5xl font-black leading-[0.92] tracking-tight text-white">The next chapter</h2>
+                    <p className="mt-4 max-w-sm text-base leading-7 text-zinc-400">
+                        Your pattern still points toward {predictions.trending_genre || dominantGenre}, and probably with even more volume.
+                    </p>
+                </div>
+                <div className="relative z-10 mt-8 rounded-[30px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+                    <div className="border-b border-white/8 pb-5">
+                        <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Projected total</div>
+                        <div className="mt-4 text-[18vw] font-black leading-[0.86] tracking-tighter text-white">{predictions.projected_2027_total}</div>
+                        <div className="mt-3 flex items-center gap-2 text-sm font-bold text-zinc-300">
+                            <TrendingUp size={14} className={predictions.growth_rate > 0 ? 'text-emerald-400' : 'text-red-400'} />
+                            <span>{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% session growth</span>
+                        </div>
                     </div>
-                    <div className="grid gap-5">
-                        <div className="rounded-[28px] border border-white/5 bg-zinc-900/50 p-6 backdrop-blur-sm">
-                            <span className="mb-1 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">Projected Total</span>
-                            <span className="text-[15vw] font-black leading-none text-white">{predictions.projected_2027_total}</span>
-                            <div className="mt-2 flex items-center gap-2">
-                                <TrendingUp size={14} className={predictions.growth_rate > 0 ? 'text-green-500' : 'text-red-500'} />
-                                <span className="text-xs font-bold text-zinc-400">{predictions.growth_rate > 0 ? '+' : ''}{predictions.growth_rate}% session growth</span>
-                            </div>
-                            <div className={`mt-3 text-[10px] font-mono uppercase tracking-[0.24em] ${confidenceTone[predictions.confidence]}`}>
+                    <div className="mt-5 grid grid-cols-2 gap-4">
+                        <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Signal</div>
+                            <div className={`mt-4 text-[11px] font-black uppercase tracking-[0.22em] ${confidenceTone[predictions.confidence]}`}>
                                 {predictions.confidence} confidence
                             </div>
+                            <div className="mt-4 text-2xl font-black text-white">{viewingStyle}</div>
                         </div>
-                        <div className="rounded-[28px] border border-white/5 bg-zinc-900/50 p-6 backdrop-blur-sm">
-                            <span className="mb-1 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">Next milestone</span>
-                            <span className="text-[13vw] font-black leading-none text-white">{predictions.next_milestone.target}</span>
-                            <span className="mt-2 block text-xs text-zinc-400">{predictions.next_milestone.remaining} sessions away</span>
-                            <div className="mt-4 flex items-center gap-2 text-sm text-zinc-300">
-                                <Sparkles size={14} className="text-cyan-300" />
-                                <span>{predictions.trending_genre || dominantGenre} still looks like your lane.</span>
-                            </div>
+                        <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                            <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-zinc-500">Next milestone</div>
+                            <div className="mt-4 text-4xl font-black leading-none tracking-tight text-white">{predictions.next_milestone.target}</div>
+                            <div className="mt-3 text-xs text-zinc-400">{predictions.next_milestone.remaining} sessions away</div>
                         </div>
                     </div>
                 </div>
@@ -763,8 +773,8 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
         <div key="summary" className="relative flex h-full flex-col justify-between overflow-hidden bg-zinc-950 px-6 pb-10 pt-16 text-white">
             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
             <div className="relative z-10 text-center">
-                <h2 className="mb-2 text-[10px] font-mono uppercase tracking-[0.3em] text-zinc-500">StreamWrapp</h2>
-                <h1 className="text-3xl font-black uppercase tracking-tighter text-white">{`${currentYear} Recap`}</h1>
+                <h2 className="mb-2 text-[10px] font-mono uppercase tracking-[0.3em] text-zinc-500">One last frame</h2>
+                <h1 className="text-3xl font-black uppercase tracking-tighter text-white">{`${currentYear} recap`}</h1>
             </div>
             <div className="relative z-10 grid w-full grid-cols-2 gap-4 gap-y-8">
                 <div className="flex flex-col items-center rounded-2xl bg-white/5 p-4 text-center">
@@ -793,7 +803,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
     ];
 
     return (
-        <div className="fixed inset-0 z-[200] overscroll-contain bg-black text-white">
+        <div className="fixed inset-0 z-[200] overscroll-contain bg-black text-white" style={{ WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}>
             <div className="absolute left-0 right-0 top-0 z-[60] h-1 bg-black" />
 
             <div className="pointer-events-none absolute left-4 right-4 top-4 z-50 flex gap-1.5 pt-safe">
@@ -809,6 +819,7 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
             <button
                 onClick={onClose}
                 className="absolute right-6 top-8 z-[60] rounded-full bg-black/20 p-2 text-white/80 backdrop-blur-md"
+                style={{ WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}
             >
                 <X size={20} />
             </button>
@@ -817,13 +828,15 @@ export const MobileWrappedPage: React.FC<MobileWrappedPageProps> = ({ onClose })
                 <button
                     type="button"
                     aria-label="Previous slide"
-                    className="h-full w-1/3 bg-transparent transition-colors active:bg-white/5"
+                    className="h-full w-1/3 bg-transparent outline-none"
+                    style={{ WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}
                     onClick={prevSlide}
                 />
                 <button
                     type="button"
                     aria-label="Next slide"
-                    className="h-full w-2/3 bg-transparent transition-colors active:bg-white/5"
+                    className="h-full w-2/3 bg-transparent outline-none"
+                    style={{ WebkitTapHighlightColor: 'transparent' } as React.CSSProperties}
                     onClick={nextSlide}
                 />
             </div>
