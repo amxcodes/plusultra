@@ -61,6 +61,8 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
 };
 import { useAuth } from '../lib/AuthContext';
 
+const navTooltipClassName = "absolute left-[76px] top-1/2 z-[70] -translate-y-1/2 rounded-xl bg-black/92 px-3 py-1.5 text-xs text-white opacity-0 shadow-xl backdrop-blur-md whitespace-nowrap pointer-events-none transition-all duration-200 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0";
+
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick, messageUnreadCount }) => {
   const { profile, user } = useAuth();
   const canStream = profile?.can_stream || profile?.role === 'admin';
@@ -165,6 +167,20 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   };
   const iconSize = getIconSize();
   const isDownloadingUpdate = updatePhase === 'downloading';
+  const getNavArrivalLabel = (count: number, singular: string, plural: string) => {
+    if (count <= 0) return null;
+    const quantity = count > 9 ? '9+' : String(count);
+    return `${quantity} ${count === 1 ? singular : plural}`;
+  };
+  const announcementsArrivalLabel = activeTab === NavItem.ANNOUNCEMENTS
+    ? null
+    : getNavArrivalLabel(unreadCounts.announcementsCount, 'new announcement', 'new announcements');
+  const activityArrivalLabel = activeTab === NavItem.ACTIVITY
+    ? null
+    : getNavArrivalLabel(unreadCounts.activityCount, 'new activity', 'new activities');
+  const messagesArrivalLabel = activeTab === NavItem.MESSAGES
+    ? null
+    : getNavArrivalLabel(messageUnreadCount, 'new message', 'new messages');
   const canDownloadUpdate = updatePhase === 'available';
   const canInstallUpdate = updatePhase === 'downloaded';
   const primaryUpdateLabel = (() => {
@@ -241,8 +257,18 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     }
   };
 
+  React.useEffect(() => {
+    if (activeTab === NavItem.ANNOUNCEMENTS && unreadCounts.announcementsCount > 0) {
+      setUnreadCounts((prev) => ({ ...prev, announcementsCount: 0 }));
+    }
+
+    if (activeTab === NavItem.ACTIVITY && unreadCounts.activityCount > 0) {
+      setUnreadCounts((prev) => ({ ...prev, activityCount: 0 }));
+    }
+  }, [activeTab, unreadCounts.activityCount, unreadCounts.announcementsCount]);
+
   return (
-    <nav className="fixed left-4 top-4 bottom-4 z-[60] w-[64px] flex flex-col items-center py-4 bg-[#0a0a0a]/80 backdrop-blur-2xl rounded-[24px] border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
+    <nav className="fixed left-4 top-4 bottom-4 z-[60] isolate w-[64px] overflow-visible flex flex-col items-center py-4 bg-[#0a0a0a]/80 backdrop-blur-2xl rounded-[24px] border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
 
       {/* Top: Home/Logo */}
       <div className="mb-2 [@media(max-height:850px)]:mb-1 [@media(max-height:750px)]:mb-0">
@@ -267,7 +293,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           </button>
 
           {/* Tooltip */}
-          <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md">
+          <div className={navTooltipClassName}>
             Search
           </div>
         </div>
@@ -288,7 +314,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             />
           </button>
 
-          <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md whitespace-nowrap">
+          <div className={navTooltipClassName}>
             News Feed
           </div>
         </div>
@@ -309,7 +335,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         ).map((item) => {
           const Icon = NAV_ICONS[item];
           const isActive = activeTab === item;
-          const showMessageBadge = item === NavItem.MESSAGES && messageUnreadCount > 0;
+          const showMessageBadge = item === NavItem.MESSAGES && Boolean(messagesArrivalLabel);
 
           return (
             <div key={item} className="relative group flex justify-center w-full">
@@ -325,13 +351,13 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
               </button>
 
               {showMessageBadge && (
-                <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 min-w-[14px] h-[14px] px-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] pointer-events-none flex items-center justify-center text-[9px] font-bold text-white">
-                  {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
+                <div className="absolute left-[74px] top-1/2 z-[95] -translate-y-1/2 rounded-full border border-white/10 bg-[#17191f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-200 pointer-events-none whitespace-nowrap">
+                  {messagesArrivalLabel}
                 </div>
               )}
 
               {/* Tooltip */}
-              <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md whitespace-nowrap">
+              <div className={navTooltipClassName}>
                 {item}
               </div>
             </div>
@@ -353,8 +379,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           >
             <Bell size={iconSize} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2 : 1.5} className={activeTab === NavItem.ANNOUNCEMENTS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
           </button>
-          {unreadCounts.announcementsCount > 0 && (
-            <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse pointer-events-none" />
+          {announcementsArrivalLabel && (
+            <div className="absolute left-[74px] top-1/2 z-[95] -translate-y-1/2 rounded-full border border-white/10 bg-[#17191f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-200 pointer-events-none whitespace-nowrap">
+              {announcementsArrivalLabel}
+            </div>
           )}
         </div>
 
@@ -368,8 +396,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
           >
             <Activity size={iconSize} strokeWidth={activeTab === NavItem.ACTIVITY ? 2 : 1.5} className={activeTab === NavItem.ACTIVITY ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
           </button>
-          {unreadCounts.activityCount > 0 && (
-            <div className="absolute top-1.5 right-[14px] [@media(max-height:750px)]:top-1 [@media(max-height:750px)]:right-3 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse pointer-events-none" />
+          {activityArrivalLabel && (
+            <div className="absolute left-[74px] top-1/2 z-[95] -translate-y-1/2 rounded-full border border-white/10 bg-[#17191f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-200 pointer-events-none whitespace-nowrap">
+              {activityArrivalLabel}
+            </div>
           )}
         </div>
 
@@ -420,7 +450,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         </button>
         
         {/* Profile Tooltip - Add tooltip to Profile since it has a smaller icon style but sits in the sequence */}
-        <div className="absolute left-[70px] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-black/90 border border-white/10 rounded-lg text-xs text-white opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 pointer-events-none transition-all duration-200 z-[70] shadow-xl backdrop-blur-md whitespace-nowrap">
+        <div className={navTooltipClassName}>
           Profile
         </div>
 

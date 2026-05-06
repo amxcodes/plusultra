@@ -55,6 +55,11 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
     const [activeTab, setActiveTab] = useState<ActivityFeedTab>('notifications');
 
     const openNotificationTarget = (notification: Notification) => {
+        if (notification.type === 'direct_message' && notification.data?.conversation_id) {
+            onNavigate?.('messages', { conversationId: notification.data.conversation_id });
+            return;
+        }
+
         if (notification.data?.playlist_id) {
             onNavigate?.('playlist', { id: notification.data.playlist_id });
             return;
@@ -145,7 +150,11 @@ export const ActivityPage: React.FC<ActivityPageProps> = ({ onNavigate }) => {
                         </div>
                     ) : feedNotifications.map((notification) => {
                         const accent = getNotificationAccent(notification);
-                        const canOpen = Boolean(notification.data?.playlist_id || notification.data?.actor_id);
+                        const canOpen = Boolean(
+                            (notification.type === 'direct_message' && notification.data?.conversation_id) ||
+                            notification.data?.playlist_id ||
+                            notification.data?.actor_id
+                        );
 
                         return (
                             <div

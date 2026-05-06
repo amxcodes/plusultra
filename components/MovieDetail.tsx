@@ -312,7 +312,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 {activeMovie.mediaType === 'tv' && canStream && (
                                     <button
                                         onClick={handlePlayRandom}
-                                        className="group h-12 md:h-14 px-6 md:px-8 border border-white/5 bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 backdrop-blur-3xl text-white rounded-[18px] font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] hover:border-white/10"
+                                        className="group h-12 md:h-14 overflow-hidden px-6 md:px-8 border border-white/8 bg-[#1a1c22]/92 hover:bg-[#242730] text-white rounded-[18px] font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] hover:border-white/12"
                                         title="Watch Random Episode"
                                     >
                                         <Shuffle size={16} strokeWidth={2} className="group-hover:rotate-180 transition-transform duration-500" />
@@ -322,7 +322,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                                 <button
                                     onClick={() => setShowPlaylistModal(true)}
-                                    className="group w-12 h-12 md:w-14 md:h-14 flex items-center justify-center rounded-[18px] bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 border border-white/5 hover:border-white/10 backdrop-blur-3xl transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] text-white"
+                                    className="group w-12 h-12 md:w-14 md:h-14 overflow-hidden flex items-center justify-center rounded-[18px] bg-[#1a1c22]/92 hover:bg-[#242730] border border-white/8 hover:border-white/12 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] text-white"
                                     title="Add to Playlist"
                                 >
                                     <ListPlus size={22} strokeWidth={2} className="transition-transform duration-300 group-hover:scale-110" />
@@ -330,7 +330,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                                 <button
                                     onClick={() => setShowShareModal(true)}
-                                    className="group h-12 md:h-14 px-5 md:px-6 border border-white/5 bg-white/5 hover:bg-gradient-to-tr hover:from-white/20 hover:to-white/5 backdrop-blur-3xl text-white rounded-[18px] font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] hover:border-white/10"
+                                    className="group h-12 md:h-14 overflow-hidden px-5 md:px-6 border border-white/8 bg-[#1a1c22]/92 hover:bg-[#242730] text-white rounded-[18px] font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] hover:border-white/12"
                                     title="Share in Messages"
                                 >
                                     <Send size={16} strokeWidth={2} className="transition-transform duration-300 group-hover:translate-x-0.5" />

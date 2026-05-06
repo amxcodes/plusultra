@@ -79,6 +79,7 @@ type NavigationSnapshot = {
   selectedMovie: Movie | null;
   selectedOfflineDownloads: OfflineDownloadEntry[] | null;
   offlinePlaybackUrl: string | null;
+  selectedMessageConversationId?: string;
   selectedProfileId?: string;
   selectedPlaylistId?: string;
   playlistModalMovie: Movie | null;
@@ -167,6 +168,7 @@ function StreamApp() {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [selectedOfflineDownloads, setSelectedOfflineDownloads] = useState<OfflineDownloadEntry[] | null>(null);
   const [offlinePlaybackUrl, setOfflinePlaybackUrl] = useState<string | null>(null);
+  const [selectedMessageConversationId, setSelectedMessageConversationId] = useState<string | undefined>(undefined);
   const [selectedProfileId, setSelectedProfileId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | undefined>(undefined);
   const [playlistModalMovie, setPlaylistModalMovie] = useState<Movie | null>(null);
@@ -298,6 +300,7 @@ function StreamApp() {
     selectedMovie,
     selectedOfflineDownloads,
     offlinePlaybackUrl,
+    selectedMessageConversationId,
     selectedProfileId,
     selectedPlaylistId,
     playlistModalMovie,
@@ -313,6 +316,7 @@ function StreamApp() {
     setSelectedMovie(snapshot.selectedMovie);
     setSelectedOfflineDownloads(snapshot.selectedOfflineDownloads);
     setOfflinePlaybackUrl(snapshot.offlinePlaybackUrl);
+    setSelectedMessageConversationId(snapshot.selectedMessageConversationId);
     setSelectedProfileId(snapshot.selectedProfileId);
     setSelectedPlaylistId(snapshot.selectedPlaylistId);
     setPlaylistModalMovie(snapshot.playlistModalMovie);
@@ -331,6 +335,7 @@ function StreamApp() {
     left.selectedMovie === right.selectedMovie &&
     left.selectedOfflineDownloads === right.selectedOfflineDownloads &&
     left.offlinePlaybackUrl === right.offlinePlaybackUrl &&
+    left.selectedMessageConversationId === right.selectedMessageConversationId &&
     left.selectedProfileId === right.selectedProfileId &&
     left.selectedPlaylistId === right.selectedPlaylistId &&
     left.playlistModalMovie === right.playlistModalMovie &&
@@ -481,6 +486,7 @@ function StreamApp() {
     selectedMovie,
     selectedOfflineDownloads,
     offlinePlaybackUrl,
+    selectedMessageConversationId,
     selectedProfileId,
     selectedPlaylistId,
     playlistModalMovie,
@@ -495,6 +501,7 @@ function StreamApp() {
       setSelectedMovie(null);
       setSelectedOfflineDownloads(null);
       setOfflinePlaybackUrl(null);
+      setSelectedMessageConversationId(undefined);
       setPlayerState(null);
       setIsSearchOpen(false);
       setSelectedPlaylistId(undefined);
@@ -518,6 +525,7 @@ function StreamApp() {
       selectedMovie: movie,
       selectedOfflineDownloads: null,
       offlinePlaybackUrl: null,
+      selectedMessageConversationId: undefined,
       isMobileMenuOpen: false,
     }), 'push', { scrollToTop: false });
   };
@@ -526,6 +534,7 @@ function StreamApp() {
     commitSnapshot(buildSnapshot({
       playerState: { movie, season, episode },
       offlinePlaybackUrl: null,
+      selectedMessageConversationId: undefined,
       isMobileMenuOpen: false,
     }), 'push', { scrollToTop: false });
   };
@@ -571,6 +580,7 @@ function StreamApp() {
       selectedMovie: group.movie,
       selectedOfflineDownloads: group.entries,
       offlinePlaybackUrl: null,
+      selectedMessageConversationId: undefined,
       isMobileMenuOpen: false,
     }), 'push', { scrollToTop: false });
   };
@@ -598,6 +608,7 @@ function StreamApp() {
       },
       selectedOfflineDownloads,
       offlinePlaybackUrl: playback.url,
+      selectedMessageConversationId: undefined,
       playerState: {
         movie: {
           id: download.tmdbId,
@@ -623,6 +634,7 @@ function StreamApp() {
       activeTab: tab,
       selectedOfflineDownloads: null,
       offlinePlaybackUrl: null,
+      selectedMessageConversationId: tab === NavItem.MESSAGES ? params?.conversationId : undefined,
       selectedProfileId: tab === NavItem.PROFILE ? params?.id : undefined,
       selectedPlaylistId: undefined,
       viewAllCategory: null,
@@ -640,6 +652,7 @@ function StreamApp() {
         activeTab: NavItem.PROFILE,
         selectedOfflineDownloads: null,
         offlinePlaybackUrl: null,
+        selectedMessageConversationId: undefined,
         selectedProfileId: params?.id,
         selectedPlaylistId: undefined,
         viewAllCategory: null,
@@ -652,6 +665,7 @@ function StreamApp() {
       commitSnapshot(buildSnapshot({
         selectedOfflineDownloads: null,
         offlinePlaybackUrl: null,
+        selectedMessageConversationId: undefined,
         selectedPlaylistId: params?.id,
         selectedMovie: null,
         isSearchOpen: false,
@@ -662,6 +676,7 @@ function StreamApp() {
         activeTab: NavItem.MESSAGES,
         selectedOfflineDownloads: null,
         offlinePlaybackUrl: null,
+        selectedMessageConversationId: params?.conversationId,
         selectedPlaylistId: undefined,
         selectedMovie: null,
         playerState: null,
@@ -780,7 +795,7 @@ function StreamApp() {
 
 
             {/* Desktop: pl-10 (Strict Original) | Mobile: px-0 (MobileHome handles padding) */}
-            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : (activeTab === NavItem.NEWS ? '' : 'pt-0 md:pt-20')} relative z-20 px-0 md:pl-10 md:pr-0 space-y-2`}>
+            <div className={`${activeTab === NavItem.DASHBOARD && !viewAllCategory && !selectedPlaylistId ? '-mt-32' : (activeTab === NavItem.NEWS ? '' : activeTab === NavItem.MESSAGES ? 'pt-0 md:pt-4 md:h-[calc(100dvh-1rem)] md:overflow-hidden' : 'pt-0 md:pt-20')} relative z-20 px-0 md:pl-10 md:pr-0 space-y-2`}>
 
               {/* MOBILE HOME VIEW (Handles Dashboard, Movies, Series) - My List moved to separate view */}
               {!viewAllCategory && !selectedPlaylistId && [NavItem.DASHBOARD, NavItem.MOVIES, NavItem.SERIES].includes(activeTab) && (
@@ -834,7 +849,10 @@ function StreamApp() {
               )}
 
               {activeTab === NavItem.MESSAGES && !viewAllCategory && !selectedPlaylistId && (
-                <MessagesPage onMovieSelect={handleMovieSelect} />
+                <MessagesPage
+                  onMovieSelect={handleMovieSelect}
+                  initialConversationId={selectedMessageConversationId}
+                />
               )}
 
               {/* DASHBOARD VIEW (Desktop) */}
