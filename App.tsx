@@ -58,6 +58,7 @@ import { isGuestExpired } from './lib/guestAccess';
 import { DownloadQuestPage, type OfflineDownloadGroup } from './components/DownloadQuestPage';
 import { MessagesPage } from './components/MessagesPage';
 import type { OfflineDownloadEntry } from './types';
+import { setActivityMode, type ActivityMode } from './lib/activityTracking';
 
 type ViewAllCategoryState = {
   title: string;
@@ -296,6 +297,64 @@ function StreamApp() {
       ? '/'
       : (typeof window !== 'undefined' && window.location.pathname) || '/'
   );
+
+  useEffect(() => {
+    let nextMode: ActivityMode = 'browse';
+
+    if (playerState || offlinePlaybackUrl) {
+      nextMode = 'watch';
+    } else if (selectedMovie) {
+      nextMode = 'detail';
+    } else if (isSearchOpen) {
+      nextMode = 'search';
+    } else if (selectedPlaylistId) {
+      nextMode = 'playlist';
+    } else {
+      switch (activeTab) {
+        case NavItem.MESSAGES:
+          nextMode = 'chat';
+          break;
+        case NavItem.ADMIN:
+          nextMode = 'admin';
+          break;
+        case NavItem.DOWNLOAD_QUEST:
+          nextMode = 'download';
+          break;
+        case NavItem.REQUESTS:
+          nextMode = 'requests';
+          break;
+        case NavItem.STATS:
+          nextMode = 'stats';
+          break;
+        case NavItem.SETTINGS:
+          nextMode = 'settings';
+          break;
+        case NavItem.PLAYLISTS:
+        case NavItem.MY_LIST:
+          nextMode = 'library';
+          break;
+        case NavItem.ACTIVITY:
+        case NavItem.ANNOUNCEMENTS:
+        case NavItem.NEWS:
+        case NavItem.PROFILE:
+        case NavItem.CURATOR:
+          nextMode = 'social';
+          break;
+        default:
+          nextMode = 'browse';
+          break;
+      }
+    }
+
+    setActivityMode(nextMode);
+  }, [
+    activeTab,
+    isSearchOpen,
+    selectedMovie,
+    playerState,
+    offlinePlaybackUrl,
+    selectedPlaylistId,
+  ]);
 
   const buildSnapshot = (overrides: Partial<NavigationSnapshot> = {}): NavigationSnapshot => ({
     activeTab,

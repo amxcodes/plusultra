@@ -29,6 +29,14 @@ export interface ViewSessionHeartbeatInput {
     providerId?: string;
     title?: string;
     genres?: string[];
+    context?: {
+        isVisible: boolean;
+        isFocused: boolean;
+        hasRecentInteraction: boolean;
+        idleSeconds: number;
+        activityMode: string;
+        resumeSource?: string | null;
+    };
 }
 
 export interface ProviderAttemptInput {
@@ -47,6 +55,7 @@ export interface LatestViewSessionProgress {
     updated_at?: string | null;
     last_heartbeat_at?: string | null;
     active_seconds?: number | null;
+    confidence_score?: number | null;
 }
 
 type PrivateStatsProfile = {
@@ -98,7 +107,7 @@ export const StatsService = {
     },
 
     async trackViewSession(input: ViewSessionHeartbeatInput) {
-        const { error } = await supabase.rpc('heartbeat_view_session', {
+        const payload = {
             p_session_id: input.sessionId,
             p_tmdb_id: input.tmdbId,
             p_media_type: input.mediaType,
@@ -107,8 +116,32 @@ export const StatsService = {
             p_provider_id: input.providerId || null,
             p_title: input.title || null,
             p_genres: input.genres && input.genres.length > 0 ? input.genres : null,
-            p_heartbeat_seconds: VIEW_SESSION_HEARTBEAT_SECONDS
-        });
+            p_heartbeat_seconds: VIEW_SESSION_HEARTBEAT_SECONDS,
+            p_context: input.context ? {
+                is_visible: input.context.isVisible,
+                is_focused: input.context.isFocused,
+                has_recent_interaction: input.context.hasRecentInteraction,
+                idle_seconds: input.context.idleSeconds,
+                activity_mode: input.context.activityMode,
+                resume_source: input.context.resumeSource ?? null,
+            } : null,
+        };
+
+        let { error } = await supabase.rpc('heartbeat_view_session_v2', payload);
+
+        if (error?.code === 'PGRST202') {
+            ({ error } = await supabase.rpc('heartbeat_view_session', {
+                p_session_id: payload.p_session_id,
+                p_tmdb_id: payload.p_tmdb_id,
+                p_media_type: payload.p_media_type,
+                p_season: payload.p_season,
+                p_episode: payload.p_episode,
+                p_provider_id: payload.p_provider_id,
+                p_title: payload.p_title,
+                p_genres: payload.p_genres,
+                p_heartbeat_seconds: payload.p_heartbeat_seconds,
+            }));
+        }
 
         if (error) {
             console.error('[StatsService] Failed to track session heartbeat:', error);
@@ -116,9 +149,9 @@ export const StatsService = {
     },
 
     async getLatestViewSessionProgress(tmdbId: string, mediaType: 'movie' | 'tv'): Promise<LatestViewSessionProgress | null> {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('view_sessions')
-            .select('season, episode, updated_at, last_heartbeat_at, active_seconds')
+            .select('season, episode, updated_at, last_heartbeat_at, active_seconds, confidence_score')
             .eq('tmdb_id', tmdbId)
             .eq('media_type', mediaType)
             .order('updated_at', { ascending: false })
@@ -126,12 +159,34 @@ export const StatsService = {
             .limit(1)
             .maybeSingle();
 
+        if (error?.code === '42703') {
+            ({ data, error } = await supabase
+                .from('view_sessions')
+                .select('season, episode, updated_at, last_heartbeat_at, active_seconds')
+                .eq('tmdb_id', tmdbId)
+                .eq('media_type', mediaType)
+                .order('updated_at', { ascending: false })
+                .order('last_heartbeat_at', { ascending: false })
+                .limit(1)
+                .maybeSingle());
+        }
+
         if (error) {
             console.error('[StatsService] Failed to fetch latest session progress:', error);
             return null;
         }
 
-        return (data as LatestViewSessionProgress | null) ?? null;
+        const session = (data as LatestViewSessionProgress | null) ?? null;
+        if (!session) return null;
+
+        const confidenceScore = session.confidence_score ?? 0;
+        const activeSeconds = session.active_seconds ?? 0;
+
+        if (confidenceScore < 25 && activeSeconds < 90) {
+            return null;
+        }
+
+        return session;
     },
 
     async startProviderAttempt(input: ProviderAttemptInput) {

@@ -97,15 +97,34 @@ export class HealthService {
         const lastChecked = startTime;
 
         try {
-            const { error } = await supabase.rpc('heartbeat_view_session', {
+            let { error } = await supabase.rpc('heartbeat_view_session_v2', {
                 p_session_id: '_health_check_',
                 p_tmdb_id: '_health_check_',
                 p_media_type: 'movie',
                 p_provider_id: 'health',
                 p_title: 'Health Check',
                 p_genres: [],
-                p_heartbeat_seconds: 30
+                p_heartbeat_seconds: 30,
+                p_context: {
+                    is_visible: true,
+                    is_focused: true,
+                    has_recent_interaction: true,
+                    idle_seconds: 0,
+                    activity_mode: 'watch',
+                }
             });
+
+            if (error?.code === 'PGRST202') {
+                ({ error } = await supabase.rpc('heartbeat_view_session', {
+                    p_session_id: '_health_check_',
+                    p_tmdb_id: '_health_check_',
+                    p_media_type: 'movie',
+                    p_provider_id: 'health',
+                    p_title: 'Health Check',
+                    p_genres: [],
+                    p_heartbeat_seconds: 30
+                }));
+            }
 
             const responseTime = Date.now() - startTime;
 
@@ -115,7 +134,7 @@ export class HealthService {
                     service: 'RPC Functions',
                     status: 'down',
                     responseTime,
-                    error: 'heartbeat_view_session function not found',
+                    error: 'heartbeat_view_session_v2 function not found',
                     lastChecked
                 };
             }

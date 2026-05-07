@@ -11,6 +11,7 @@ import { DirectMediaPlayer } from './DirectMediaPlayer';
 import { getProviderAdapter, PLAYER_PROVIDER_DEFAULTS, Provider, ProviderContext } from '../lib/playerProviders';
 import { usePlayerProviders } from '../hooks/usePlayerProviders';
 import { StreamDownloadPanel } from './StreamDownloadPanel';
+import { getTrackingContext } from '../lib/activityTracking';
 
 interface UnifiedPlayerProps {
     tmdbId: string;
@@ -566,7 +567,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
     useEffect(() => {
         const heartbeat = () => {
-            if (document.hidden || !document.hasFocus()) {
+            const context = getTrackingContext();
+            if (!context.isVisible || !isProviderReady) {
                 return;
             }
             if (providerAttemptFinishedRef.current) {
@@ -582,15 +584,33 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 providerId: provider,
                 title,
                 genres: genres.length > 0 ? genres : undefined,
+                context,
             });
         };
 
+        if (isProviderReady) {
+            heartbeat();
+        }
+
         const interval = setInterval(heartbeat, VIEW_SESSION_HEARTBEAT_SECONDS * 1000);
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                heartbeat();
+            }
+        };
+        const handleFocus = () => {
+            heartbeat();
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('focus', handleFocus);
 
         return () => {
             clearInterval(interval);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('focus', handleFocus);
         };
-    }, [tmdbId, mediaType, season, episode, provider, title, genres]);
+    }, [tmdbId, mediaType, season, episode, provider, title, genres, isProviderReady]);
 
 
 

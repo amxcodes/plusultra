@@ -13,6 +13,10 @@ export interface AdminViewSession {
     episode: number | null;
     provider_id: string | null;
     active_seconds: number;
+    raw_active_seconds?: number;
+    confidence_score?: number;
+    provider_switch_count?: number;
+    last_activity_mode?: string | null;
     threshold_seconds: number;
     remaining_seconds: number;
     is_qualified: boolean;
@@ -38,6 +42,7 @@ export interface AdminPresenceUser {
     total_active_seconds: number;
     session_count: number;
     last_path: string | null;
+    active_mode?: string | null;
 }
 
 export interface AdminProviderAnalytics {

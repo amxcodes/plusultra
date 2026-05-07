@@ -351,62 +351,71 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                         const hasCompletedEntries = group.entries.some((entry) => entry.status === 'completed');
 
                         return (
-                            <div key={group.key} className="group relative">
-                                <div
-                                    onClick={() => onSelectGroup(group)}
-                                    className="cursor-pointer transition-transform duration-300 hover:scale-[1.015]"
-                                >
-                                    <div className="overflow-hidden rounded-[26px] border border-[#26282f] bg-[#121317] shadow-[0_14px_30px_rgba(0,0,0,0.24)] transition-all duration-300 group-hover:border-[#383b44]">
-                                        <div className="relative aspect-[2/3] overflow-hidden bg-[#0a0a0a]">
+                            <div
+                                key={group.key}
+                                onClick={() => onSelectGroup(group)}
+                                className="group cursor-pointer"
+                            >
+                                <div className="overflow-hidden rounded-[28px] border border-[#26282f] bg-[#121317] shadow-[0_16px_34px_rgba(0,0,0,0.22)] transition-all duration-300 group-hover:border-[#383b44]">
+                                    <div className="relative aspect-[2/3] overflow-hidden bg-[#0a0a0a]">
                                             <img
                                                 src={group.movie.imageUrl}
                                                 alt={group.movie.title}
-                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                                                 loading="lazy"
                                                 decoding="async"
                                             />
-                                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/12 to-transparent" />
-                                            <div className="absolute inset-x-0 bottom-0 p-3">
+                                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#090a0d] via-[#090a0d]/30 to-transparent" />
+                                            <div className="absolute left-3 right-3 top-3 flex items-start justify-between gap-3">
+                                                <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm ${getSummaryBadgeClassName(summary.status)}`}>
+                                                    {(summary.status === 'downloading' || summary.status === 'partial') && (
+                                                        <LoaderCircle size={10} className="animate-spin" />
+                                                    )}
+                                                    {summary.status === 'completed'
+                                                        ? 'Ready'
+                                                        : summary.status === 'downloading'
+                                                            ? 'Live'
+                                                            : summary.status === 'partial'
+                                                                ? 'Mixed'
+                                                                : summary.status === 'failed'
+                                                                    ? 'Blocked'
+                                                                    : 'Stopped'}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        void handleRemoveGroup(group);
+                                                    }}
+                                                    disabled={removingKey === group.key}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/35 text-zinc-300 transition-colors hover:border-[#4a1e1a] hover:bg-[#231514] hover:text-[#f0a39a] disabled:opacity-60"
+                                                    title="Remove downloads"
+                                                >
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                            <div className="absolute inset-x-0 bottom-0 p-4">
                                                 <div className="flex items-end justify-between gap-3">
                                                     <div className="min-w-0">
-                                                        <h3 className="truncate text-[15px] font-bold tracking-tight text-white">
+                                                        <h3 className="truncate text-[17px] font-bold tracking-[-0.03em] text-white">
                                                             {group.movie.title}
                                                         </h3>
                                                         <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.18em] text-zinc-400">
                                                             {group.movie.mediaType === 'tv' ? 'Series' : 'Movie'}{group.movie.year ? ` · ${group.movie.year}` : ''}
                                                         </div>
                                                     </div>
-                                                    <div className="shrink-0 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-zinc-200">
+                                                    <div className="shrink-0 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-zinc-200">
                                                         {group.entries.length} item{group.entries.length === 1 ? '' : 's'}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="mt-2 rounded-[20px] border border-[#24262d] bg-[#111317] px-3.5 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.2)] transition-all duration-300 group-hover:border-[#343844]">
+                                <div className="border-t border-[#22242a] px-4 py-4">
                                     <div className="flex items-start justify-between gap-3">
-                                        <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] ${getSummaryBadgeClassName(summary.status)}`}>
-                                            {(summary.status === 'downloading' || summary.status === 'partial') && (
-                                                <LoaderCircle size={10} className="animate-spin" />
-                                            )}
-                                            {summary.label}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => void handleRemoveGroup(group)}
-                                            disabled={removingKey === group.key}
-                                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#2b2d33] bg-[#1a1c22] text-zinc-400 transition-colors hover:border-[#4a1e1a] hover:bg-[#231514] hover:text-[#f0a39a] disabled:opacity-60"
-                                            title="Remove downloads"
-                                        >
-                                            <Trash2 size={11} />
-                                        </button>
-                                    </div>
-
-                                    <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-3">
                                         <div className="min-w-0">
-                                            <div className="text-[12px] font-semibold tracking-tight text-white">
+                                            <div className="text-[13px] font-semibold tracking-tight text-white">
                                                 {group.movie.mediaType === 'tv'
                                                     ? `${summary.completedCount}/${group.entries.length} episodes ready`
                                                     : hasCompletedEntries
@@ -431,44 +440,26 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                                         </div>
                                         <div className="shrink-0 text-right">
                                             <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]">
-                                                Status
+                                                Scope
                                             </div>
                                             <div className="mt-1 text-sm font-medium text-zinc-300">
-                                                {summary.status === 'completed'
-                                                    ? 'Ready'
-                                                    : summary.status === 'downloading'
-                                                        ? 'Live'
-                                                        : summary.status === 'partial'
-                                                            ? 'Mixed'
-                                                            : summary.status === 'failed'
-                                                                ? 'Blocked'
-                                                                : 'Stopped'}
+                                                {group.entries.length}
                                             </div>
                                         </div>
                                     </div>
 
-                                    {summary.progressPercent !== null && (
-                                        <div className="mt-3">
-                                            <div className="h-[4px] overflow-hidden rounded-full bg-[#21242c]">
-                                                <div
-                                                    className={`h-full rounded-full bg-gradient-to-r ${getSummaryAccentClassName(summary.status)} transition-[width] duration-500`}
-                                                    style={{ width: `${summary.progressPercent}%` }}
-                                                />
-                                            </div>
-                                            <div className="mt-1 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.2em] text-[#8d8578]">
-                                                <span>Transfer</span>
-                                                <span>{summary.progressPercent}%</span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {summary.progressPercent === null && (
-                                        <div className="mt-3 h-[4px] overflow-hidden rounded-full bg-[#21242c]">
+                                    <div className="mt-4">
+                                        <div className="h-[4px] overflow-hidden rounded-full bg-[#21242c]">
                                             <div
-                                                className={`h-full w-1/3 rounded-full bg-gradient-to-r ${getSummaryAccentClassName(summary.status)} opacity-70`}
+                                                className={`h-full rounded-full bg-gradient-to-r ${getSummaryAccentClassName(summary.status)} transition-[width] duration-500`}
+                                                style={{ width: `${summary.progressPercent ?? (summary.status === 'completed' ? 100 : summary.status === 'failed' ? 18 : 32)}%` }}
                                             />
                                         </div>
-                                    )}
+                                        <div className="mt-1 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.2em] text-[#8d8578]">
+                                            <span>{summary.downloadingCount > 0 ? 'Transfer' : 'Library state'}</span>
+                                            <span>{summary.progressPercent !== null ? `${summary.progressPercent}%` : summary.label}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         );
