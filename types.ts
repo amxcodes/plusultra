@@ -7,6 +7,9 @@ export interface Movie {
   posterUrl?: string; // Poster image URL
   backdropUrl?: string; // New
   description?: string;
+  trailerKey?: string;
+  trailerSite?: string;
+  trailerName?: string;
   genre?: string[];
   duration?: string | number; // Can be string for display or number for progress calc
   director?: string;

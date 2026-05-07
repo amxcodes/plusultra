@@ -6,6 +6,7 @@ import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { MobileAddToPlaylistModal } from './MobileAddToPlaylistModal';
 import { ShareMovieModal } from './ShareMovieModal';
 import { TmdbService } from '../services/tmdb';
+import { StatsService } from '../services/stats';
 import { useAuth } from '../lib/AuthContext';
 
 interface MovieDetailProps {
@@ -19,7 +20,7 @@ interface MovieDetailProps {
 }
 
 export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay, onPlayOffline, offlineDownloads = null, onMovieSelect }) => {
-    const { profile } = useAuth();
+    const { profile, user } = useAuth();
     const canStream = profile?.can_stream || profile?.role === 'admin';
     const getInitialSeason = (input: Movie) => (
         input.mediaType === 'tv' && typeof input.season === 'number' && input.season > 0
@@ -56,6 +57,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
     // We use full season objects now for better names and handling Season 0
     const [seasonList, setSeasonList] = useState<{ id: number; name: string; season_number: number; episode_count: number; poster_path?: string }[]>([]);
+    const [resumeTarget, setResumeTarget] = useState<{ season: number; episode: number } | null>(null);
 
     useEffect(() => {
         setIsVisible(true);
@@ -72,6 +74,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         setEpisodes([]);
         setRecommendations([]);
         setSeasonList(Array.isArray(movie.seasons) ? movie.seasons : []);
+        setResumeTarget(null);
 
         // Fetch detailed info & recommendations
         const fetchFullDetails = async () => {
@@ -122,6 +125,53 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
             document.body.style.overflow = 'unset';
         };
     }, [movie]);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        if (!user?.id || movie.mediaType !== 'tv') {
+            return () => {
+                isMounted = false;
+            };
+        }
+
+        const fetchLatestProgress = async () => {
+            const latestProgress = await StatsService.getLatestViewSessionProgress(movie.id.toString(), 'tv');
+            if (!isMounted || !latestProgress?.season || !latestProgress?.episode) {
+                return;
+            }
+
+            setResumeTarget({
+                season: latestProgress.season,
+                episode: latestProgress.episode,
+            });
+        };
+
+        void fetchLatestProgress();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user?.id, movie.id, movie.mediaType]);
+
+    useEffect(() => {
+        if (
+            activeMovie.mediaType !== 'tv' ||
+            !resumeTarget ||
+            seasonList.length === 0
+        ) {
+            return;
+        }
+
+        const hasSeason = seasonList.some((season) => season.season_number === resumeTarget.season);
+        if (!hasSeason) {
+            return;
+        }
+
+        setCurrentSeason(resumeTarget.season);
+        setCurrentEpisode(resumeTarget.episode);
+        setEpisodePage(getEpisodePageForEpisode(resumeTarget.episode));
+    }, [activeMovie.mediaType, resumeTarget, seasonList]);
 
     // Fetch episodes when season changes
     useEffect(() => {
@@ -228,6 +278,18 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
         playSelectedEpisode(randomSeason.season_number, randomEpisode, 'random-button');
     };
 
+    const trailerEmbedUrl = activeMovie.trailerKey && activeMovie.trailerSite === 'YouTube'
+        ? `https://www.youtube.com/embed/${activeMovie.trailerKey}`
+        : null;
+
+    const scrollToTrailer = () => {
+        if (typeof document === 'undefined') return;
+        document.getElementById('detail-trailer-block')?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+        });
+    };
+
     return (
         <div className={`fixed inset-0 z-50 bg-[#0f1014] overflow-y-auto transition-opacity duration-300 ease-in-out ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
             <button
@@ -273,18 +335,40 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 {activeMovie.title}
                             </h1>
 
-                            <div className="flex flex-wrap items-center gap-2 md:gap-3 text-[10px] md:text-[11px] font-bold text-gray-300 tracking-widest uppercase">
-                                <span className="text-green-400 drop-shadow-sm bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 flex items-center gap-1.5">
-                                    <ThumbsUp size={12} className="fill-green-400" /> {activeMovie.match}% Rating
-                                </span>
-                                <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-white/90 flex items-center gap-1.5">
-                                    <Calendar size={12} /> {activeMovie.year}
-                                </span>
-                                <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-white/80 flex items-center gap-1.5">
-                                    <Clock size={12} /> {activeMovie.duration || "2h 15m"}
-                                </span>
+                            <div className="flex flex-wrap items-stretch gap-2 md:gap-3 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.18em]">
+                                <div className="flex min-w-[148px] items-center gap-3 rounded-[18px] border border-white/8 bg-[#14161b]/92 px-4 py-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400/12 text-emerald-300">
+                                        <ThumbsUp size={14} className="fill-emerald-300" />
+                                    </div>
+                                    <div className="flex min-w-0 flex-col">
+                                        <span className="text-[9px] tracking-[0.22em] text-zinc-500">Match</span>
+                                        <span className="mt-1 text-sm tracking-[0.04em] text-emerald-300">{activeMovie.match}% Rating</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-[#14161b]/82 px-4 py-3 text-zinc-200">
+                                    <Calendar size={13} className="text-zinc-500" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] tracking-[0.22em] text-zinc-500">Year</span>
+                                        <span className="mt-1 text-sm tracking-[0.04em] text-white/92">{activeMovie.year}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-[#14161b]/82 px-4 py-3 text-zinc-200">
+                                    <Clock size={13} className="text-zinc-500" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] tracking-[0.22em] text-zinc-500">{activeMovie.mediaType === 'tv' ? 'Run' : 'Length'}</span>
+                                        <span className="mt-1 text-sm tracking-[0.04em] text-white/92">{activeMovie.duration || "2h 15m"}</span>
+                                    </div>
+                                </div>
+
                                 {activeMovie.mediaType === 'tv' && (
-                                    <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-zinc-300">TV Series</span>
+                                    <div className="flex items-center rounded-[18px] border border-white/8 bg-[#14161b]/82 px-4 py-3 text-zinc-200">
+                                        <div className="flex flex-col">
+                                            <span className="text-[9px] tracking-[0.22em] text-zinc-500">Format</span>
+                                            <span className="mt-1 text-sm tracking-[0.04em] text-white/92">TV Series</span>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 
@@ -317,6 +401,19 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                     >
                                         <Shuffle size={16} strokeWidth={2} className="group-hover:rotate-180 transition-transform duration-500" />
                                         <span className="hidden md:inline">Random</span>
+                                    </button>
+                                )}
+
+                                {trailerEmbedUrl && (
+                                    <button
+                                        onClick={scrollToTrailer}
+                                        className="group h-12 md:h-14 overflow-hidden px-5 md:px-6 border border-white/8 bg-[#1a1c22]/92 hover:bg-[#242730] text-white rounded-[18px] font-bold text-[11px] tracking-widest uppercase flex items-center gap-2 transition-all duration-300 hover:scale-105 active:scale-95 outline-none hover:shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)] hover:border-white/12"
+                                        title="View Trailer"
+                                    >
+                                        <div className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                                            <Play size={14} strokeWidth={2} className="fill-white transition-transform duration-300 group-hover:scale-110" />
+                                        </div>
+                                        <span className="hidden md:inline">Watch Trailer</span>
                                     </button>
                                 )}
 
@@ -367,7 +464,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
             </div>
 
             <div className="px-4 md:px-16 pb-32 w-full max-w-[1600px] mx-auto md:pl-32 mt-4 relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
                     {/* Main Info */}
                     <div className="lg:col-span-2 space-y-6 relative">
                         {showSkeleton ? (
@@ -379,17 +476,66 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 ease-out fill-mode-both">
-                                {/* Plot Summary Bento */}
-                                <div className="bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-10 transition-all duration-300 hover:bg-[#151518] hover:border-white/10">
-                                    <h3 className="text-xl font-bold text-white mb-4 tracking-tight">Plot Summary</h3>
+                            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 ease-out fill-mode-both">
+                                {/* Plot Summary */}
+                                <section className="border-b border-white/6 pb-10">
+                                    <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.24em] text-zinc-500">Storyline</div>
+                                    <h3 className="text-[28px] font-bold text-white tracking-[-0.03em] md:text-[34px]">Plot Summary</h3>
                                     <p className="text-zinc-400 text-base md:text-lg leading-relaxed font-light">
                                         {activeMovie.description || "No description available."}
                                     </p>
-                                </div>
+                                </section>
 
-                                {/* Metadata Bento */}
-                                <div className="bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-10 grid grid-cols-2 lg:grid-cols-3 gap-8 transition-all hover:bg-[#151518]">
+                                {trailerEmbedUrl && (
+                                    <section
+                                        id="detail-trailer-block"
+                                        className="border-b border-white/6 pb-10"
+                                    >
+                                        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                                            <div>
+                                                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Trailer</div>
+                                                <h3 className="mt-2 text-[28px] font-bold tracking-[-0.03em] text-white md:text-[32px]">Watch the trailer</h3>
+                                                <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+                                                        {activeMovie.trailerName || `Watch the official ${activeMovie.mediaType === 'tv' ? 'series' : 'movie'} trailer.`}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2 self-start md:self-auto">
+                                                <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-300">
+                                                    {activeMovie.mediaType === 'tv' ? 'Series' : 'Movie'}
+                                                </span>
+                                                {activeMovie.year && (
+                                                    <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+                                                        {activeMovie.year}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-6 overflow-hidden rounded-[28px] border border-white/8 bg-[#0d0e12] shadow-[0_24px_64px_rgba(0,0,0,0.36)]">
+                                            <div className="relative aspect-video">
+                                                <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/60 via-black/20 to-transparent px-4 py-3">
+                                                    <div className="truncate text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
+                                                        {activeMovie.title}
+                                                    </div>
+                                                    <div className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                                                        YouTube
+                                                    </div>
+                                                </div>
+                                                <iframe
+                                                    src={trailerEmbedUrl}
+                                                    title={`${activeMovie.title} trailer`}
+                                                    className="h-full w-full"
+                                                    loading="lazy"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                                    allowFullScreen
+                                                />
+                                            </div>
+                                        </div>
+                                    </section>
+                                )}
+
+                                {/* Metadata */}
+                                <section className="grid grid-cols-2 lg:grid-cols-3 gap-8 border-b border-white/6 pb-10">
                                     <div>
                                         <span className="block text-[10px] font-bold tracking-widest uppercase text-zinc-500 mb-2">{activeMovie.mediaType === 'tv' ? 'Creator' : 'Director'}</span>
                                         <span className="text-zinc-200 text-sm">{activeMovie.director || "Unknown"}</span>
@@ -409,19 +555,22 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                             {(!activeMovie.genre || activeMovie.genre.length === 0) && <span className="text-zinc-200 text-sm">Unknown</span>}
                                         </div>
                                     </div>
-                                </div>
+                                </section>
 
                                 {/* Episode List for TV */}
                                 {activeMovie.mediaType === 'tv' && (
-                                    <div className="mt-12 space-y-6">
-                                        <div className="bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-10">
+                                    <div className="space-y-10">
+                                        <section className="border-b border-white/6 pb-10">
                                         <div className="flex items-center justify-between mb-8">
-                                            <h3 className="text-xl font-bold text-white tracking-tight">Seasons</h3>
+                                            <div>
+                                                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Navigation</div>
+                                                <h3 className="mt-2 text-[28px] font-bold text-white tracking-[-0.03em]">Seasons</h3>
+                                            </div>
                                         </div>
 
                                             {/* Season Selector - Grid Layout */}
                                             {seasonList.length > 0 ? (
-                                                <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 select-none transition-opacity ${showSkeleton ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                                                <div className={`grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5 select-none transition-opacity ${showSkeleton ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                                                     {seasonList.map(s => (
                                                         <div
                                                             key={s.id}
@@ -430,32 +579,41 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                                                 setCurrentEpisode(1);
                                                                 setEpisodePage(1);
                                                             }}
-                                                            className={`group relative aspect-[3/4] sm:aspect-video rounded-[20px] overflow-hidden cursor-pointer transition-all duration-500 ease-out border border-transparent
+                                                            className={`group relative min-h-[124px] overflow-hidden rounded-[28px] cursor-pointer transition-all duration-300 ease-out border
                                                                 ${currentSeason === s.season_number
-                                                                    ? 'opacity-100 scale-100 ring-1 ring-white/20 shadow-[0_10px_30px_rgba(255,255,255,0.1)]'
-                                                                    : 'opacity-50 hover:opacity-80 scale-95 hover:scale-100 bg-[#1a1a1e]'}`}
+                                                                    ? 'border-white/16 bg-white/[0.05] shadow-[0_18px_36px_rgba(0,0,0,0.28)]'
+                                                                    : 'border-white/6 bg-white/[0.02] hover:border-white/12 hover:bg-white/[0.04]'}`}
                                                         >
-                                                            {/* Background Image - Art Focus */}
-                                                            {s.poster_path ? (
+                                                            <div className="absolute inset-0 bg-gradient-to-r from-[#111216] via-[#111216]/94 to-[#111216]/72" />
+                                                            {s.poster_path && (
                                                                 <img
                                                                     src={s.poster_path.startsWith('http') ? s.poster_path : `https://image.tmdb.org/t/p/w400${s.poster_path}`}
                                                                     alt={s.name}
-                                                                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                                                                    className={`absolute inset-y-0 right-0 h-full w-[42%] object-cover transition-all duration-500 group-hover:scale-105 ${currentSeason === s.season_number ? 'opacity-55 saturate-100 grayscale-0 group-hover:opacity-70' : 'opacity-40 saturate-0 grayscale group-hover:opacity-55'}`}
                                                                 />
-                                                            ) : (
-                                                                <div className="w-full h-full bg-[#1a1a1e] flex items-center justify-center">
-                                                                    <span className="text-white/20 text-[10px] tracking-widest uppercase font-bold">No Art</span>
-                                                                </div>
                                                             )}
+                                                            <div className="absolute inset-0 bg-gradient-to-r from-[#111216] via-[#111216]/88 to-transparent" />
 
-                                                            {/* Overlay */}
-                                                            <div className={`absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-[#0f1014] via-[#0f1014]/40 to-transparent transition-opacity duration-300`}>
-                                                                <span className="text-white font-medium text-sm tracking-wide">{s.name}</span>
-                                                                {s.episode_count > 0 && (
-                                                                    <span className="text-[10px] text-zinc-400 font-light mt-0.5">
-                                                                        {s.episode_count} Episodes
+                                                            <div className="relative z-10 flex h-full flex-col justify-between p-5">
+                                                                <div className="flex items-start justify-between gap-4">
+                                                                    <div>
+                                                                        <div className={`${currentSeason === s.season_number ? 'text-zinc-300' : 'text-zinc-500'} text-[10px] font-bold uppercase tracking-[0.22em]`}>
+                                                                            {s.season_number === 0 ? 'Special Run' : `Season ${s.season_number}`}
+                                                                        </div>
+                                                                        <h4 className="mt-2 text-[22px] font-bold tracking-[-0.03em] text-white">
+                                                                            {s.name}
+                                                                        </h4>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex items-end justify-between gap-4">
+                                                                    <span className={`${currentSeason === s.season_number ? 'text-zinc-300' : 'text-zinc-400'} text-sm`}>
+                                                                        {s.episode_count > 0 ? `${s.episode_count} Episodes` : 'Season overview'}
                                                                     </span>
-                                                                )}
+                                                                    <span className={`${currentSeason === s.season_number ? 'text-white/70 group-hover:text-white' : 'text-zinc-500 group-hover:text-zinc-300'} text-[10px] font-bold uppercase tracking-[0.18em] transition-colors duration-300`}>
+                                                                        Open
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -465,11 +623,19 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                                     Season data is not available for this show yet.
                                                 </div>
                                             )}
-                                        </div>
+                                        </section>
 
-                                        <div className="bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-10">
+                                        <section className="border-b border-white/6 pb-10">
                                             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-                                                <h3 className="text-xl font-bold text-white tracking-tight">Episodes</h3>
+                                                <div>
+                                                    <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Now browsing</div>
+                                                    <h3 className="mt-2 text-[28px] font-bold text-white tracking-[-0.03em]">Episodes</h3>
+                                                    {resumeTarget && (
+                                                        <div className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                                                            Continue from S{resumeTarget.season} E{resumeTarget.episode}
+                                                        </div>
+                                                    )}
+                                                </div>
                                                 {offlineDownloads && offlineDownloads.some((entry) => entry.mediaType === 'tv' && entry.status === 'completed') && (
                                                     <button
                                                         type="button"
@@ -507,7 +673,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                                 </div>
                                             )}
 
-                                            <div className="flex flex-col gap-3">
+                                            <div className="flex flex-col">
                                                 {visibleEpisodes.length === 0 && showDownloadedOnly && (
                                                     <div className="rounded-[24px] border border-white/5 bg-white/5 px-6 py-5 text-sm text-zinc-400">
                                                         No downloaded episodes are available for this season yet.
@@ -523,80 +689,85 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                                                                 handleEpisodeSelect(ep.episode_number);
                                                             }}
-                                                            className={`group flex flex-col sm:flex-row items-center sm:items-start gap-5 transition-all duration-300 ${canStream ? 'cursor-pointer' : 'cursor-default opacity-80'} p-3 rounded-[24px] border hover:bg-white/5 hover:border-white/10
-                                                                ${currentEpisode === ep.episode_number ? 'bg-white/5 border-white/10' : 'bg-transparent border-transparent'}`}
+                                                            className={`group grid grid-cols-1 gap-5 border-b border-white/6 py-7 transition-all duration-300 ${canStream ? 'cursor-pointer' : 'cursor-default opacity-80'} xl:grid-cols-[280px_minmax(0,1fr)]
+                                                                ${currentEpisode === ep.episode_number ? 'bg-white/[0.02]' : 'bg-transparent'}`}
                                                         >
-                                                            {/* Episode Image */}
-                                                            <div className="relative w-full sm:w-[220px] aspect-video shrink-0 overflow-hidden rounded-[18px] bg-[#1a1a1e]">
+                                                            <div className="relative aspect-video overflow-hidden rounded-[24px] bg-[#16171c] border border-white/6 xl:aspect-[16/10]">
                                                                 {ep.still_path ? (
                                                                     <img
                                                                         src={ep.still_path.startsWith('http') ? ep.still_path : `https://image.tmdb.org/t/p/w400${ep.still_path}`}
                                                                         alt={ep.name}
                                                                         className={`w-full h-full object-cover transition-all duration-700 ease-in-out
-                                                                                ${currentEpisode === ep.episode_number ? 'opacity-100 scale-100 saturate-100' : 'opacity-70 scale-105 saturate-50 group-hover:saturate-100 group-hover:opacity-100 group-hover:scale-100'}`}
+                                                                                ${currentEpisode === ep.episode_number ? 'opacity-100 scale-100 saturate-100' : 'opacity-72 scale-105 saturate-0 grayscale group-hover:saturate-100 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-100'}`}
                                                                     />
                                                                 ) : (
-                                                                    <div className="w-full h-full flex items-center justify-center bg-[#1a1a1e]">
+                                                                    <div className="w-full h-full flex items-center justify-center bg-[#16171c]">
                                                                         <span className="text-[10px] text-zinc-600 tracking-widest uppercase font-bold">No Preview</span>
                                                                     </div>
                                                                 )}
 
-                                                            {/* Play Icon - Hover/Active */}
-                                                                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 bg-black/40 backdrop-blur-[2px]
+                                                                <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 bg-black/35 backdrop-blur-[2px]
                                                                                 ${currentEpisode === ep.episode_number ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-white/20 to-white/5 backdrop-blur-xl flex items-center justify-center border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] group-hover:scale-110 transition-transform duration-500 ease-out">
+                                                                    <div className="w-12 h-12 rounded-full bg-black/45 backdrop-blur-xl flex items-center justify-center border border-white/12 shadow-[0_10px_30px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.12)] group-hover:scale-110 transition-transform duration-500 ease-out">
                                                                         <Play size={18} strokeWidth={2.5} className="fill-white text-white drop-shadow-lg ml-1" />
                                                                     </div>
                                                                 </div>
 
-                                                                {/* Active Progress Line */}
                                                                 {currentEpisode === ep.episode_number && (
-                                                                    <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-white/50 to-white/10" />
+                                                                    <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gradient-to-r from-white/70 via-white/30 to-transparent" />
                                                                 )}
                                                             </div>
 
-                                                            {/* Episode Content */}
-                                                            <div className="flex-1 min-w-0 flex flex-col justify-center py-2 px-1">
-                                                                <div className="flex items-baseline gap-4 mb-2">
-                                                                    <span className={`text-2xl font-light tracking-tighter transition-colors duration-300 font-mono ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
-                                                                        {ep.episode_number.toString().padStart(2, '0')}
-                                                                    </span>
-                                                                    <div className="min-w-0">
-                                                                        <h4 className={`text-lg font-bold tracking-tight transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
+                                                            <div className="min-w-0 pt-1">
+                                                                <div className="flex flex-wrap items-start justify-between gap-4">
+                                                                    <div className="min-w-0 max-w-4xl">
+                                                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                                                            <span className={`text-[10px] font-bold uppercase tracking-[0.22em] ${currentEpisode === ep.episode_number ? 'text-white/70' : 'text-zinc-500 group-hover:text-zinc-300'}`}>
+                                                                                Episode {ep.episode_number.toString().padStart(2, '0')}
+                                                                            </span>
+                                                                            {currentEpisode === ep.episode_number && (
+                                                                                <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/45">
+                                                                                    Current
+                                                                                </span>
+                                                                            )}
+                                                                            {downloadedEpisodeNumbers.has(ep.episode_number) && (
+                                                                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/18 bg-emerald-400/8 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200">
+                                                                                    <HardDriveDownload size={10} />
+                                                                                    Offline Ready
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+
+                                                                        <h4 className={`mt-3 text-[24px] font-bold tracking-[-0.035em] transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
                                                                             {ep.name || `Episode ${ep.episode_number}`}
                                                                         </h4>
-                                                                        {downloadedEpisodeNumbers.has(ep.episode_number) && (
-                                                                            <div className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200">
-                                                                                <HardDriveDownload size={10} />
-                                                                                Offline Ready
-                                                                            </div>
-                                                                        )}
+
+                                                                        <div className="mt-3 flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                                                                            {ep.runtime && <span>{ep.runtime} min</span>}
+                                                                            {ep.air_date && <span>{ep.air_date}</span>}
+                                                                            <span>{canStream ? 'Open' : 'Locked'}</span>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
 
-                                                                <p className={`text-sm font-light leading-relaxed line-clamp-2 transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-zinc-300' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
+                                                                <p className={`mt-5 max-w-4xl text-[15px] font-light leading-8 transition-colors duration-300 ${currentEpisode === ep.episode_number ? 'text-zinc-300' : 'text-zinc-500 group-hover:text-zinc-400'}`}>
                                                                     {ep.overview || "No description available."}
                                                                 </p>
-
-                                                                <div className="flex items-center gap-4 mt-4 transition-opacity duration-300 opacity-0 group-hover:opacity-100">
-                                                                    {ep.runtime && (
-                                                                        <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest bg-white/5 px-2.5 py-1 rounded-md">
-                                                                            {ep.runtime} MIN
-                                                                        </span>
-                                                                    )}
-                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
                                             </div>
-                                        </div>
+                                        </section>
                                     </div>
                                 )}
 
                                 {/* Gallery */}
                                 {activeMovie.screenshots && activeMovie.screenshots.length > 0 && (
-                                    <div className="mt-6 bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-10 transition-all duration-300 hover:bg-[#151518] hover:border-white/10">
-                                        <h3 className="text-xl font-bold text-white mb-6 tracking-tight">Gallery</h3>
+                                    <section className="border-b border-white/6 pb-10">
+                                        <div className="mb-6">
+                                            <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Visuals</div>
+                                            <h3 className="mt-2 text-[28px] font-bold text-white tracking-[-0.03em]">Gallery</h3>
+                                        </div>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                             {activeMovie.screenshots.map((src, i) => (
                                                 <div key={i} className="aspect-video rounded-[16px] overflow-hidden bg-[#1a1a1e] hover:scale-[1.03] transition-transform duration-500 cursor-pointer shadow-lg hover:shadow-2xl hover:z-10 group border border-white/5 hover:border-white/10">
@@ -604,7 +775,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
+                                    </section>
                                 )}
                             </div>
                         )}
@@ -612,11 +783,14 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                     {/* Sidebar */}
                     <div className="lg:col-span-1">
-                        <div className="bg-[#121214] border border-white/5 rounded-[32px] p-6 md:p-8 lg:sticky lg:top-24 mt-6 lg:mt-0 transition-all hover:bg-[#151518]">
-                            <h3 className="text-xl font-bold text-white mb-6 tracking-tight">More Like This</h3>
+                        <div className="lg:sticky lg:top-24 mt-6 lg:mt-0 border-t border-white/6 pt-8">
+                            <div className="mb-6">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">Continue exploring</div>
+                                <h3 className="mt-2 text-[28px] font-bold text-white tracking-[-0.03em]">More Like This</h3>
+                            </div>
                             <div className="grid grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
                                 {recommendations.slice(0, activeMovie.mediaType === 'tv' ? 8 : 6).map(simMovie => (
-                                    <div key={simMovie.id} className="opacity-70 hover:opacity-100 hover:scale-[1.03] hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-[20px] overflow-hidden">
+                                    <div key={simMovie.id} className="opacity-90 hover:opacity-100 hover:scale-[1.02] transition-all duration-300 cursor-pointer rounded-[20px] overflow-hidden">
                                         <MovieCard movie={simMovie} onClick={() => onMovieSelect?.(simMovie)} />
                                     </div>
                                 ))}

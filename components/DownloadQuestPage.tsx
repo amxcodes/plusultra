@@ -1,6 +1,5 @@
 import React from 'react';
 import { HardDriveDownload, LoaderCircle, Search, Trash2 } from 'lucide-react';
-import { MovieCard } from './MovieCard';
 import type { Movie, OfflineDownloadEntry } from '../types';
 
 export interface OfflineDownloadGroup {
@@ -278,8 +277,9 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                                     Monitor active transfers, reopen offline-ready titles, and keep the desktop library under one dense control surface.
                                 </p>
                             </div>
-                            <div className="hidden shrink-0 rounded-full border border-[#e36457] bg-[#2b1715] px-4 py-2 text-[10px] font-mono uppercase tracking-[0.24em] text-[#ffd4cf] xl:block">
-                                {activeGroupCount} active groups
+                            <div className="hidden shrink-0 rounded-[18px] border border-[#2f3138] bg-[#18191f] px-4 py-3 xl:block">
+                                <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]">Transfers</div>
+                                <div className="mt-1 text-sm font-semibold text-white">{activeGroupCount} active groups</div>
                             </div>
                         </div>
                     </div>
@@ -345,7 +345,7 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                     </p>
                 </div>
             ) : (
-                <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 pb-20 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-7 pb-20 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                     {filteredGroups.map((group) => {
                         const summary = getGroupSummary(group);
                         const hasCompletedEntries = group.entries.some((entry) => entry.status === 'completed');
@@ -354,13 +354,39 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                             <div key={group.key} className="group relative">
                                 <div
                                     onClick={() => onSelectGroup(group)}
-                                    className="cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
+                                    className="cursor-pointer transition-transform duration-300 hover:scale-[1.015]"
                                 >
-                                    <MovieCard movie={group.movie} />
+                                    <div className="overflow-hidden rounded-[26px] border border-[#26282f] bg-[#121317] shadow-[0_14px_30px_rgba(0,0,0,0.24)] transition-all duration-300 group-hover:border-[#383b44]">
+                                        <div className="relative aspect-[2/3] overflow-hidden bg-[#0a0a0a]">
+                                            <img
+                                                src={group.movie.imageUrl}
+                                                alt={group.movie.title}
+                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                                                loading="lazy"
+                                                decoding="async"
+                                            />
+                                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/12 to-transparent" />
+                                            <div className="absolute inset-x-0 bottom-0 p-3">
+                                                <div className="flex items-end justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <h3 className="truncate text-[15px] font-bold tracking-tight text-white">
+                                                            {group.movie.title}
+                                                        </h3>
+                                                        <div className="mt-1 text-[10px] font-mono uppercase tracking-[0.18em] text-zinc-400">
+                                                            {group.movie.mediaType === 'tv' ? 'Series' : 'Movie'}{group.movie.year ? ` · ${group.movie.year}` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div className="shrink-0 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.18em] text-zinc-200">
+                                                        {group.entries.length} item{group.entries.length === 1 ? '' : 's'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="mt-3 rounded-[22px] border border-[#242424] bg-[#111317] px-3.5 py-3 shadow-[0_12px_28px_rgba(0,0,0,0.22)] transition-all duration-300 group-hover:border-[#343434]">
-                                    <div className="flex items-center justify-between gap-3">
+                                <div className="mt-2 rounded-[20px] border border-[#24262d] bg-[#111317] px-3.5 py-3 shadow-[0_10px_22px_rgba(0,0,0,0.2)] transition-all duration-300 group-hover:border-[#343844]">
+                                    <div className="flex items-start justify-between gap-3">
                                         <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] ${getSummaryBadgeClassName(summary.status)}`}>
                                             {(summary.status === 'downloading' || summary.status === 'partial') && (
                                                 <LoaderCircle size={10} className="animate-spin" />
@@ -378,9 +404,9 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                                         </button>
                                     </div>
 
-                                    <div className="mt-3 flex items-start justify-between gap-3">
+                                    <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-3">
                                         <div className="min-w-0">
-                                            <div className="text-[11px] font-semibold text-white tracking-tight">
+                                            <div className="text-[12px] font-semibold tracking-tight text-white">
                                                 {group.movie.mediaType === 'tv'
                                                     ? `${summary.completedCount}/${group.entries.length} episodes ready`
                                                     : hasCompletedEntries
@@ -405,10 +431,18 @@ export const DownloadQuestPage: React.FC<DownloadQuestPageProps> = ({ onSelectGr
                                         </div>
                                         <div className="shrink-0 text-right">
                                             <div className="text-[10px] font-mono uppercase tracking-[0.22em] text-[#8d8578]">
-                                                {group.movie.mediaType === 'tv' ? 'Series' : 'Movie'}
+                                                Status
                                             </div>
                                             <div className="mt-1 text-sm font-medium text-zinc-300">
-                                                {group.movie.year || 'Offline'}
+                                                {summary.status === 'completed'
+                                                    ? 'Ready'
+                                                    : summary.status === 'downloading'
+                                                        ? 'Live'
+                                                        : summary.status === 'partial'
+                                                            ? 'Mixed'
+                                                            : summary.status === 'failed'
+                                                                ? 'Blocked'
+                                                                : 'Stopped'}
                                             </div>
                                         </div>
                                     </div>

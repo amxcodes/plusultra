@@ -233,6 +233,18 @@ export const TmdbService = {
             // Extract Screenshots (Backdrops)
             const screenshots = data.images?.backdrops?.slice(0, 6).map((img: any) => img.file_path) || [];
 
+            const preferredVideo = (data.videos?.results || []).find((video: any) => (
+                video.site === 'YouTube' &&
+                video.type === 'Trailer' &&
+                video.official
+            )) || (data.videos?.results || []).find((video: any) => (
+                video.site === 'YouTube' &&
+                video.type === 'Trailer'
+            )) || (data.videos?.results || []).find((video: any) => (
+                video.site === 'YouTube' &&
+                video.type === 'Teaser'
+            )) || null;
+
             // Extract duration / seasons
             const duration = type === 'movie'
                 ? `${Math.floor(data.runtime / 60)}h ${data.runtime % 60}m`
@@ -253,6 +265,9 @@ export const TmdbService = {
                 cast,
                 duration,
                 genre,
+                trailerKey: preferredVideo?.key,
+                trailerSite: preferredVideo?.site,
+                trailerName: preferredVideo?.name,
                 screenshots, // Return screenshots
                 numberOfSeasons: data.number_of_seasons,
                 seasons: seasons // Return sorted list

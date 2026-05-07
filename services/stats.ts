@@ -41,6 +41,14 @@ export interface ProviderAttemptInput {
     providerId: string;
 }
 
+export interface LatestViewSessionProgress {
+    season: number | null;
+    episode: number | null;
+    updated_at?: string | null;
+    last_heartbeat_at?: string | null;
+    active_seconds?: number | null;
+}
+
 type PrivateStatsProfile = {
     stats?: UserStats | null;
 };
@@ -105,6 +113,25 @@ export const StatsService = {
         if (error) {
             console.error('[StatsService] Failed to track session heartbeat:', error);
         }
+    },
+
+    async getLatestViewSessionProgress(tmdbId: string, mediaType: 'movie' | 'tv'): Promise<LatestViewSessionProgress | null> {
+        const { data, error } = await supabase
+            .from('view_sessions')
+            .select('season, episode, updated_at, last_heartbeat_at, active_seconds')
+            .eq('tmdb_id', tmdbId)
+            .eq('media_type', mediaType)
+            .order('updated_at', { ascending: false })
+            .order('last_heartbeat_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            console.error('[StatsService] Failed to fetch latest session progress:', error);
+            return null;
+        }
+
+        return (data as LatestViewSessionProgress | null) ?? null;
     },
 
     async startProviderAttempt(input: ProviderAttemptInput) {
