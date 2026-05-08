@@ -11,6 +11,7 @@ interface MobileHomeProps {
     heroMovie: HeroMovie | null;
     featuredMovies: Movie[];
     featuredPlaylists: Playlist[];
+    communityTrending: Movie[];
     continueWatching: Movie[];
     myList: Movie[];
     activeTab: NavItem;
@@ -27,6 +28,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
     heroMovie,
     featuredMovies,
     featuredPlaylists,
+    communityTrending,
     continueWatching,
     myList,
     activeTab,
@@ -83,6 +85,15 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
                         title="Featured Playlists"
                         playlists={featuredPlaylists}
                         onPlaylistSelect={onPlaylistSelect}
+                    />
+                )}
+
+                {communityTrending.length > 0 && (
+                    <MobileRow
+                        title="Trending With Users"
+                        movies={communityTrending}
+                        onMovieSelect={onMovieSelect}
+                        onViewAll={() => onViewAll({ title: "Trending With Users", movies: communityTrending })}
                     />
                 )}
 

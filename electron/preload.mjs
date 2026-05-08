@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('desktop', {
     isDesktop: true,
+    showNotification: (payload) => ipcRenderer.invoke('desktop:show-notification', payload),
     startMediaCapture: (sessionInfo) => ipcRenderer.invoke('desktop:start-media-capture', sessionInfo),
     stopMediaCapture: (captureKey) => ipcRenderer.invoke('desktop:stop-media-capture', captureKey),
     getCapturedMedia: (captureKey) => ipcRenderer.invoke('desktop:get-captured-media', captureKey),

@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import type { Notification } from '../types';
 
 type PrivateNotificationProfile = {
     last_seen_announcements?: string | null;
@@ -99,6 +100,78 @@ export const NotificationService = {
             .update({ is_read: true })
             .eq('id', notificationId);
         if (error) throw error;
+    },
+
+    requestBrowserNotificationPermission() {
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+            return Promise.resolve<'denied'>('denied');
+        }
+
+        if (Notification.permission !== 'default') {
+            return Promise.resolve(Notification.permission);
+        }
+
+        return Notification.requestPermission();
+    },
+
+    async showBrowserNotification(
+        title: string,
+        options: NotificationOptions & { onClick?: () => void } = {}
+    ) {
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+            return null;
+        }
+
+        let permission = Notification.permission;
+        if (permission === 'default') {
+            permission = await this.requestBrowserNotificationPermission();
+        }
+
+        if (permission !== 'granted') {
+            return null;
+        }
+
+        const notification = new Notification(title, options);
+        if (options.onClick) {
+            notification.onclick = () => {
+                window.focus();
+                options.onClick?.();
+                notification.close();
+            };
+        }
+
+        return notification;
+    },
+
+    async showDesktopNotification(title: string, body?: string) {
+        if (!window.desktop?.isDesktop || !window.desktop.showNotification) {
+            return { ok: false };
+        }
+
+        return window.desktop.showNotification({ title, body });
+    },
+
+    subscribeToDirectMessageNotifications(
+        userId: string,
+        onNotification: (notification: Notification) => void
+    ): () => void {
+        const channel = supabase
+            .channel(`direct-message-notifications-${userId}`)
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+                (payload) => {
+                    const nextNotification = payload.new as Notification | undefined;
+                    if (nextNotification?.type === 'direct_message') {
+                        onNotification(nextNotification);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
     },
 
     subscribeToUnreadCountChanges(userId: string, onChange: () => void): () => void {

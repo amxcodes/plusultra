@@ -33,6 +33,7 @@ interface DesktopMediaCaptureSession {
 
 interface DesktopBridge {
     isDesktop: true;
+    showNotification: (payload: { title: string; body?: string }) => Promise<{ ok: boolean; message?: string }>;
     startMediaCapture: (sessionInfo: DesktopMediaCaptureSession) => Promise<{ ok: boolean; captureKey?: string }>;
     stopMediaCapture: (captureKey: string) => Promise<{ ok: boolean }>;
     getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;

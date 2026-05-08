@@ -689,8 +689,7 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
 
                                                                 handleEpisodeSelect(ep.episode_number);
                                                             }}
-                                                            className={`group grid grid-cols-1 gap-5 border-b border-white/6 py-7 transition-all duration-300 ${canStream ? 'cursor-pointer' : 'cursor-default opacity-80'} xl:grid-cols-[280px_minmax(0,1fr)]
-                                                                ${currentEpisode === ep.episode_number ? 'bg-white/[0.02]' : 'bg-transparent'}`}
+                                                            className={`group grid grid-cols-1 gap-5 border-b border-white/6 py-7 transition-all duration-300 ${canStream ? 'cursor-pointer' : 'cursor-default opacity-80'} xl:grid-cols-[280px_minmax(0,1fr)] bg-transparent`}
                                                         >
                                                             <div className="relative aspect-video overflow-hidden rounded-[24px] bg-[#16171c] border border-white/6 xl:aspect-[16/10]">
                                                                 {ep.still_path ? (

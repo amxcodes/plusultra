@@ -5,7 +5,7 @@ import { MovieDetail } from './components/MovieDetail';
 import { SearchPage } from './components/SearchPage';
 import { AnimePage } from './components/AnimePage';
 import { Row } from './components/Row';
-import { HeroMovie, Movie, NavItem, Playlist } from './types';
+import { HeroMovie, Movie, NavItem, Notification, Playlist } from './types';
 import { TmdbService, requests } from './services/tmdb';
 import { useMyList } from './hooks/useMyList';
 import { useWatchHistory } from './components/useWatchHistory';
@@ -178,17 +178,75 @@ function StreamApp() {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | undefined>(undefined);
   const [playlistModalMovie, setPlaylistModalMovie] = useState<Movie | null>(null);
   const [viewAllCategory, setViewAllCategory] = useState<ViewAllCategoryState | null>(null);
+  const activeTabRef = useRef(activeTab);
+  const selectedConversationRef = useRef<string | undefined>(selectedMessageConversationId);
+  const handledDirectNotificationIdsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    selectedConversationRef.current = selectedMessageConversationId;
+  }, [selectedMessageConversationId]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsubscribe = SocialService.subscribeToDirectMessageNotifications(user.id, async (notification: Notification) => {
+      if (handledDirectNotificationIdsRef.current.has(notification.id)) {
+        return;
+      }
+
+      handledDirectNotificationIdsRef.current.add(notification.id);
+      if (handledDirectNotificationIdsRef.current.size > 100) {
+        const oldestId = handledDirectNotificationIdsRef.current.values().next().value;
+        if (oldestId) {
+          handledDirectNotificationIdsRef.current.delete(oldestId);
+        }
+      }
+
+      const conversationId = notification.data?.conversation_id as string | undefined;
+      const isThreadVisible = (
+        activeTabRef.current === NavItem.MESSAGES &&
+        selectedConversationRef.current === conversationId &&
+        !document.hidden
+      );
+
+      if (isThreadVisible) {
+        return;
+      }
+
+      const actorName = notification.data?.actor_username || notification.title || 'New message';
+      const body = notification.message || 'You received a new message.';
+
+      await SocialService.showDesktopNotification(actorName, body).catch(() => ({ ok: false }));
+      await SocialService.showBrowserNotification(actorName, {
+        body,
+        tag: conversationId || notification.id,
+        onClick: () => {
+          setSelectedMessageConversationId(conversationId);
+          setActiveTab(NavItem.MESSAGES);
+        },
+      }).catch(() => null);
+    });
+
+    return () => unsubscribe();
+  }, [user?.id]);
 
   // Data State
   const [heroMovie, setHeroMovie] = useState<HeroMovie | null>(null);
   const [featuredMovies, setFeaturedMovies] = useState<Movie[]>([]);
   const [featuredPlaylists, setFeaturedPlaylists] = useState<Playlist[]>([]);
+  const [communityTrending, setCommunityTrending] = useState<Movie[]>([]);
   const { list: myList } = useMyList();
   const { getContinueWatching } = useWatchHistory();
   const [continueWatching, setContinueWatching] = useState<Movie[]>([]);
 
   // Load Hero and Initial Data
   useEffect(() => {
+    if (loading) return;
+
     const loadData = async () => {
       // 1. Hero Data - Load basic info immediately, details in background
       const trending = await TmdbService.getTrending();
@@ -223,9 +281,10 @@ function StreamApp() {
 
       // 2. Featured Content (runs in parallel with hero basic data)
       try {
-        const [fMovies, fPlaylists] = await Promise.all([
+        const [fMovies, fPlaylists, trendingWithUsers] = await Promise.all([
           SocialService.getFeaturedMovies(),
-          SocialService.getFeaturedPlaylists()
+          SocialService.getFeaturedPlaylists(),
+          user?.id ? SocialService.getCommunityTrendingTitles(12) : Promise.resolve([]),
         ]);
 
         // Map featured movies metadata to Movie objects
@@ -236,12 +295,13 @@ function StreamApp() {
           mediaType: m.media_type
         })));
         setFeaturedPlaylists(fPlaylists as Playlist[]);
+        setCommunityTrending(trendingWithUsers as Movie[]);
       } catch (e) {
         console.error("Failed to load featured content", e);
       }
     };
     loadData();
-  }, []);
+  }, [loading, user?.id]);
 
 
   // ... imports
@@ -867,6 +927,7 @@ function StreamApp() {
                     heroMovie={heroMovie}
                     featuredMovies={featuredMovies}
                     featuredPlaylists={featuredPlaylists}
+                    communityTrending={communityTrending}
                     continueWatching={continueWatching}
                     myList={myList}
                     activeTab={activeTab}
@@ -915,6 +976,9 @@ function StreamApp() {
                 <MessagesPage
                   onMovieSelect={handleMovieSelect}
                   initialConversationId={selectedMessageConversationId}
+                  onConversationChange={(conversationId) => {
+                    setSelectedMessageConversationId(conversationId || undefined);
+                  }}
                 />
               )}
 
@@ -947,6 +1011,15 @@ function StreamApp() {
                       title="Featured Playlists"
                       playlists={featuredPlaylists}
                       onPlaylistSelect={handlePlaylistSelect}
+                    />
+                  )}
+
+                  {communityTrending.length > 0 && (
+                    <Row
+                      title="Trending With Users"
+                      movies={communityTrending}
+                      onMovieSelect={handleMovieSelect}
+                      onViewAll={() => openViewAll({ title: "Trending With Users", movies: communityTrending })}
                     />
                   )}
 

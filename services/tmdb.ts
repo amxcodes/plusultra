@@ -150,6 +150,37 @@ export const TmdbService = {
         }
     },
 
+    getTitlesByReferences: async (
+        refs: Array<{ tmdbId: string | number; mediaType: 'movie' | 'tv' }>
+    ): Promise<Movie[]> => {
+        if (!API_KEY || refs.length === 0) return [];
+
+        const validRefs = refs.filter(({ tmdbId, mediaType }) => (
+            (mediaType === 'movie' || mediaType === 'tv') &&
+            /^\d+$/.test(String(tmdbId))
+        ));
+
+        if (validRefs.length === 0) return [];
+
+        const settled = await Promise.all(
+            validRefs.map(async ({ tmdbId, mediaType }) => {
+                try {
+                    const details = await TmdbService.getDetails(String(tmdbId), mediaType);
+                    if (!details?.title) return null;
+                    return {
+                        ...(details as Movie),
+                        id: Number(tmdbId),
+                        mediaType,
+                    } as Movie;
+                } catch {
+                    return null;
+                }
+            })
+        );
+
+        return settled.filter((entry): entry is Movie => Boolean(entry));
+    },
+
     getTopRated: async (): Promise<Movie[]> => {
         if (!API_KEY) return [];
         try {

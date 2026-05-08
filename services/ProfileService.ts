@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { cache, CACHE_KEYS } from '../lib/cache';
 import { getDisplayName } from '../lib/displayName';
+import { TmdbService } from './tmdb';
+import type { Movie } from '../types';
 
 const PUBLIC_PROFILE_COLUMNS = 'id, username, avatar_url, created_at';
 
@@ -26,6 +28,15 @@ type PrivateProfileRow = {
     last_seen_announcements?: string | null;
     last_seen_activity?: string | null;
     created_at?: string | null;
+};
+
+type CommunityTrendingTitleRow = {
+    tmdb_id: string;
+    media_type: 'movie' | 'tv';
+    title: string;
+    qualified_sessions: number;
+    unique_watchers: number;
+    trending_score: number;
 };
 
 const normalizePublicProfile = (row: any): Profile => ({
@@ -326,6 +337,36 @@ export const ProfileService = {
 
         cache.set(CACHE_KEYS.APP_SETTINGS, settings, 1440); // Cache for 24 hours
         return settings;
+    },
+
+    async getCommunityTrendingTitles(limit = 12): Promise<Movie[]> {
+        const { data, error } = await supabase.rpc('get_community_trending_titles', {
+            p_limit: limit,
+            p_days: 30,
+        });
+
+        if (error) {
+            console.error('Error fetching community trending titles:', error);
+            return [];
+        }
+
+        const rows = (data || []) as CommunityTrendingTitleRow[];
+        if (rows.length === 0) return [];
+
+        const hydrated = await TmdbService.getTitlesByReferences(
+            rows.map((row) => ({
+                tmdbId: row.tmdb_id,
+                mediaType: row.media_type,
+            }))
+        );
+
+        const byKey = new Map(
+            hydrated.map((movie) => [`${movie.mediaType}:${movie.id}`, movie] as const)
+        );
+
+        return rows
+            .map((row) => byKey.get(`${row.media_type}:${Number(row.tmdb_id)}`))
+            .filter((movie): movie is Movie => Boolean(movie));
     },
 
     async updateAppSetting(key: string, value: string) {

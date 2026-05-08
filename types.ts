@@ -92,6 +92,32 @@ export interface DirectMessage {
   shared_movie?: SharedMoviePayload | null;
   created_at: string;
   read_at?: string | null;
+  reply_to_message_id?: string | null;
+  reply_preview?: DirectMessageReplyPreview | null;
+  reactions?: DirectMessageReaction[];
+}
+
+export interface DirectMessageReplyPreview {
+  id: string;
+  sender_id: string;
+  body?: string | null;
+  message_type: 'text' | 'movie_share';
+  shared_movie_title?: string | null;
+}
+
+export interface DirectMessageReaction {
+  message_id: string;
+  conversation_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+}
+
+export interface DirectTypingPresence {
+  conversation_id: string;
+  user_id: string;
+  started_at: string;
+  updated_at: string;
 }
 
 export interface HeroMovie extends Movie {

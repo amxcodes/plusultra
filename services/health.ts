@@ -100,7 +100,7 @@ export class HealthService {
             let { error } = await supabase.rpc('heartbeat_view_session_v2', {
                 p_session_id: '_health_check_',
                 p_tmdb_id: '_health_check_',
-                p_media_type: 'movie',
+                p_media_type: '__health__',
                 p_provider_id: 'health',
                 p_title: 'Health Check',
                 p_genres: [],
@@ -118,7 +118,7 @@ export class HealthService {
                 ({ error } = await supabase.rpc('heartbeat_view_session', {
                     p_session_id: '_health_check_',
                     p_tmdb_id: '_health_check_',
-                    p_media_type: 'movie',
+                    p_media_type: '__health__',
                     p_provider_id: 'health',
                     p_title: 'Health Check',
                     p_genres: [],
@@ -139,7 +139,17 @@ export class HealthService {
                 };
             }
 
-            // Any other error is OK (function exists and was called)
+            // Invalid media type is expected here and proves the RPC resolved without mutating data.
+            if (error && !error.message.toLowerCase().includes('invalid media type')) {
+                return {
+                    service: 'RPC Functions',
+                    status: 'degraded',
+                    responseTime,
+                    error: error.message,
+                    lastChecked
+                };
+            }
+
             return {
                 service: 'RPC Functions',
                 status: responseTime < 300 ? 'healthy' : 'degraded',

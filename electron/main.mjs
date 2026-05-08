@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification as ElectronNotification, session, shell } from 'electron';
 import electronUpdater from 'electron-updater';
 import { randomUUID } from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
@@ -983,6 +983,41 @@ ipcMain.handle('desktop:start-turnstile-check', async (_event, payload) => {
     }
 });
 ipcMain.handle('desktop:open-external', (_event, targetUrl) => shell.openExternal(targetUrl));
+ipcMain.handle('desktop:show-notification', async (_event, payload) => {
+    const title = String(payload?.title || '').trim();
+    const body = String(payload?.body || '').trim();
+
+    if (!title) {
+        return { ok: false, message: 'Notification title is required.' };
+    }
+
+    if (!ElectronNotification.isSupported()) {
+        return { ok: false, message: 'Desktop notifications are not supported in this environment.' };
+    }
+
+    const notification = new ElectronNotification({
+        title,
+        body,
+        icon: existsSync(desktopIconPath) ? desktopIconPath : undefined,
+        silent: false,
+    });
+
+    notification.on('click', () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+        }
+
+        if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+        }
+
+        mainWindow.show();
+        mainWindow.focus();
+    });
+
+    notification.show();
+    return { ok: true };
+});
 ipcMain.handle('desktop:download-offline-media', async (_event, payload) => {
     if (!app.isPackaged && !process.env.ELECTRON_START_URL) {
         return { ok: false, message: 'Desktop offline downloads are unavailable in this build.' };
