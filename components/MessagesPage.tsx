@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     ArrowLeft,
     Check,
@@ -135,10 +135,12 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [typingPresenceUserIds, setTypingPresenceUserIds] = useState<string[]>([]);
     const [replyingToMessage, setReplyingToMessage] = useState<DirectMessage | null>(null);
+    const threadScrollRef = useRef<HTMLDivElement | null>(null);
     const threadEndRef = useRef<HTMLDivElement | null>(null);
     const typingStopTimeoutRef = useRef<number | null>(null);
     const previousMessageCountRef = useRef(0);
     const previousConversationIdRef = useRef<string | null>(null);
+    const pendingInitialScrollRef = useRef(false);
 
     const selectedConversation = conversations.find((conversation) => conversation.id === selectedConversationId) || null;
     const unreadConversationCount = conversations.filter((conversation) => conversation.unread_count > 0).length;
@@ -155,6 +157,31 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
             return username.includes(query) || preview.includes(query);
         });
     }, [conversations, searchQuery]);
+
+    const scrollThreadToBottom = (behavior: ScrollBehavior = 'auto') => {
+        const scrollTarget = () => {
+            if (threadScrollRef.current) {
+                threadScrollRef.current.scrollTop = threadScrollRef.current.scrollHeight;
+                if (behavior === 'smooth') {
+                    threadScrollRef.current.scrollTo({
+                        top: threadScrollRef.current.scrollHeight,
+                        behavior,
+                    });
+                }
+                return;
+            }
+
+            threadEndRef.current?.scrollIntoView({
+                behavior,
+                block: 'end',
+            });
+        };
+
+        window.requestAnimationFrame(() => {
+            scrollTarget();
+            window.requestAnimationFrame(scrollTarget);
+        });
+    };
 
     const suggestedProfiles = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -318,6 +345,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
     useEffect(() => {
         if (!selectedConversationId) return;
         previousMessageCountRef.current = 0;
+        pendingInitialScrollRef.current = true;
         void loadMessages(selectedConversationId, { silent: false, markRead: true });
         void loadTypingPresence(selectedConversationId);
     }, [selectedConversationId]);
@@ -343,22 +371,22 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
         setErrorMessage(null);
     }, [initialConversationId]);
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!selectedConversationId) return;
 
         const didConversationChange = previousConversationIdRef.current !== selectedConversationId;
         const didMessageCountGrow = messages.length > previousMessageCountRef.current;
 
-        if (didConversationChange || didMessageCountGrow) {
-            threadEndRef.current?.scrollIntoView({
-                behavior: didConversationChange ? 'auto' : 'smooth',
-                block: 'end',
-            });
+        if (!threadLoading && pendingInitialScrollRef.current) {
+            pendingInitialScrollRef.current = false;
+            scrollThreadToBottom('auto');
+        } else if (didConversationChange || didMessageCountGrow) {
+            scrollThreadToBottom(didConversationChange ? 'auto' : 'smooth');
         }
 
         previousConversationIdRef.current = selectedConversationId;
         previousMessageCountRef.current = messages.length;
-    }, [messages.length, selectedConversationId]);
+    }, [messages.length, selectedConversationId, threadLoading]);
 
     useEffect(() => {
         return () => {
@@ -880,7 +908,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
                                     </div>
                                 </div>
 
-                                <div className="min-h-0 flex-1 overflow-y-auto bg-[#101116] px-4 py-4 custom-scrollbar md:px-6">
+                                <div ref={threadScrollRef} className="min-h-0 flex-1 overflow-y-auto bg-[#101116] px-4 py-4 custom-scrollbar md:px-6">
                                     {threadLoading && <ThreadSkeleton />}
 
                                     {!threadLoading && messages.length === 0 && (

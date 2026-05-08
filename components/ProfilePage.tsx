@@ -282,6 +282,104 @@ const DeleteConfirmModal = ({ isOpen, playlistName, onClose, onConfirm }: { isOp
     );
 };
 
+const FollowListModal = ({
+    isOpen,
+    title,
+    profiles,
+    loading,
+    currentUserId,
+    followingIds,
+    canManage,
+    onClose,
+    onToggleFollow,
+    onProfileOpen,
+}: {
+    isOpen: boolean;
+    title: string;
+    profiles: Profile[];
+    loading: boolean;
+    currentUserId?: string;
+    followingIds: string[];
+    canManage: boolean;
+    onClose: () => void;
+    onToggleFollow: (profile: Profile) => void;
+    onProfileOpen?: (profileId: string) => void;
+}) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative w-full max-w-xl overflow-hidden rounded-[28px] border border-white/10 bg-[#0f1014] shadow-2xl">
+                <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+                    <div>
+                        <h3 className="text-lg font-bold text-white">{title}</h3>
+                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-500">
+                            {profiles.length} account{profiles.length === 1 ? '' : 's'}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="rounded-full border border-white/10 p-2 text-zinc-400 transition-colors hover:text-white">
+                        <X size={18} />
+                    </button>
+                </div>
+
+                <div className="max-h-[70vh] overflow-y-auto p-4 custom-scrollbar">
+                    {loading ? (
+                        <div className="py-16 text-center text-zinc-500">Loading...</div>
+                    ) : profiles.length === 0 ? (
+                        <div className="rounded-[20px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-10 text-center text-sm text-zinc-500">
+                            No users here yet.
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {profiles.map((entry) => {
+                                const isSelf = currentUserId === entry.id;
+                                const isFollowing = followingIds.includes(entry.id);
+
+                                return (
+                                    <div key={entry.id} className="flex items-center justify-between gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => onProfileOpen?.(entry.id)}
+                                            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                                        >
+                                            <img
+                                                src={entry.avatar_url || `https://ui-avatars.com/api/?name=${entry.username}`}
+                                                alt={entry.username}
+                                                className="h-11 w-11 rounded-full border border-white/10 object-cover"
+                                            />
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-semibold text-white">{entry.username}</div>
+                                                <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+                                                    {isSelf ? 'You' : 'Profile'}
+                                                </div>
+                                            </div>
+                                        </button>
+
+                                        {canManage && !isSelf && (
+                                            <button
+                                                type="button"
+                                                onClick={() => onToggleFollow(entry)}
+                                                className={`min-w-[108px] rounded-full border px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] transition-colors ${
+                                                    isFollowing
+                                                        ? 'border-white/10 bg-white/[0.04] text-zinc-300 hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-300'
+                                                        : 'border-white/10 bg-white text-black hover:bg-zinc-200'
+                                                }`}
+                                            >
+                                                {isFollowing ? 'Unfollow' : 'Follow'}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, onMovieSelect }) => {
     const { user: currentUser, isAdmin, refreshProfile, profile: currentViewerProfile } = useAuth();
     const [profile, setProfile] = useState<Profile | null>(null);
@@ -295,6 +393,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showAvatarModal, setShowAvatarModal] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
+    const [socialModalTab, setSocialModalTab] = useState<'followers' | 'following' | null>(null);
+    const [socialProfiles, setSocialProfiles] = useState<Profile[]>([]);
+    const [socialLoading, setSocialLoading] = useState(false);
+    const [followingIds, setFollowingIds] = useState<string[]>([]);
 
     // Determine which ID to fetch
     const targetId = userId || currentUser?.id;
@@ -344,6 +446,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
 
         loadData();
     }, [targetId, currentUser, isOwnProfile, isAdmin]);
+
+    useEffect(() => {
+        if (!currentUser?.id) {
+            setFollowingIds([]);
+            return;
+        }
+
+        const loadFollowingIds = async () => {
+            const ids = await SocialService.getFollowingIds(currentUser.id);
+            setFollowingIds(ids);
+        };
+
+        void loadFollowingIds();
+    }, [currentUser?.id]);
 
     const handleFollow = async () => {
         if (!currentUser || !targetId) return;
@@ -402,6 +518,52 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
         }
     };
 
+    const openSocialModal = async (tab: 'followers' | 'following') => {
+        if (!targetId) return;
+
+        setSocialModalTab(tab);
+        setSocialLoading(true);
+
+        try {
+            const nextProfiles = tab === 'followers'
+                ? await SocialService.getFollowers(targetId)
+                : await SocialService.getFollowing(targetId);
+            setSocialProfiles(nextProfiles);
+        } catch (error) {
+            console.error(`Failed to load ${tab}:`, error);
+            setSocialProfiles([]);
+        } finally {
+            setSocialLoading(false);
+        }
+    };
+
+    const handleToggleFollowFromModal = async (entry: Profile) => {
+        if (!currentUser?.id || currentUser.id === entry.id) return;
+
+        const currentlyFollowing = followingIds.includes(entry.id);
+
+        try {
+            if (currentlyFollowing) {
+                await SocialService.unfollowUser(currentUser.id, entry.id);
+                setFollowingIds((current) => current.filter((id) => id !== entry.id));
+
+                if (isOwnProfile && socialModalTab === 'following') {
+                    setSocialProfiles((current) => current.filter((profile) => profile.id !== entry.id));
+                    setStats((current) => ({ ...current, following: Math.max(0, current.following - 1) }));
+                }
+            } else {
+                await SocialService.followUser(currentUser.id, entry.id);
+                setFollowingIds((current) => current.includes(entry.id) ? current : [...current, entry.id]);
+
+                if (isOwnProfile) {
+                    setStats((current) => ({ ...current, following: current.following + 1 }));
+                }
+            }
+        } catch (error) {
+            console.error("Failed to update follow state", error);
+        }
+    };
+
     if (loading) {
         return <div className="h-screen flex items-center justify-center text-zinc-500 font-light tracking-wide">loading...</div>;
     }
@@ -411,7 +573,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
     }
 
     return (
-        <div className="min-h-screen bg-[#0f1014] pt-20 px-4 md:px-12 pb-20 fade-in-up relative">
+        <div className="min-h-screen bg-[#0f1014] pt-10 md:pt-12 px-4 md:px-12 pb-20 fade-in-up relative">
 
             <CreatePlaylistModal
                 isOpen={showCreateModal}
@@ -433,13 +595,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                 onConfirm={handleDeletePlaylist}
             />
 
+            <FollowListModal
+                isOpen={socialModalTab !== null}
+                title={socialModalTab === 'followers' ? 'Followers' : 'Following'}
+                profiles={socialProfiles}
+                loading={socialLoading}
+                currentUserId={currentUser?.id}
+                followingIds={followingIds}
+                canManage={Boolean(currentUser && canFollowProfiles)}
+                onClose={() => setSocialModalTab(null)}
+                onToggleFollow={handleToggleFollowFromModal}
+                onProfileOpen={(profileId) => {
+                    setSocialModalTab(null);
+                    onNavigate?.('profile', { id: profileId });
+                }}
+            />
+
             {/* Minimal Header */}
-            <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-8 mb-20">
+            <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center md:items-start gap-8 mb-14 md:mb-16">
                 <div className="relative group cursor-pointer" onClick={() => isOwnProfile && setShowAvatarModal(true)}>
                     <img
                         src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}&background=10b981&color=fff&bold=true`}
                         alt={profile.username}
-                        className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover shadow-2xl grayscale group-hover:grayscale-0 transition-all duration-700 ease-out"
+                        className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover shadow-2xl transition-all duration-700 ease-out"
                     />
                     <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     {isOwnProfile && (
@@ -453,12 +631,20 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                     <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter">{profile.username}</h1>
 
                     <div className="flex items-center justify-center md:justify-start gap-8 text-zinc-500 text-sm font-medium tracking-wide">
-                        <div className="hover:text-white transition-colors cursor-default">
+                        <button
+                            type="button"
+                            onClick={() => void openSocialModal('followers')}
+                            className="text-left transition-colors hover:text-white"
+                        >
                             <span className="text-white block text-lg font-bold">{stats.followers}</span> Followers
-                        </div>
-                        <div className="hover:text-white transition-colors cursor-default">
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void openSocialModal('following')}
+                            className="text-left transition-colors hover:text-white"
+                        >
                             <span className="text-white block text-lg font-bold">{stats.following}</span> Following
-                        </div>
+                        </button>
                         <div className="hover:text-white transition-colors cursor-default">
                             <span className="text-white block text-lg font-bold">{playlists.length}</span> Playlists
                         </div>

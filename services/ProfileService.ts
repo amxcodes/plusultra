@@ -199,6 +199,38 @@ export const ProfileService = {
             .filter((profile): profile is Profile => Boolean(profile));
     },
 
+    async getFollowing(userId: string): Promise<Profile[]> {
+        const { data, error } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching following:', error);
+            return [];
+        }
+
+        const followingIds = (data || []).map((d: any) => d.following_id).filter(Boolean);
+        if (followingIds.length === 0) return [];
+
+        const { data: following, error: followingError } = await supabase
+            .from('profiles')
+            .select(PUBLIC_PROFILE_COLUMNS)
+            .in('id', followingIds);
+
+        if (followingError) {
+            console.error('Error fetching following profiles:', followingError);
+            return [];
+        }
+
+        const profilesById = new Map((following || []).map((profile: any) => [profile.id, normalizePublicProfile(profile)]));
+
+        return followingIds
+            .map(id => profilesById.get(id))
+            .filter((profile): profile is Profile => Boolean(profile));
+    },
+
     async getFollowingIds(userId: string): Promise<string[]> {
         const { data, error } = await supabase
             .from('follows')
