@@ -955,7 +955,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
 
             {/* Controls Overlay (Top Right) */}
-            <div className="absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4">
+            <div className={`absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4 transition-opacity duration-200 ${showWatchPartyModal ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
                 {mediaType === 'tv' && onPlayEpisode && (
                     <button
                         onClick={() => {

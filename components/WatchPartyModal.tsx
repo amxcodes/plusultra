@@ -662,7 +662,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 p-3 md:p-5">
+        <div className="fixed inset-0 z-[140] p-3 md:p-5">
             <div className="absolute inset-0 bg-black/75 backdrop-blur-xl" onClick={onClose} />
             <div className="relative mx-auto flex h-[min(92vh,980px)] w-full max-w-[min(1640px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[32px] border border-white/10 bg-[#0d0f14] shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
                 <button
