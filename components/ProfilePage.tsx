@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
-import { Profile, Playlist } from '../types';
-import { UserPlus, UserMinus, Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp, Users } from 'lucide-react';
+import { Profile, Playlist, PublicProfilePresence } from '../types';
+import { UserPlus, UserMinus, Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp, Users, MonitorPlay } from 'lucide-react';
+import { WatchPartyService } from '../services/WatchPartyService';
 import { useDebounce } from '../hooks/useDebounce';
 import { ContinueWatchingCard } from './ContinueWatchingCard'; // Keep if used elsewhere or remove later
 import { MovieCard } from './MovieCard';
@@ -290,9 +291,11 @@ const FollowListModal = ({
     currentUserId,
     followingIds,
     canManage,
+    publicPresence,
     onClose,
     onToggleFollow,
     onProfileOpen,
+    onJoinWatchParty,
 }: {
     isOpen: boolean;
     title: string;
@@ -301,9 +304,11 @@ const FollowListModal = ({
     currentUserId?: string;
     followingIds: string[];
     canManage: boolean;
+    publicPresence?: Record<string, PublicProfilePresence>;
     onClose: () => void;
     onToggleFollow: (profile: Profile) => void;
     onProfileOpen?: (profileId: string) => void;
+    onJoinWatchParty?: (roomId: string) => void;
 }) => {
     if (!isOpen) return null;
 
@@ -335,6 +340,7 @@ const FollowListModal = ({
                             {profiles.map((entry) => {
                                 const isSelf = currentUserId === entry.id;
                                 const isFollowing = followingIds.includes(entry.id);
+                                const presence = publicPresence?.[entry.id];
 
                                 return (
                                     <div key={entry.id} className="flex items-center justify-between gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-3">
@@ -350,8 +356,52 @@ const FollowListModal = ({
                                             />
                                             <div className="min-w-0">
                                                 <div className="truncate text-sm font-semibold text-white">{entry.username}</div>
-                                                <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">
-                                                    {isSelf ? 'You' : 'Profile'}
+                                                <div className="mt-1 flex flex-wrap items-center gap-2">
+                                                    <div className="text-[10px] uppercase tracking-[0.16em] text-zinc-500">
+                                                        {isSelf ? 'You' : 'Profile'}
+                                                    </div>
+                                                    {presence && presence.state !== 'offline' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                if (presence.state === 'hosting' && presence.is_joinable && presence.room_id) {
+                                                                    onJoinWatchParty?.(presence.room_id);
+                                                                    return;
+                                                                }
+                                                                onProfileOpen?.(entry.id);
+                                                            }}
+                                                            className={`rounded-full border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] ${
+                                                                presence.state === 'hosting'
+                                                                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                                                                    : presence.state === 'watching'
+                                                                        ? 'border-blue-500/20 bg-blue-500/10 text-blue-300'
+                                                                        : 'border-white/10 bg-white/[0.04] text-zinc-300'
+                                                            }`}
+                                                        >
+                                                            {presence.state === 'hosting'
+                                                                ? `Hosting now: ${presence.room_title || 'Watch party'}${presence.room_media_type === 'tv' ? ` S${presence.room_season || 1}E${presence.room_episode || 1}` : ''}`
+                                                                : presence.state === 'watching'
+                                                                    ? `Watching now: ${presence.watch_title || 'Something'}`
+                                                                    : presence.state === 'online'
+                                                                        ? 'Online'
+                                                                        : 'Idle'}
+                                                        </button>
+                                                    )}
+                                                    {presence?.state === 'hosting' && presence.is_joinable && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                if (presence.room_id) {
+                                                                    onJoinWatchParty?.(presence.room_id);
+                                                                }
+                                                            }}
+                                                            className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-amber-300"
+                                                        >
+                                                            Joinable now
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </button>
@@ -397,6 +447,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
     const [socialProfiles, setSocialProfiles] = useState<Profile[]>([]);
     const [socialLoading, setSocialLoading] = useState(false);
     const [followingIds, setFollowingIds] = useState<string[]>([]);
+    const [publicPresenceByUserId, setPublicPresenceByUserId] = useState<Record<string, PublicProfilePresence>>({});
+    const [profilePresence, setProfilePresence] = useState<PublicProfilePresence | null>(null);
 
     // Determine which ID to fetch
     const targetId = userId || currentUser?.id;
@@ -437,6 +489,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                 setPlaylists(plays);
                 setStats(stat);
                 setIsFollowing(checkFollow);
+                const [targetPresence] = await WatchPartyService.listPublicPresence([targetId]);
+                setProfilePresence(targetPresence || null);
             } catch (e) {
                 console.error("Failed to load profile:", e);
             } finally {
@@ -529,9 +583,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                 ? await SocialService.getFollowers(targetId)
                 : await SocialService.getFollowing(targetId);
             setSocialProfiles(nextProfiles);
+            const presence = await WatchPartyService.listPublicPresence(nextProfiles.map((profile) => profile.id));
+            setPublicPresenceByUserId(
+                Object.fromEntries(presence.map((entry) => [entry.user_id, entry]))
+            );
         } catch (error) {
             console.error(`Failed to load ${tab}:`, error);
             setSocialProfiles([]);
+            setPublicPresenceByUserId({});
         } finally {
             setSocialLoading(false);
         }
@@ -603,11 +662,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
                 currentUserId={currentUser?.id}
                 followingIds={followingIds}
                 canManage={Boolean(currentUser && canFollowProfiles)}
+                publicPresence={publicPresenceByUserId}
                 onClose={() => setSocialModalTab(null)}
                 onToggleFollow={handleToggleFollowFromModal}
                 onProfileOpen={(profileId) => {
                     setSocialModalTab(null);
                     onNavigate?.('profile', { id: profileId });
+                }}
+                onJoinWatchParty={(roomId) => {
+                    setSocialModalTab(null);
+                    onNavigate?.('watch-party', { roomId, joinById: true });
                 }}
             />
 
@@ -629,6 +693,48 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId, onNavigate, on
 
                 <div className="flex-1 text-center md:text-left space-y-4">
                     <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tighter">{profile.username}</h1>
+
+                    {profilePresence && profilePresence.state !== 'offline' && (
+                        <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (profilePresence.state === 'hosting' && profilePresence.is_joinable && profilePresence.room_id) {
+                                        onNavigate?.('watch-party', { roomId: profilePresence.room_id, joinById: true });
+                                    }
+                                }}
+                                className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] ${
+                                    profilePresence.state === 'hosting'
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
+                                        : profilePresence.state === 'watching'
+                                            ? 'border-blue-500/20 bg-blue-500/10 text-blue-300'
+                                            : 'border-white/10 bg-white/[0.04] text-zinc-300'
+                                }`}
+                            >
+                                <MonitorPlay size={12} />
+                                {profilePresence.state === 'hosting'
+                                    ? `Hosting now: ${profilePresence.room_title || 'Watch party'}${profilePresence.room_media_type === 'tv' ? ` S${profilePresence.room_season || 1}E${profilePresence.room_episode || 1}` : ''}`
+                                    : profilePresence.state === 'watching'
+                                        ? `Watching now: ${profilePresence.watch_title || 'Something'}`
+                                        : profilePresence.state === 'online'
+                                            ? 'Online'
+                                            : 'Idle'}
+                            </button>
+                            {profilePresence.state === 'hosting' && profilePresence.is_joinable && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (profilePresence.room_id) {
+                                            onNavigate?.('watch-party', { roomId: profilePresence.room_id, joinById: true });
+                                        }
+                                    }}
+                                    className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300"
+                                >
+                                    Joinable now
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex items-center justify-center md:justify-start gap-8 text-zinc-500 text-sm font-medium tracking-wide">
                         <button

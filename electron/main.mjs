@@ -54,6 +54,51 @@ const MIME_TYPE_VIDEO_EXTENSIONS = {
     'video/x-matroska': '.mkv',
 };
 
+const detectPlayableSourceType = (targetUrl, contentType = '') => {
+    const normalizedContentType = String(contentType).split(';')[0].trim().toLowerCase();
+    const lowerUrl = String(targetUrl || '').toLowerCase();
+
+    if (normalizedContentType.includes('mpegurl') || lowerUrl.includes('.m3u8')) {
+        return 'm3u8';
+    }
+    if (normalizedContentType.includes('dash+xml') || lowerUrl.includes('.mpd')) {
+        return 'mpd';
+    }
+    if (normalizedContentType.startsWith('video/') || lowerUrl.includes('.mp4') || lowerUrl.includes('.m4v') || lowerUrl.includes('.webm')) {
+        return 'mp4';
+    }
+    return 'unknown';
+};
+
+const extractExpiryFromUrl = (targetUrl) => {
+    try {
+        const parsed = new URL(targetUrl);
+        const keys = ['expires', 'expire', 'exp', 'e'];
+        for (const key of keys) {
+            const value = parsed.searchParams.get(key);
+            if (!value) continue;
+
+            const numeric = Number.parseInt(value, 10);
+            if (Number.isFinite(numeric)) {
+                const millis = numeric > 1_000_000_000_000 ? numeric : numeric * 1000;
+                const date = new Date(millis);
+                if (!Number.isNaN(date.getTime())) {
+                    return date.toISOString();
+                }
+            }
+
+            const date = new Date(value);
+            if (!Number.isNaN(date.getTime())) {
+                return date.toISOString();
+            }
+        }
+    } catch {
+        return null;
+    }
+
+    return null;
+};
+
 const sendDesktopUpdateState = () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('desktop:update-state', desktopUpdateState);
@@ -182,6 +227,69 @@ const inspectOfflineDownloadSource = async (targetUrl) => {
         resolvedExtension,
         contentType: inspection.contentType || VIDEO_EXTENSION_MIME_TYPES[resolvedExtension] || 'application/octet-stream',
         contentLength: inspection.contentLength,
+    };
+};
+
+const probePlaybackSource = async (targetUrl, requiredHeaders = {}) => {
+    const attemptFetch = async (method, extraHeaders = {}) => {
+        const response = await session.defaultSession.fetch(targetUrl, {
+            method,
+            redirect: 'follow',
+            headers: {
+                ...requiredHeaders,
+                ...extraHeaders,
+            },
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        const contentLengthHeader = response.headers.get('content-length');
+        const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : null;
+
+        return {
+            ok: response.ok,
+            finalUrl: response.url || targetUrl,
+            contentType,
+            contentLength: Number.isFinite(contentLength) ? contentLength : null,
+        };
+    };
+
+    let inspection = null;
+    try {
+        inspection = await attemptFetch('HEAD');
+    } catch {
+        inspection = null;
+    }
+
+    if (!inspection || !inspection.ok || detectPlayableSourceType(inspection.finalUrl, inspection.contentType) === 'unknown') {
+        try {
+            inspection = await attemptFetch('GET', { Range: 'bytes=0-0' });
+        } catch {
+            inspection = null;
+        }
+    }
+
+    if (!inspection || !inspection.ok) {
+        return {
+            ok: false,
+            message: 'Unable to verify this source from the desktop session.',
+        };
+    }
+
+    const sourceType = detectPlayableSourceType(inspection.finalUrl, inspection.contentType);
+    if (sourceType === 'unknown') {
+        return {
+            ok: false,
+            message: 'This source does not look like a direct playable media stream.',
+        };
+    }
+
+    return {
+        ok: true,
+        finalUrl: inspection.finalUrl,
+        contentType: inspection.contentType,
+        contentLength: inspection.contentLength,
+        sourceType,
+        expiresAt: extractExpiryFromUrl(inspection.finalUrl),
     };
 };
 
@@ -324,6 +432,15 @@ const isInterestingRequest = (rawUrl) => {
     );
 };
 
+const extractSafePlaybackHeaders = (requestHeaders = {}) => {
+    const allowedHeaders = ['referer', 'origin'];
+    return Object.fromEntries(
+        Object.entries(requestHeaders)
+            .filter(([key, value]) => allowedHeaders.includes(String(key).toLowerCase()) && typeof value === 'string' && value.trim().length > 0)
+            .map(([key, value]) => [key, String(value)])
+    );
+};
+
 const getCaptureSessionKey = (sessionInfo) => {
     if (!sessionInfo || typeof sessionInfo !== 'object') {
         return '';
@@ -348,7 +465,21 @@ const rememberCapturedMedia = (item) => {
         return;
     }
 
-    if (capturedMedia.some((entry) => entry.url === item.url)) {
+    const existingIndex = capturedMedia.findIndex((entry) => entry.url === item.url);
+    if (existingIndex >= 0) {
+        const existing = capturedMedia[existingIndex];
+        capturedMedia[existingIndex] = {
+            ...existing,
+            ...item,
+            requestHeaders: {
+                ...(existing.requestHeaders || {}),
+                ...(item.requestHeaders || {}),
+            },
+            timestamp: now,
+        };
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('desktop:captured-media', capturedMedia[existingIndex]);
+        }
         return;
     }
 
@@ -461,6 +592,14 @@ const registerNetworkCapture = () => {
     session.defaultSession.setUserAgent(DESKTOP_USER_AGENT);
 
     session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/*'] }, (details, callback) => {
+        if (isInterestingRequest(details.url)) {
+            rememberCapturedMedia({
+                url: details.url,
+                resourceType: details.resourceType,
+                timestamp: Date.now(),
+                requestHeaders: extractSafePlaybackHeaders(details.requestHeaders),
+            });
+        }
         callback({
             requestHeaders: {
                 ...details.requestHeaders,
@@ -475,6 +614,7 @@ const registerNetworkCapture = () => {
                 url: details.url,
                 resourceType: details.resourceType,
                 timestamp: Date.now(),
+                requestHeaders: {},
             });
         }
 
@@ -956,6 +1096,21 @@ ipcMain.handle('desktop:get-captured-media', (_event, captureKey) => (
         ? capturedMedia.filter((entry) => entry.captureKey === captureKey)
         : []
 ));
+ipcMain.handle('desktop:probe-playback-source', async (_event, payload) => {
+    const targetUrl = String(payload?.url || '').trim();
+    if (!targetUrl) {
+        return { ok: false, message: 'Missing source URL.' };
+    }
+
+    try {
+        return await probePlaybackSource(targetUrl, payload?.requiredHeaders || {});
+    } catch (error) {
+        return {
+            ok: false,
+            message: error instanceof Error ? error.message : 'Failed to probe playback source.',
+        };
+    }
+});
 ipcMain.handle('desktop:start-turnstile-check', async (_event, payload) => {
     const rendererUrl = await startLocalRendererServer();
     const requestId = randomUUID();

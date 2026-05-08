@@ -9,6 +9,10 @@ export interface StreamDownloadCandidate {
     url: string;
     kind: DownloadCandidateKind;
     source: DownloadCandidateSource;
+    serverId?: string;
+    serverLabel?: string;
+    qualityLabel?: string;
+    requiredHeaders?: Record<string, string>;
     note?: string;
 }
 
@@ -82,8 +86,46 @@ const pushCandidate = (
 
     candidates.push({
         ...candidate,
-        id: `${candidate.kind}:${candidate.source}:${candidate.url}`,
+        id: `${candidate.kind}:${candidate.source}:${candidate.serverId || candidate.serverLabel || 'auto'}:${candidate.url}`,
     });
+};
+
+const deriveServerMetadata = (rawUrl: string, providerName: string) => {
+    try {
+        const parsed = new URL(rawUrl);
+        const search = parsed.searchParams;
+        const pathname = parsed.pathname.toLowerCase();
+        const host = parsed.hostname.replace(/^www\./, '');
+
+        const serverToken =
+            search.get('server') ||
+            search.get('server_id') ||
+            search.get('serverid') ||
+            search.get('source') ||
+            search.get('name');
+
+        const qualityToken =
+            search.get('quality') ||
+            search.get('label') ||
+            search.get('res') ||
+            search.get('resolution');
+
+        let serverLabel = serverToken ? `${providerName} ${serverToken}` : host;
+        if (pathname.includes('1080')) serverLabel = `${serverLabel} 1080p`;
+        if (pathname.includes('720')) serverLabel = `${serverLabel} 720p`;
+
+        return {
+            serverId: serverToken || host,
+            serverLabel,
+            qualityLabel: qualityToken || (pathname.includes('1080') ? '1080p' : pathname.includes('720') ? '720p' : undefined),
+        };
+    } catch {
+        return {
+            serverId: providerName.toLowerCase().replace(/\s+/g, '-'),
+            serverLabel: providerName,
+            qualityLabel: undefined,
+        };
+    }
 };
 
 const inspectUrl = (
@@ -95,11 +137,15 @@ const inspectUrl = (
     const decodedValue = decodeRecursively(value);
     if (isLikelyMediaUrl(decodedValue)) {
         const kind = decodedValue.toLowerCase().includes('.m3u8') ? 'playlist' : 'video';
+        const metadata = deriveServerMetadata(decodedValue, 'Detected');
         pushCandidate(candidates, dedupeUrls, {
-            label: kind === 'playlist' ? 'Detected HLS playlist' : 'Detected direct video',
+            label: metadata.serverLabel || (kind === 'playlist' ? 'Detected HLS playlist' : 'Detected direct video'),
             url: decodedValue,
             kind,
             source: 'detected',
+            serverId: metadata.serverId,
+            serverLabel: metadata.serverLabel,
+            qualityLabel: metadata.qualityLabel,
             note: path.length > 0 ? `Found inside ${path.join(' -> ')}` : 'Found in the active playback URL',
         });
     }
@@ -137,11 +183,15 @@ export const buildStreamDownloadCandidates = ({
     directSources.forEach((source, index) => {
         if (!source?.src) return;
         const kind = source.src.toLowerCase().includes('.m3u8') ? 'playlist' : 'video';
+        const metadata = deriveServerMetadata(source.src, providerName);
         pushCandidate(candidates, dedupeUrls, {
-            label: directSources.length > 1 ? `Direct source ${index + 1}` : 'Direct playback source',
+            label: directSources.length > 1 ? `${metadata.serverLabel || 'Direct source'} ${index + 1}` : metadata.serverLabel || 'Direct playback source',
             url: source.src,
             kind,
             source: 'detected',
+            serverId: metadata.serverId,
+            serverLabel: metadata.serverLabel,
+            qualityLabel: metadata.qualityLabel,
             note: `Exposed directly by ${providerName}`,
         });
         inspectUrl(source.src, candidates, dedupeUrls, ['direct-source']);
@@ -149,19 +199,15 @@ export const buildStreamDownloadCandidates = ({
 
     if (currentEmbedUrl) {
         inspectUrl(currentEmbedUrl, candidates, dedupeUrls, ['embed-url']);
-    }
-
-    if (providerId === 'rive') {
-        const providerDownloadUrl = mediaType === 'movie'
-            ? `https://rivestream.org/download?type=movie&id=${tmdbId}`
-            : `https://rivestream.org/download?type=tv&id=${tmdbId}&season=${season || 1}&episode=${episode || 1}`;
 
         pushCandidate(candidates, dedupeUrls, {
-            label: 'Rive download page',
-            url: providerDownloadUrl,
+            label: `${providerName} provider page`,
+            url: currentEmbedUrl,
             kind: 'download_page',
             source: 'generated',
-            note: 'Provider-specific fallback generated from TMDB context',
+            serverId: `${providerId}-provider-page`,
+            serverLabel: `${providerName} provider page`,
+            note: 'Fallback entrypoint for providers that reveal stream links only after the page loads.',
         });
     }
 

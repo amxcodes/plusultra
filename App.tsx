@@ -59,6 +59,8 @@ import { DownloadQuestPage, type OfflineDownloadGroup } from './components/Downl
 import { MessagesPage } from './components/MessagesPage';
 import type { OfflineDownloadEntry } from './types';
 import { setActivityMode, type ActivityMode } from './lib/activityTracking';
+import { WatchPartyService } from './services/WatchPartyService';
+import type { ActivityFeedTab } from './hooks/useActivityFeed';
 
 type ViewAllCategoryState = {
   title: string;
@@ -176,11 +178,13 @@ function StreamApp() {
   const [selectedMessageConversationId, setSelectedMessageConversationId] = useState<string | undefined>(undefined);
   const [selectedProfileId, setSelectedProfileId] = useState<string | undefined>(undefined);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | undefined>(undefined);
+  const [selectedActivityTab, setSelectedActivityTab] = useState<ActivityFeedTab>('notifications');
   const [playlistModalMovie, setPlaylistModalMovie] = useState<Movie | null>(null);
   const [viewAllCategory, setViewAllCategory] = useState<ViewAllCategoryState | null>(null);
   const activeTabRef = useRef(activeTab);
   const selectedConversationRef = useRef<string | undefined>(selectedMessageConversationId);
   const handledDirectNotificationIdsRef = useRef(new Set<string>());
+  const handledWatchPartyNotificationIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -189,6 +193,64 @@ function StreamApp() {
   useEffect(() => {
     selectedConversationRef.current = selectedMessageConversationId;
   }, [selectedMessageConversationId]);
+
+  const openWatchPartyRoom = React.useCallback(async (roomInput: any) => {
+    if (!user?.id || !window.desktop?.isDesktop) {
+      setSelectedActivityTab('requests');
+      setActiveTab(NavItem.ACTIVITY);
+      return;
+    }
+
+    try {
+      const room = roomInput?.id
+        ? roomInput
+        : roomInput?.joinById
+          ? await WatchPartyService.joinRoomById(roomInput?.roomId || '')
+          : await WatchPartyService.getRoom(roomInput?.roomId || '');
+
+      if (!room) {
+        setSelectedActivityTab('requests');
+        setActiveTab(NavItem.ACTIVITY);
+        return;
+      }
+
+      WatchPartyService.persistDesktopRoomLink(user.id, room);
+      const details = await TmdbService.getDetails(room.tmdb_id, room.media_type);
+      if (!details) {
+        setSelectedActivityTab('requests');
+        setActiveTab(NavItem.ACTIVITY);
+        return;
+      }
+
+      commitSnapshot(buildSnapshot({
+        activeTab: NavItem.DASHBOARD,
+        selectedOfflineDownloads: null,
+        offlinePlaybackUrl: null,
+        selectedMessageConversationId: undefined,
+        selectedPlaylistId: undefined,
+        selectedMovie: null,
+        playerState: {
+          movie: {
+            ...details,
+            id: Number(room.tmdb_id),
+            tmdbId: Number(room.tmdb_id),
+            mediaType: room.media_type,
+            title: details.title || room.title || 'Watch party',
+            imageUrl: details.imageUrl || details.posterUrl || '',
+            match: details.match || 0,
+          } as Movie,
+          season: room.media_type === 'tv' ? (room.season || 1) : undefined,
+          episode: room.media_type === 'tv' ? (room.episode || 1) : undefined,
+        },
+        isSearchOpen: false,
+        isMobileMenuOpen: false,
+      }), 'push', { scrollToTop: false });
+    } catch (error) {
+      console.error('Failed to open watch party room', error);
+      setSelectedActivityTab('requests');
+      setActiveTab(NavItem.ACTIVITY);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -227,6 +289,39 @@ function StreamApp() {
         onClick: () => {
           setSelectedMessageConversationId(conversationId);
           setActiveTab(NavItem.MESSAGES);
+        },
+      }).catch(() => null);
+    });
+
+    return () => unsubscribe();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsubscribe = SocialService.subscribeToWatchPartyInviteNotifications(user.id, async (notification: Notification) => {
+      if (handledWatchPartyNotificationIdsRef.current.has(notification.id)) {
+        return;
+      }
+
+      handledWatchPartyNotificationIdsRef.current.add(notification.id);
+      if (handledWatchPartyNotificationIdsRef.current.size > 100) {
+        const oldestId = handledWatchPartyNotificationIdsRef.current.values().next().value;
+        if (oldestId) {
+          handledWatchPartyNotificationIdsRef.current.delete(oldestId);
+        }
+      }
+
+      const actorName = notification.data?.actor_username || notification.title || 'Watch party invite';
+      const body = notification.message || 'You received a watch party invite.';
+
+      await SocialService.showDesktopNotification(actorName, body).catch(() => ({ ok: false }));
+      await SocialService.showBrowserNotification(actorName, {
+        body,
+        tag: notification.data?.room_id || notification.id,
+        onClick: () => {
+          setSelectedActivityTab('requests');
+          setActiveTab(NavItem.ACTIVITY);
         },
       }).catch(() => null);
     });
@@ -806,6 +901,21 @@ function StreamApp() {
         isSearchOpen: false,
         isMobileMenuOpen: false,
       }));
+    } else if (page === 'activity') {
+      setSelectedActivityTab(params?.tab || 'notifications');
+      commitSnapshot(buildSnapshot({
+        activeTab: NavItem.ACTIVITY,
+        selectedOfflineDownloads: null,
+        offlinePlaybackUrl: null,
+        selectedMessageConversationId: undefined,
+        selectedPlaylistId: undefined,
+        selectedMovie: null,
+        playerState: null,
+        isSearchOpen: false,
+        isMobileMenuOpen: false,
+      }));
+    } else if (page === 'watch-party') {
+      void openWatchPartyRoom(params?.room || { roomId: params?.roomId, joinById: params?.joinById });
     }
   };
 
@@ -1189,10 +1299,10 @@ function StreamApp() {
               {activeTab === NavItem.ACTIVITY && (
                 <>
                   <div className="hidden md:block">
-                    <ActivityPage onNavigate={handleNavigate} />
+                    <ActivityPage onNavigate={handleNavigate} initialTab={selectedActivityTab} />
                   </div>
                   <div className="md:hidden">
-                    <MobileActivityPage onNavigate={handleNavigate} />
+                    <MobileActivityPage onNavigate={handleNavigate} initialTab={selectedActivityTab} />
                   </div>
                 </>
               )}

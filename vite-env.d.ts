@@ -18,6 +18,7 @@ interface DesktopCapturedMedia {
     resourceType: string;
     timestamp: number;
     captureKey: string;
+    requestHeaders?: Record<string, string>;
     media?: DesktopMediaCaptureSession & { key: string };
 }
 
@@ -37,6 +38,18 @@ interface DesktopBridge {
     startMediaCapture: (sessionInfo: DesktopMediaCaptureSession) => Promise<{ ok: boolean; captureKey?: string }>;
     stopMediaCapture: (captureKey: string) => Promise<{ ok: boolean }>;
     getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;
+    probePlaybackSource: (payload: {
+        url: string;
+        requiredHeaders?: Record<string, string>;
+    }) => Promise<{
+        ok: boolean;
+        finalUrl?: string;
+        contentType?: string;
+        contentLength?: number | null;
+        sourceType?: 'mp4' | 'm3u8' | 'mpd' | 'unknown';
+        expiresAt?: string | null;
+        message?: string;
+    }>;
     startTurnstileCheck: (payload: { action: string; siteKey: string }) => Promise<{ ok: boolean; requestId?: string; message?: string }>;
     openExternal: (targetUrl: string) => Promise<void>;
     downloadOfflineMedia: (payload: {

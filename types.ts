@@ -120,6 +120,135 @@ export interface DirectTypingPresence {
   updated_at: string;
 }
 
+export type WatchPartySourceState = 'pending' | 'portable' | 'guest_recheck' | 'host_only';
+export type WatchPartyRoomStatus = 'setup' | 'ready' | 'live' | 'ended';
+
+export interface WatchPartySelectedSource {
+  providerId: string;
+  providerLabel: string;
+  serverId?: string | null;
+  serverLabel?: string | null;
+  candidateId: string;
+  resolvedUrl: string;
+  sourceType: 'mp4' | 'm3u8' | 'mpd' | 'unknown';
+  qualityLabel?: string | null;
+  requiredHeaders?: Record<string, string> | null;
+  expiresAt?: string | null;
+  portability: WatchPartySourceState;
+  note?: string | null;
+  resolvedAt: string;
+}
+
+export interface WatchPartyRoom {
+  id: string;
+  room_code: string;
+  host_id: string;
+  tmdb_id: string;
+  media_type: 'movie' | 'tv';
+  season?: number | null;
+  episode?: number | null;
+  title?: string | null;
+  provider_id?: string | null;
+  provider_label?: string | null;
+  server_id?: string | null;
+  server_label?: string | null;
+  selected_source?: WatchPartySelectedSource | null;
+  source_state: WatchPartySourceState;
+  status: WatchPartyRoomStatus;
+  current_time_seconds: number;
+  is_paused: boolean;
+  countdown_started_at?: string | null;
+  countdown_seconds?: number | null;
+  playback_updated_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  expires_at?: string | null;
+}
+
+export interface WatchPartyMember {
+  room_id: string;
+  user_id: string;
+  role: 'host' | 'guest';
+  state: 'joined' | 'ready' | 'left';
+  joined_at: string;
+  ready_at?: string | null;
+  last_seen_at?: string | null;
+  profile?: Profile;
+}
+
+export interface WatchPartySourceCandidate {
+  room_id: string;
+  candidate_id: string;
+  provider_id: string;
+  provider_label?: string | null;
+  server_id?: string | null;
+  server_label?: string | null;
+  resolved_url: string;
+  source_type: 'mp4' | 'm3u8' | 'mpd' | 'unknown';
+  quality_label?: string | null;
+  required_headers?: Record<string, string> | null;
+  expires_at?: string | null;
+  portability: WatchPartySourceState;
+  status: 'discovered' | 'selected' | 'failed';
+  note?: string | null;
+  discovered_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WatchPartyRoomMessage {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  profile?: Profile;
+}
+
+export interface WatchPartyInvite {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  recipient_id: string;
+  status: 'pending' | 'accepted' | 'declined' | 'revoked';
+  created_at: string;
+  responded_at?: string | null;
+  recipient_profile?: Profile;
+}
+
+export interface WatchPartyHostPresence {
+  host_id: string;
+  room_id: string;
+  room_code: string;
+  title?: string | null;
+  media_type: 'movie' | 'tv';
+  season?: number | null;
+  episode?: number | null;
+  status: WatchPartyRoomStatus;
+  started_at: string;
+}
+
+export type PublicPresenceState = 'hosting' | 'watching' | 'online' | 'idle' | 'offline';
+
+export interface PublicProfilePresence {
+  user_id: string;
+  state: PublicPresenceState;
+  last_seen_at?: string | null;
+  activity_mode?: string | null;
+  room_id?: string | null;
+  room_code?: string | null;
+  room_title?: string | null;
+  room_media_type?: 'movie' | 'tv' | null;
+  room_season?: number | null;
+  room_episode?: number | null;
+  room_status?: WatchPartyRoomStatus | null;
+  watch_title?: string | null;
+  viewer_is_following: boolean;
+  viewer_has_pending_invite: boolean;
+  viewer_is_room_member: boolean;
+  is_joinable: boolean;
+}
+
 export interface HeroMovie extends Movie {
   tagline?: string;
   genre?: string[];
@@ -208,7 +337,7 @@ export interface PlaylistCollaborator {
 export interface Notification {
   id: string;
   user_id: string;
-  type: 'playlist_invite' | 'system' | 'follow' | 'playlist_liked' | 'follower_new_playlist' | 'direct_message';
+  type: 'playlist_invite' | 'watch_party_invite' | 'system' | 'follow' | 'playlist_liked' | 'follower_new_playlist' | 'direct_message';
   title: string;
   message: string;
   data: any;

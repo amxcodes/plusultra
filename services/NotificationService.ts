@@ -63,7 +63,7 @@ export const NotificationService = {
             .from('notifications')
             .select('id', { count: 'exact' })
             .eq('user_id', userId)
-            .neq('type', 'playlist_invite')
+            .filter('type', 'not.in', '("playlist_invite","watch_party_invite")')
             .gt('created_at', profile.last_seen_activity || '1970-01-01')
             .limit(1);
 
@@ -72,7 +72,7 @@ export const NotificationService = {
             .from('notifications')
             .select('id', { count: 'exact' })
             .eq('user_id', userId)
-            .eq('type', 'playlist_invite')
+            .in('type', ['playlist_invite', 'watch_party_invite'])
             .eq('is_read', false)
             .limit(1);
 
@@ -163,6 +163,29 @@ export const NotificationService = {
                 (payload) => {
                     const nextNotification = payload.new as Notification | undefined;
                     if (nextNotification?.type === 'direct_message') {
+                        onNotification(nextNotification);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            void supabase.removeChannel(channel);
+        };
+    },
+
+    subscribeToWatchPartyInviteNotifications(
+        userId: string,
+        onNotification: (notification: Notification) => void
+    ): () => void {
+        const channel = supabase
+            .channel(`watch-party-invite-notifications-${userId}`)
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+                (payload) => {
+                    const nextNotification = payload.new as Notification | undefined;
+                    if (nextNotification?.type === 'watch_party_invite') {
                         onNotification(nextNotification);
                     }
                 }

@@ -105,6 +105,9 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
             url: item.url,
             kind: item.url.toLowerCase().includes('.m3u8') ? 'playlist' : 'video',
             source: 'detected' as const,
+            serverId: 'desktop-capture',
+            serverLabel: 'Desktop capture',
+            requiredHeaders: item.requestHeaders,
             note: `Observed in Electron network session as ${item.resourceType}`,
         }))
     ), [desktopCapturedMedia]);

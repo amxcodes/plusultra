@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('desktop', {
     startMediaCapture: (sessionInfo) => ipcRenderer.invoke('desktop:start-media-capture', sessionInfo),
     stopMediaCapture: (captureKey) => ipcRenderer.invoke('desktop:stop-media-capture', captureKey),
     getCapturedMedia: (captureKey) => ipcRenderer.invoke('desktop:get-captured-media', captureKey),
+    probePlaybackSource: (payload) => ipcRenderer.invoke('desktop:probe-playback-source', payload),
     startTurnstileCheck: (payload) => ipcRenderer.invoke('desktop:start-turnstile-check', payload),
     openExternal: (targetUrl) => ipcRenderer.invoke('desktop:open-external', targetUrl),
     downloadOfflineMedia: (payload) => ipcRenderer.invoke('desktop:download-offline-media', payload),
