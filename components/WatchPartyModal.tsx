@@ -83,6 +83,7 @@ const panelClassName = 'rounded-[22px] border border-white/8 bg-black/20';
 const panelLabelClassName = 'text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500';
 const pillClassName = 'rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300';
 const emptyStateClassName = 'rounded-[18px] border border-dashed border-white/10 bg-black/20 px-4 py-6 text-sm text-zinc-500';
+const compactActionClassName = 'rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-200 transition-colors hover:bg-white/[0.08]';
 
 const isMemberOnline = (member: WatchPartyMember) =>
     Boolean(member.last_seen_at && Date.now() - new Date(member.last_seen_at).getTime() < 30000);
@@ -711,7 +712,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                         </div>
                     </div>
                 ) : (
-                    <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(0,1.18fr)_minmax(360px,0.82fr)]">
+                    <div className="grid min-h-0 flex-1 gap-0 xl:grid-cols-[minmax(0,1.24fr)_380px]">
                         <div className="min-h-0 border-b border-white/8 px-4 py-4 md:px-5 xl:border-b-0 xl:border-r xl:py-5">
                             {mode !== 'home' && (
                                 <button
@@ -771,11 +772,11 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
 
                             {mode !== 'home' && room && (
                                 <div className="flex h-full min-h-0 flex-col gap-4">
-                                    <div className={`${surfaceClassName} px-5 py-4`}>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div>
+                                    <div className={`${surfaceClassName} px-4 py-3.5`}>
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                            <div className="min-w-0">
                                                 <div className={panelLabelClassName}>Room signal</div>
-                                                <div className="mt-2 text-2xl font-black tracking-[0.2em] text-white">{room.room_code}</div>
+                                                <div className="mt-2 text-[28px] font-black tracking-[0.18em] text-white">{room.room_code}</div>
                                             </div>
                                             <button
                                                 type="button"
@@ -799,8 +800,8 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                     </div>
 
                                     {isHost ? (
-                                        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
-                                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-5`}>
+                                        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[248px_minmax(0,1fr)]">
+                                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-4`}>
                                                 <div className={panelLabelClassName}>Provider lanes</div>
                                                 <div className="mt-3 min-h-0 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                                                     {providers.filter((provider) => provider.enabled).map((provider) => {
@@ -810,7 +811,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                                                 key={provider.id}
                                                                 type="button"
                                                                 onClick={() => onProviderSelect(provider.id)}
-                                                                className={`flex items-center justify-between rounded-[18px] border px-4 py-3 text-left transition-colors ${
+                                                                className={`flex items-center justify-between rounded-[18px] border px-4 py-2.5 text-left transition-colors ${
                                                                     isActive
                                                                         ? 'border-white/16 bg-white text-black'
                                                                         : 'border-white/8 bg-black/20 text-zinc-300 hover:bg-white/[0.05]'
@@ -829,12 +830,12 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                                 </div>
                                             </div>
 
-                                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-5`}>
+                                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-4`}>
                                                 <div className="flex items-center justify-between gap-3">
                                                     <div>
                                                         <div className={panelLabelClassName}>Verify source</div>
-                                                        <div className="mt-2 text-sm text-zinc-400">
-                                                            Start playback on the selected provider, then choose a real stream candidate below.
+                                                        <div className="mt-1 text-sm leading-6 text-zinc-400">
+                                                            Start playback on the selected provider, then lock one tested stream from the list below.
                                                         </div>
                                                     </div>
                                                     <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400">
@@ -853,8 +854,8 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                                             const isSelected = room.selected_source?.candidateId === candidate.id;
                                                             const probe = candidateProbeState[candidate.id];
                                                             return (
-                                                                <div key={candidate.id} className="rounded-[18px] border border-white/8 bg-black/20 p-4">
-                                                                    <div className="flex items-start justify-between gap-3">
+                                                                <div key={candidate.id} className={`rounded-[18px] border p-3.5 transition-colors ${isSelected ? 'border-emerald-400/30 bg-emerald-500/[0.06]' : 'border-white/8 bg-black/20'}`}>
+                                                                    <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_114px]">
                                                                         <div className="min-w-0">
                                                                             <div className="flex flex-wrap items-center gap-2">
                                                                                 <div className="text-sm font-semibold text-white">{candidate.label}</div>
@@ -868,11 +869,11 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                                                                 )}
                                                                                 {isSelected && (
                                                                                     <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-300">
-                                                                                        Selected
+                                                                                        Active
                                                                                     </span>
                                                                                 )}
                                                                             </div>
-                                                                            <div className="mt-2 break-all text-[11px] text-zinc-500">{candidate.url}</div>
+                                                                            <div className="mt-2 line-clamp-2 break-all text-[11px] leading-5 text-zinc-500">{candidate.url}</div>
                                                                             {candidate.note && <div className="mt-1 text-[11px] text-zinc-600">{candidate.note}</div>}
                                                                             {probe?.message && (
                                                                                 <div className={`mt-1 text-[11px] ${probe.ok ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -885,7 +886,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                                                                 </div>
                                                                             )}
                                                                         </div>
-                                                                        <div className="flex flex-col gap-2">
+                                                                        <div className="flex shrink-0 flex-col gap-2 xl:items-stretch">
                                                                             <button
                                                                                 type="button"
                                                                                 disabled={roomBusy || probe?.loading}
@@ -1050,18 +1051,18 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                             )}
                         </div>
 
-                        <div className="flex min-h-0 flex-col gap-4 overflow-hidden px-4 py-4 md:px-5 xl:py-5">
+                        <div className="grid min-h-0 gap-4 overflow-hidden px-4 py-4 md:px-5 xl:grid-rows-[auto_auto_minmax(0,1fr)] xl:py-5">
                             {isHost && (
-                                <div className={`${surfaceClassName} flex min-h-0 flex-col p-5`}>
+                                <div className={`${surfaceClassName} flex min-h-0 flex-col p-4`}>
                                     <div className="flex items-center gap-2">
                                         <UserPlus size={14} className="text-zinc-400" />
                                         <div className={panelLabelClassName}>Invite following</div>
                                     </div>
-                                    <div className="mt-2 text-sm text-zinc-400">
+                                    <div className="mt-2 text-sm leading-6 text-zinc-400">
                                         Invite people you already follow directly into this room. Room codes stay as fallback only.
                                     </div>
 
-                                    <div className="mt-4 flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3">
+                                    <div className="mt-3 flex items-center gap-3 rounded-[18px] border border-white/10 bg-black/20 px-4 py-3">
                                         <Search size={14} className="text-zinc-500" />
                                         <input
                                             value={inviteSearch}
@@ -1071,7 +1072,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                         />
                                     </div>
 
-                                    <div className="mt-4 min-h-0 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
+                                    <div className="mt-3 max-h-44 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
                                         {inviteableProfiles.length === 0 ? (
                                             <div className={emptyStateClassName}>
                                                 {followingProfiles.length === 0
@@ -1084,7 +1085,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                                 const canInvite = !existingInvite || existingInvite.status === 'declined' || existingInvite.status === 'revoked';
 
                                                 return (
-                                                    <div key={profile.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+                                                    <div key={profile.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-black/20 px-3.5 py-3">
                                                         <div className="flex min-w-0 items-center gap-3">
                                                             <img
                                                                 src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}`}
@@ -1105,7 +1106,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                                                     type="button"
                                                                     disabled={roomBusy}
                                                                     onClick={() => void handleRevokeInvite(existingInvite.id)}
-                                                                    className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-200 transition-colors hover:bg-white/[0.08] disabled:opacity-60"
+                                                                    className={`${compactActionClassName} disabled:opacity-60`}
                                                                 >
                                                                     Revoke
                                                                 </button>
@@ -1127,23 +1128,46 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                 </div>
                             )}
 
-                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-5`}>
+                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-4`}>
                                 <div className="flex items-center justify-between gap-3">
                                     <div>
-                                        <div className={panelLabelClassName}>Room members</div>
-                                        <div className="mt-2 text-sm text-zinc-400">
-                                            Realtime presence for the current room.
+                                        <div className={panelLabelClassName}>Room overview</div>
+                                        <div className="mt-2 text-sm leading-6 text-zinc-400">
+                                            {room?.selected_source
+                                                ? room.status === 'live'
+                                                    ? 'Playback is live. Host timing now drives guests in direct player mode.'
+                                                    : countdownRemaining !== null
+                                                        ? `Countdown is running: ${countdownRemaining}s.`
+                                                        : needsGuestRecheck
+                                                            ? 'Host source is locked. Pick a local source on this machine before countdown ends.'
+                                                            : 'Source is locked. Start together when everyone is ready.'
+                                                : 'Realtime presence for the current room.'}
                                         </div>
                                     </div>
                                     {room && (
                                         <button
                                             type="button"
                                             onClick={() => void handleSetReady(!isReady)}
-                                            className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-200 transition-colors hover:bg-white/[0.08]"
+                                            className={compactActionClassName}
                                         >
                                             {isReady ? 'Mark joined' : 'Mark ready'}
                                         </button>
                                     )}
+                                </div>
+
+                                <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+                                    <div className={`${panelClassName} px-4 py-3`}>
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Members</div>
+                                        <div className="mt-2 text-xl font-semibold text-white">{members.length}</div>
+                                    </div>
+                                    <div className={`${panelClassName} px-4 py-3`}>
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Status</div>
+                                        <div className="mt-2 text-sm font-semibold capitalize text-white">{room?.status || 'idle'}</div>
+                                    </div>
+                                    <div className={`${panelClassName} px-4 py-3`}>
+                                        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">Source</div>
+                                        <div className="mt-2 text-sm font-semibold text-white">{room?.selected_source ? 'Locked' : 'Pending'}</div>
+                                    </div>
                                 </div>
 
                                 <div className="mt-4 min-h-0 space-y-2 overflow-y-auto pr-1 custom-scrollbar">
@@ -1153,12 +1177,12 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                         </div>
                                     ) : (
                                         members.map((member) => (
-                                            <div key={member.user_id} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+                                            <div key={member.user_id} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-black/20 px-3.5 py-3">
                                                 <div className="flex min-w-0 items-center gap-3">
                                                     <img
                                                         src={member.profile?.avatar_url || `https://ui-avatars.com/api/?name=${member.profile?.username || member.user_id}`}
                                                         alt={member.profile?.username || member.user_id}
-                                                        className="h-10 w-10 rounded-full border border-white/10 object-cover"
+                                                        className="h-9 w-9 rounded-full border border-white/10 object-cover"
                                                     />
                                                     <div className="min-w-0">
                                                         <div className="truncate text-sm font-semibold text-white">
@@ -1182,28 +1206,26 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                         ))
                                     )}
                                 </div>
-                            </div>
 
                             {room?.selected_source && (
-                                <div className={`${surfaceClassName} p-5`}>
-                                    <div className={panelLabelClassName}>Room state</div>
-                                    <div className="mt-3 text-sm text-zinc-400">
-                                        {room.status === 'live'
-                                            ? 'Playback is live. Host time controls now drive guests in direct player mode.'
-                                            : countdownRemaining !== null
-                                                ? `Countdown is running: ${countdownRemaining}s.`
-                                                : needsGuestRecheck
-                                                    ? 'Host source is locked. Pick a local source on this machine before countdown ends.'
-                                                    : 'Source is locked. Start together when everyone is ready.'}
+                                <div className="mt-4 border-t border-white/8 pt-4">
+                                    <div className="flex items-start gap-2 text-[11px] leading-5 text-zinc-500">
+                                        <Link2 size={12} className="mt-1 shrink-0" />
+                                        <span className="line-clamp-2 break-all">{room.selected_source.resolvedUrl}</span>
                                     </div>
-                                    <div className="mt-4 flex items-center gap-2 text-[11px] text-zinc-500">
-                                        <Link2 size={12} />
-                                        {room.selected_source.resolvedUrl}
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => void window.desktop?.openExternal(room.selected_source?.resolvedUrl || '')}
+                                        className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-200 transition-colors hover:bg-white/[0.08]"
+                                    >
+                                        <ExternalLink size={12} />
+                                        Open selected source
+                                    </button>
                                 </div>
                             )}
+                            </div>
 
-                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-5`}>
+                            <div className={`${surfaceClassName} flex min-h-0 flex-col p-4`}>
                                 <div className="flex items-center gap-2">
                                     <MessageSquare size={14} className="text-zinc-400" />
                                     <div className={panelLabelClassName}>Room chat</div>
@@ -1215,7 +1237,7 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                         </div>
                                     ) : (
                                         messages.map((message) => (
-                                            <div key={message.id} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+                                            <div key={message.id} className="rounded-[18px] border border-white/8 bg-black/20 px-3.5 py-3">
                                                 <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-zinc-500">
                                                     <span>{message.profile?.username || message.sender_id}</span>
                                                     <span className="opacity-40">•</span>
@@ -1251,17 +1273,6 @@ export const WatchPartyModal: React.FC<WatchPartyModalProps> = ({
                                     </div>
                                 )}
                             </div>
-
-                            {room?.selected_source?.resolvedUrl && (
-                                <button
-                                    type="button"
-                                    onClick={() => void window.desktop?.openExternal(room.selected_source?.resolvedUrl || '')}
-                                    className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-200 transition-colors hover:bg-white/[0.08]"
-                                >
-                                    <ExternalLink size={12} />
-                                    Open selected source
-                                </button>
-                            )}
                         </div>
                     </div>
                 )}
