@@ -14,6 +14,13 @@ interface MobileNavbarProps {
     messageUnreadCount: number;
 }
 
+const mobileNavButtonClassName = (isActive: boolean) =>
+    `group relative flex h-[clamp(42px,12vw,50px)] w-[clamp(42px,12vw,50px)] items-center justify-center rounded-full border transition-[background-color,border-color,color,transform] duration-200 active:scale-95 ${
+        isActive
+            ? 'border-white/[0.16] bg-[#2a2b30]/92 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
+            : 'border-transparent bg-transparent text-zinc-500 hover:border-white/[0.08] hover:bg-white/[0.055] hover:text-zinc-100'
+    }`;
+
 export const MobileNavbar: React.FC<MobileNavbarProps> = ({ activeTab, setActiveTab, onSearchClick, onMenuClick, messageUnreadCount }) => {
     // Determine if the menu tab is active based on the tabs housed inside the menu
     const isMenuTabActive = [
@@ -36,48 +43,45 @@ export const MobileNavbar: React.FC<MobileNavbarProps> = ({ activeTab, setActive
     ].includes(activeTab);
 
     return (
-        <nav className="fixed bottom-6 w-full px-6 z-[60] pb-safe flex justify-center pointer-events-none">
-            <div className="relative flex items-center justify-between px-6 py-2 bg-[#0a0a0a]/90 backdrop-blur-3xl border border-white/10 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.8)] w-full max-w-[280px] pointer-events-auto">
+        <nav className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] z-[60] flex w-full justify-center px-[clamp(0.75rem,4vw,1.5rem)] pointer-events-none md:hidden">
+            <div className="relative flex w-full max-w-[min(330px,calc(100vw-1.5rem))] items-center justify-between rounded-full border border-white/[0.08] bg-[#0b0c0f]/92 p-1.5 shadow-[0_18px_46px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] pointer-events-auto">
 
                 {/* Home */}
                 <button
                     onClick={() => setActiveTab(NavItem.DASHBOARD)}
-                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 active:scale-95"
+                    className={mobileNavButtonClassName(activeTab === NavItem.DASHBOARD)}
+                    aria-label="Dashboard"
                 >
-                    <div className={`absolute inset-0 rounded-full transition-all duration-300 border ${activeTab === NavItem.DASHBOARD ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]' : 'bg-transparent border-transparent group-hover:bg-white/5'}`} />
                     <LayoutGrid 
-                        size={22} 
-                        className={`relative z-10 transition-colors duration-300 ${activeTab === NavItem.DASHBOARD ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-zinc-400 group-hover:text-zinc-200'}`} 
-                        strokeWidth={1.5} 
+                        size={20}
+                        strokeWidth={activeTab === NavItem.DASHBOARD ? 2 : 1.6}
                     />
                 </button>
 
                 {/* Search */}
                 <button
                     onClick={onSearchClick}
-                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 active:scale-95"
+                    className={mobileNavButtonClassName(false)}
+                    aria-label="Search"
                 >
-                    <div className="absolute inset-0 rounded-full transition-colors duration-200 bg-transparent group-hover:bg-white/5 border border-transparent" />
                     <Search 
-                        size={22} 
-                        strokeWidth={1.5} 
-                        className="relative z-10 text-zinc-400 group-hover:text-white transition-colors duration-200" 
+                        size={20}
+                        strokeWidth={1.6}
                     />
                 </button>
 
                 {/* Menu */}
                 <button
                     onClick={onMenuClick}
-                    className="group relative flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200 active:scale-95"
+                    className={mobileNavButtonClassName(isMenuTabActive)}
+                    aria-label="Menu"
                 >
-                    <div className={`absolute inset-0 rounded-full transition-all duration-300 border ${isMenuTabActive ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/10 shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]' : 'bg-transparent border-transparent group-hover:bg-white/5'}`} />
                     <Menu 
-                        size={22} 
-                        className={`relative z-10 transition-colors duration-300 ${isMenuTabActive ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-zinc-400 group-hover:text-zinc-200'}`} 
-                        strokeWidth={1.5} 
+                        size={20}
+                        strokeWidth={isMenuTabActive ? 2 : 1.6}
                     />
                     {messageUnreadCount > 0 && (
-                        <span className="absolute right-[6px] top-[6px] min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold leading-none flex items-center justify-center shadow-[0_0_8px_rgba(239,68,68,0.6)]">
+                        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-black/30 bg-white px-1 text-[9px] font-black leading-none text-black">
                             {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
                         </span>
                     )}

@@ -57,6 +57,8 @@ import { GuestExpiredPage } from './components/GuestExpiredPage';
 import { isGuestExpired } from './lib/guestAccess';
 import { DownloadQuestPage, type OfflineDownloadGroup } from './components/DownloadQuestPage';
 import { MessagesPage } from './components/MessagesPage';
+import { LatestTrailersByCountrySection } from './components/LatestTrailersByCountrySection';
+import { LatestTrailersService, type CountryTrailerGroup } from './services/latestTrailers';
 import type { OfflineDownloadEntry } from './types';
 import { setActivityMode, type ActivityMode } from './lib/activityTracking';
 import type { ActivityFeedTab } from './hooks/useActivityFeed';
@@ -242,6 +244,7 @@ function StreamApp() {
   const [featuredMovies, setFeaturedMovies] = useState<Movie[]>([]);
   const [featuredPlaylists, setFeaturedPlaylists] = useState<Playlist[]>([]);
   const [communityTrending, setCommunityTrending] = useState<Movie[]>([]);
+  const [latestTrailerGroups, setLatestTrailerGroups] = useState<CountryTrailerGroup[]>([]);
   const { list: myList } = useMyList();
   const { getContinueWatching } = useWatchHistory();
   const [continueWatching, setContinueWatching] = useState<Movie[]>([]);
@@ -305,6 +308,28 @@ function StreamApp() {
     };
     loadData();
   }, [loading, user?.id]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    let cancelled = false;
+
+    LatestTrailersService.getLatestTrailersByCountries()
+      .then(groups => {
+        if (!cancelled) {
+          setLatestTrailerGroups(groups);
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          console.error("Failed to load latest trailers by country", err);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading]);
 
 
   // ... imports
@@ -944,6 +969,7 @@ function StreamApp() {
                     featuredMovies={featuredMovies}
                     featuredPlaylists={featuredPlaylists}
                     communityTrending={communityTrending}
+                    latestTrailerGroups={latestTrailerGroups}
                     continueWatching={continueWatching}
                     myList={myList}
                     activeTab={activeTab}
@@ -1039,11 +1065,9 @@ function StreamApp() {
                     />
                   )}
 
-
-
-
-
-
+                  <LatestTrailersByCountrySection
+                    groups={latestTrailerGroups}
+                  />
 
                   <Row title="Trending Now" fetchUrl={requests.fetchTrending} onMovieSelect={handleMovieSelect} isLarge onViewAll={() => openViewAll({ title: "Trending Now", fetchUrl: requests.fetchTrending })} />
                   <Row title="Top Rated" fetchUrl={requests.fetchTopRated} onMovieSelect={handleMovieSelect} onViewAll={() => openViewAll({ title: "Top Rated", fetchUrl: requests.fetchTopRated })} />

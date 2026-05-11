@@ -45,17 +45,19 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
     const MenuItem = ({ icon: Icon, label, tab, badge }: { icon: any, label: string, tab: NavItem, badge?: string }) => (
         <button
             onClick={() => handleNav(tab)}
-            className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-300 active:scale-95 border ${activeTab === tab
-                ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/20 text-white shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]'
-                : 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white border-transparent'
+            className={`flex w-full items-center justify-between rounded-[18px] border p-3 transition-[background-color,border-color,color,transform] duration-200 active:scale-[0.98] ${activeTab === tab
+                ? 'border-white/[0.16] bg-[#2a2b30]/92 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]'
+                : 'border-transparent bg-white/[0.035] text-zinc-400 hover:border-white/[0.08] hover:bg-white/[0.065] hover:text-white'
                 }`}
         >
             <div className="flex items-center gap-3">
-                <Icon size={18} strokeWidth={1.5} className={activeTab === tab ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
+                <span className={`flex h-8 w-8 items-center justify-center rounded-full border ${activeTab === tab ? 'border-white/[0.1] bg-white/[0.06]' : 'border-white/[0.05] bg-black/10'}`}>
+                    <Icon size={16} strokeWidth={activeTab === tab ? 2 : 1.6} />
+                </span>
                 <span className="font-bold text-[13px] leading-none">{label}</span>
             </div>
             <div className="flex items-center gap-2">
-                {badge && <span className="text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-full leading-none">{badge}</span>}
+                {badge && <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black leading-none text-black">{badge}</span>}
                 <ChevronRight size={14} strokeWidth={1.5} className="opacity-40" />
             </div>
         </button>
@@ -65,40 +67,40 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({ isOpen, onClose, activeT
         <>
             {/* Backdrop */}
             <div 
-                className="fixed inset-0 z-[65] bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+                className="fixed inset-0 z-[65] bg-black/55 animate-in fade-in duration-200"
                 onClick={onClose}
             />
 
             {/* Modular Floating Panel */}
-            <div className="fixed left-1/2 -translate-x-1/2 bottom-[90px] w-full max-w-[calc(100%-2rem)] sm:max-w-[360px] max-h-[75vh] z-[70] bg-[#0a0a0a]/90 backdrop-blur-3xl rounded-[32px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-8 fade-in duration-300 flex flex-col overflow-hidden">
+            <div className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom))+68px)] left-1/2 z-[70] flex max-h-[min(76vh,620px)] w-full max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-col overflow-hidden rounded-[30px] border border-white/[0.08] bg-[#0b0c0f]/96 shadow-[0_22px_64px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.06)] animate-in slide-in-from-bottom-8 fade-in duration-300 sm:max-w-[380px]">
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-5 pb-4 border-b border-white/5 bg-transparent">
-                    <h2 className="text-lg font-black text-white tracking-widest uppercase">Menu</h2>
+                <div className="flex items-center justify-between border-b border-white/[0.06] bg-transparent p-4">
+                    <h2 className="text-[15px] font-black uppercase tracking-[0.2em] text-white">Menu</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 bg-white/5 hover:bg-white/10 rounded-full text-zinc-400 hover:text-white border border-transparent transition-colors"
+                        className="rounded-full border border-white/[0.08] bg-white/[0.04] p-2 text-zinc-400 transition-colors hover:bg-white/[0.08] hover:text-white"
                     >
                         <X size={18} strokeWidth={1.5} />
                     </button>
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-5 pb-8 space-y-6 custom-scrollbar">
+                <div className="custom-scrollbar flex-1 space-y-5 overflow-y-auto p-4 pb-5">
 
                     {/* Profile Section */}
                     <div
                         onClick={() => handleNav(NavItem.PROFILE)}
-                        className="flex items-center gap-4 p-4 bg-gradient-to-br from-white/10 to-transparent rounded-2xl border border-white/5 cursor-pointer active:scale-95 transition-all duration-300 hover:border-white/20 shadow-lg"
+                        className="flex cursor-pointer items-center gap-4 rounded-[22px] border border-white/[0.08] bg-white/[0.04] p-3.5 transition-[background-color,border-color,transform] duration-200 active:scale-[0.99] hover:border-white/[0.14] hover:bg-white/[0.065]"
                     >
-                        <div className="w-12 h-12 rounded-full bg-black border border-white/20 overflow-hidden flex-shrink-0 shadow-[0_0_12px_rgba(255,255,255,0.1)]">
+                        <div className="h-11 w-11 flex-shrink-0 overflow-hidden rounded-full border border-white/15 bg-black">
                             <img
                                 src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}`}
                                 className="w-full h-full object-cover"
                             />
                         </div>
                         <div className="min-w-0">
-                            <div className="text-[15px] font-bold text-white truncate mb-0.5 tracking-wide">{profile?.username || 'Guest'}</div>
+                            <div className="mb-0.5 truncate text-[15px] font-bold tracking-wide text-white">{profile?.username || 'Guest'}</div>
                             <div className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">View Profile</div>
                         </div>
                     </div>

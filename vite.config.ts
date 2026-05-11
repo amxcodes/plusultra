@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { handleRecommendationBridge } from './server/recommendationBridgeHandler';
 import { verifyRecommendationBridgeAccess } from './server/recommendationBridgeSecurity';
+import { handleLatestTrailers } from './server/latestTrailersHandler';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
@@ -75,6 +76,26 @@ export default defineConfig(({ mode }) => {
             const response = await handleRecommendationBridge(body, {
               TASTEDIVE_API_KEY: env.TASTEDIVE_API_KEY || env.VITE_TASTEDIVE_API_KEY,
               OMDB_API_KEY: env.OMDB_API_KEY || env.VITE_OMDB_API_KEY,
+            });
+
+            res.statusCode = response.status;
+            Object.entries(response.headers).forEach(([key, value]) => res.setHeader(key, value));
+            res.end(response.body);
+          });
+
+          server.middlewares.use('/api/latest-trailers', async (req, res) => {
+            if (req.method !== 'GET') {
+              res.statusCode = 405;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Method not allowed' }));
+              return;
+            }
+
+            const url = new URL(req.url || '', 'http://localhost');
+            const response = await handleLatestTrailers({
+              countries: url.searchParams.get('countries') || undefined,
+              limit: url.searchParams.get('limit') || undefined,
+              maxAgeDays: url.searchParams.get('maxAgeDays') || undefined,
             });
 
             res.statusCode = response.status;

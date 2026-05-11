@@ -61,7 +61,9 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
 };
 import { useAuth } from '../lib/AuthContext';
 
-const navTooltipClassName = "absolute left-[76px] top-1/2 z-[70] -translate-y-1/2 rounded-xl bg-black/92 px-3 py-1.5 text-xs text-white opacity-0 shadow-xl backdrop-blur-md whitespace-nowrap pointer-events-none transition-all duration-200 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0";
+const navTooltipClassName = "absolute left-full ml-3 top-1/2 z-[90] -translate-y-1/2 rounded-full border border-white/[0.08] bg-[#18191d]/96 px-3 py-1.5 text-[11px] font-bold tracking-[0.02em] text-white opacity-0 shadow-[0_14px_34px_rgba(0,0,0,0.45)] whitespace-nowrap pointer-events-none transition-all duration-150 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0";
+const navArrivalClassName = "absolute left-full ml-3 top-1/2 z-[95] -translate-y-1/2 rounded-full border border-white/[0.1] bg-[#202126]/96 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-zinc-100 pointer-events-none whitespace-nowrap shadow-[0_12px_28px_rgba(0,0,0,0.4)]";
+const navDividerClassName = "my-1 h-px w-7 shrink-0 bg-white/[0.07]";
 
 export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearchClick, messageUnreadCount }) => {
   const { profile, user } = useAuth();
@@ -75,8 +77,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   const [currentDesktopVersion, setCurrentDesktopVersion] = React.useState<string | null>(null);
   const [latestDesktopVersion, setLatestDesktopVersion] = React.useState<string | null>(null);
   const [desktopDownloadProgress, setDesktopDownloadProgress] = React.useState<number | null>(null);
+  const [showMoreNav, setShowMoreNav] = React.useState(false);
   const profileButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const updatePopoverRef = React.useRef<HTMLDivElement | null>(null);
+  const moreButtonRef = React.useRef<HTMLButtonElement | null>(null);
+  const morePopoverRef = React.useRef<HTMLDivElement | null>(null);
   const isDesktop = Boolean(window.desktop?.isDesktop);
 
   // Fetch unread counts
@@ -129,11 +134,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   }, [isDesktop]);
 
   React.useEffect(() => {
-    if (!showDesktopUpdatePopover) {
+    if (!showDesktopUpdatePopover && !showMoreNav) {
       return;
     }
 
-    if (isDesktop && window.desktop) {
+    if (showDesktopUpdatePopover && isDesktop && window.desktop) {
       void window.desktop.getUpdateState().then((state) => {
         setUpdatePhase(state.status || 'idle');
         setCurrentDesktopVersion(state.currentVersion || null);
@@ -151,30 +156,35 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
       if (
         target &&
         !updatePopoverRef.current?.contains(target) &&
-        !profileButtonRef.current?.contains(target)
+        !profileButtonRef.current?.contains(target) &&
+        !morePopoverRef.current?.contains(target) &&
+        !moreButtonRef.current?.contains(target)
       ) {
         setShowDesktopUpdatePopover(false);
+        setShowMoreNav(false);
       }
     };
 
     window.addEventListener('mousedown', handlePointerDown);
     return () => window.removeEventListener('mousedown', handlePointerDown);
-  }, [isDesktop, showDesktopUpdatePopover]);
+  }, [isDesktop, showDesktopUpdatePopover, showMoreNav]);
 
-  // DRY helper for adaptive button styles on short screens
-  const getNavButtonClass = (isActive: boolean) => 
-    `p-2.5 [@media(max-height:850px)]:p-2 [@media(max-height:750px)]:p-1.5 rounded-[14px] transition-all duration-300 relative flex justify-center items-center border ${
+  // DRY helper for adaptive button styles on short/zoomed screens.
+  const getNavButtonClass = (isActive: boolean, variant: 'default' | 'activity' = 'default') => 
+    `relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-[background-color,border-color,color,transform] duration-200 [@media(max-height:850px)]:h-9 [@media(max-height:850px)]:w-9 [@media(max-height:720px)]:h-8 [@media(max-height:720px)]:w-8 ${
       isActive 
-        ? 'bg-gradient-to-b from-white/15 to-white/5 border-white/10 text-white shadow-[0_4px_12px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)] scale-[1.02]' 
-        : 'border-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/5'
+        ? 'border-white/[0.16] bg-[#303137] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' 
+        : variant === 'activity'
+          ? 'border-white/[0.055] bg-[linear-gradient(145deg,rgba(255,255,255,0.085),rgba(255,255,255,0.025)_58%,rgba(255,255,255,0.065))] text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/[0.12] hover:bg-[#242529] hover:text-zinc-100'
+          : 'border-transparent bg-transparent text-zinc-500 hover:border-white/[0.08] hover:bg-white/[0.04] hover:text-zinc-100'
     }`;
 
   const getIconSize = () => {
     if (typeof window !== 'undefined') {
-      if (window.innerHeight <= 750) return 14;
-      if (window.innerHeight <= 850) return 15;
+      if (window.innerHeight <= 720) return 13;
+      if (window.innerHeight <= 850) return 14;
     }
-    return 16;
+    return 17;
   };
   const iconSize = getIconSize();
   const isDownloadingUpdate = updatePhase === 'downloading';
@@ -183,12 +193,6 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     const quantity = count > 9 ? '9+' : String(count);
     return `${quantity} ${count === 1 ? singular : plural}`;
   };
-  const announcementsArrivalLabel = activeTab === NavItem.ANNOUNCEMENTS
-    ? null
-    : getNavArrivalLabel(unreadCounts.announcementsCount, 'new announcement', 'new announcements');
-  const activityArrivalLabel = activeTab === NavItem.ACTIVITY
-    ? null
-    : getNavArrivalLabel(unreadCounts.activityCount, 'new activity', 'new activities');
   const messagesArrivalLabel = activeTab === NavItem.MESSAGES
     ? null
     : getNavArrivalLabel(messageUnreadCount, 'new message', 'new messages');
@@ -278,29 +282,108 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
     }
   }, [activeTab, unreadCounts.activityCount, unreadCounts.announcementsCount]);
 
+  const isItemAvailable = (item: NavItem) => (
+    (item !== NavItem.DOWNLOAD_QUEST || isDesktop) &&
+    (item !== NavItem.ADMIN || profile?.role === 'admin') &&
+    (item !== NavItem.REQUESTS || canStream) &&
+    (item !== NavItem.STATS || canStream)
+  );
+  const primaryNavItems = [
+    NavItem.MESSAGES,
+    NavItem.MOVIES,
+    NavItem.SERIES,
+    NavItem.ANIME,
+    NavItem.FOR_YOU,
+    NavItem.PLAYLISTS,
+    NavItem.STATS,
+    NavItem.ACTIVITY,
+  ].filter(isItemAvailable);
+  const moreNavItems = [
+    NavItem.NEWS,
+    NavItem.ASIAN_DRAMA,
+    NavItem.CURATOR,
+    NavItem.REQUESTS,
+    NavItem.DOWNLOAD_QUEST,
+    NavItem.ANNOUNCEMENTS,
+    NavItem.ADMIN,
+  ].filter(isItemAvailable);
+  const isMoreActive = moreNavItems.includes(activeTab);
+  const moreBadgeCount = unreadCounts.announcementsCount;
+
+  const navigateToItem = (item: NavItem) => {
+    setActiveTab(item);
+    setShowMoreNav(false);
+
+    if (item === NavItem.ANNOUNCEMENTS) {
+      setUnreadCounts(prev => ({ ...prev, announcementsCount: 0 }));
+    }
+
+    if (item === NavItem.ACTIVITY) {
+      setUnreadCounts(prev => ({ ...prev, activityCount: 0 }));
+    }
+  };
+
+  const renderRailItem = (item: NavItem) => {
+    const Icon = NAV_ICONS[item];
+    const isActive = activeTab === item;
+    const showMessageBadge = item === NavItem.MESSAGES && Boolean(messagesArrivalLabel);
+    const showActivityBadge = item === NavItem.ACTIVITY && activeTab !== NavItem.ACTIVITY && unreadCounts.activityCount > 0;
+
+    return (
+      <div key={item} className="relative group flex justify-center w-full">
+        <button
+          onClick={() => navigateToItem(item)}
+          className={getNavButtonClass(isActive, item === NavItem.ACTIVITY ? 'activity' : 'default')}
+          aria-label={item}
+        >
+          <Icon
+            size={iconSize}
+            strokeWidth={isActive ? 2 : 1.6}
+          />
+        </button>
+
+        {showMessageBadge && (
+          <div className={navArrivalClassName}>
+            {messagesArrivalLabel}
+          </div>
+        )}
+
+        {showActivityBadge && (
+          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-white" />
+        )}
+
+        <div className={navTooltipClassName}>
+          {item}
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <nav className="fixed left-4 top-4 bottom-4 z-[60] isolate w-[64px] overflow-visible flex flex-col items-center py-4 bg-[#0a0a0a]/80 backdrop-blur-2xl rounded-[24px] border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.5)]">
+    <nav className="fixed left-3 top-1/2 z-[60] isolate hidden min-h-[clamp(520px,78dvh,760px)] max-h-[calc(100dvh-1rem)] w-[clamp(52px,4.8vw,66px)] -translate-y-1/2 overflow-visible rounded-[30px] border border-white/[0.09] bg-[#111216]/98 py-4 shadow-[0_18px_56px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.07)] md:flex md:flex-col md:items-center [@media(max-height:760px)]:min-h-[calc(100dvh-1rem)] [@media(max-height:760px)]:py-2">
 
       {/* Top: Home/Logo */}
-      <div className="mb-2 [@media(max-height:850px)]:mb-1 [@media(max-height:750px)]:mb-0">
+      <div className="mb-2 shrink-0 [@media(max-height:760px)]:mb-1">
         <button
           onClick={() => setActiveTab(NavItem.DASHBOARD)}
           className={getNavButtonClass(activeTab === NavItem.DASHBOARD)}
+          aria-label="Dashboard"
         >
-          <LayoutGrid size={iconSize} strokeWidth={activeTab === NavItem.DASHBOARD ? 2 : 1.5} className={activeTab === NavItem.DASHBOARD ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
+          <LayoutGrid size={iconSize} strokeWidth={activeTab === NavItem.DASHBOARD ? 2 : 1.6} />
         </button>
       </div>
 
-      {/* Middle: Navigation */}
-      <div className="flex flex-col items-center gap-2 [@media(max-height:850px)]:gap-1.5 [@media(max-height:750px)]:gap-1 flex-1 w-full px-2">
+      {/* Middle: core navigation. Lower-frequency routes live in the More flyout so the rail never scrolls. */}
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-1.5 [@media(max-height:760px)]:gap-1">
 
         {/* Search - Distinct */}
         <div className="relative group flex justify-center w-full">
           <button
             onClick={onSearchClick}
             className={getNavButtonClass(false)}
+            aria-label="Search"
           >
-            <Search size={iconSize} strokeWidth={1.5} />
+            <Search size={iconSize} strokeWidth={1.6} />
           </button>
 
           {/* Tooltip */}
@@ -310,132 +393,110 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
         </div>
 
         {/* Divider */}
-        <div className="w-8 h-px bg-white/5 my-1"></div>
+        <div className={navDividerClassName}></div>
 
-        {/* News Feed Button - Specific Placement */}
-        <div className="relative group flex justify-center w-full mb-1 [@media(max-height:750px)]:mb-0">
+        {primaryNavItems.map(renderRailItem)}
+
+        <div className={navDividerClassName}></div>
+
+        <div className="relative group flex justify-center w-full">
           <button
-            onClick={() => setActiveTab(NavItem.NEWS)}
-            className={getNavButtonClass(activeTab === NavItem.NEWS)}
+            ref={moreButtonRef}
+            onClick={() => {
+              setShowMoreNav((current) => !current);
+              setShowDesktopUpdatePopover(false);
+            }}
+            className={getNavButtonClass(isMoreActive || showMoreNav)}
+            aria-label="More navigation"
+            aria-expanded={showMoreNav}
           >
-            <Newspaper
-              size={iconSize}
-              strokeWidth={activeTab === NavItem.NEWS ? 2 : 1.5}
-              className={activeTab === NavItem.NEWS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""}
-            />
+            <Menu size={iconSize} strokeWidth={isMoreActive || showMoreNav ? 2 : 1.6} />
+            {moreBadgeCount > 0 && (
+              <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-white" />
+            )}
           </button>
 
           <div className={navTooltipClassName}>
-            News Feed
+            More
           </div>
-        </div>
 
-        {Object.values(NavItem).filter(item =>
-          item !== NavItem.DASHBOARD &&
-          item !== NavItem.SETTINGS &&
-          item !== NavItem.PROFILE &&
-          item !== NavItem.MY_LIST &&
-          item !== NavItem.ANNOUNCEMENTS &&
-          item !== NavItem.ACTIVITY &&
-          item !== NavItem.PLAYLISTS &&
-          item !== NavItem.STATS &&
-          item !== NavItem.NEWS && // Exclude News from generic loop if we want to place it specifically, OR format if we want it in loop. Let's keep it in loop for now, but user "latest" might be different?
-          (item !== NavItem.DOWNLOAD_QUEST || isDesktop) &&
-          (item !== NavItem.ADMIN || profile?.role === 'admin') &&
-          (item !== NavItem.REQUESTS || canStream)
-        ).map((item) => {
-          const Icon = NAV_ICONS[item];
-          const isActive = activeTab === item;
-          const showMessageBadge = item === NavItem.MESSAGES && Boolean(messagesArrivalLabel);
-
-          return (
-            <div key={item} className="relative group flex justify-center w-full">
-              <button
-                onClick={() => setActiveTab(item)}
-                className={getNavButtonClass(isActive)}
-              >
-                <Icon
-                  size={iconSize}
-                  strokeWidth={isActive ? 2 : 1.5}
-                  className={isActive ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""}
-                />
-              </button>
-
-              {showMessageBadge && (
-                <div className="absolute left-[74px] top-1/2 z-[95] -translate-y-1/2 rounded-full border border-white/10 bg-[#17191f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-200 pointer-events-none whitespace-nowrap">
-                  {messagesArrivalLabel}
+          {showMoreNav && (
+            <div
+              ref={morePopoverRef}
+              className="absolute left-full top-1/2 z-[100] ml-8 w-[330px] -translate-y-1/2 rounded-[34px] border border-white/[0.1] bg-[#111216] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.64),inset_0_1px_0_rgba(255,255,255,0.08)]"
+            >
+              <div className="mb-2 flex items-center justify-between px-2">
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Navigation</div>
+                  <div className="mt-0.5 text-sm font-bold text-white">More places</div>
                 </div>
-              )}
+                <button
+                  type="button"
+                  onClick={() => setShowMoreNav(false)}
+                  className="rounded-full border border-white/[0.1] bg-[#242529] p-1.5 text-zinc-400 transition-colors hover:bg-[#2b2c30] hover:text-white"
+                  aria-label="Close more navigation"
+                >
+                  <X size={13} />
+                </button>
+              </div>
 
-              {/* Tooltip */}
-              <div className={navTooltipClassName}>
-                {item}
+              <div className="grid grid-cols-2 gap-2">
+                {moreNavItems.map((item) => {
+                  const Icon = NAV_ICONS[item];
+                  const isActive = activeTab === item;
+                  const itemBadge =
+                    item === NavItem.ANNOUNCEMENTS && unreadCounts.announcementsCount > 0
+                      ? (unreadCounts.announcementsCount > 9 ? '9+' : String(unreadCounts.announcementsCount))
+                      : null;
+
+                  return (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => navigateToItem(item)}
+                      className={`flex min-h-[50px] items-center justify-between gap-2 rounded-[22px] border px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[background-color,border-color,color] duration-200 ${
+                        isActive
+                          ? 'border-white/[0.16] bg-[#2a2b30] text-white'
+                          : 'border-white/[0.055] bg-[#1a1b20] text-zinc-400 hover:border-white/[0.12] hover:bg-[#242529] hover:text-white'
+                      }`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${isActive ? 'border-white/[0.12] bg-white/[0.08]' : 'border-white/[0.08] bg-black/15'}`}>
+                          <Icon size={15} strokeWidth={isActive ? 2 : 1.6} />
+                        </span>
+                        <span className="truncate text-[12px] font-bold">{item}</span>
+                      </span>
+                      {itemBadge && (
+                        <span className="rounded-full bg-white px-1.5 py-0.5 text-[9px] font-black leading-none text-black">
+                          {itemBadge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
+          )}
+        </div>
       </div>
 
-      {/* Bottom: Settings & Profile */}
-      <div className="mt-auto flex flex-col items-center gap-2 [@media(max-height:850px)]:gap-1.5 [@media(max-height:750px)]:gap-1">
+      {/* Bottom: profile/update entry stays fixed; the rest is in More. */}
+      <div className="mt-2 flex shrink-0 flex-col items-center gap-1.5 px-1.5 [@media(max-height:760px)]:mt-1 [@media(max-height:760px)]:gap-1">
+        <div className={navDividerClassName}></div>
 
-        {/* Announcements (Bell) */}
-        <div className="relative w-full flex justify-center">
+        <div className="relative group flex justify-center w-full">
           <button
-            onClick={() => {
-              setActiveTab(NavItem.ANNOUNCEMENTS);
-              setUnreadCounts(prev => ({ ...prev, announcementsCount: 0 }));
-            }}
-            className={getNavButtonClass(activeTab === NavItem.ANNOUNCEMENTS)}
+            onClick={() => navigateToItem(NavItem.SETTINGS)}
+            className={getNavButtonClass(activeTab === NavItem.SETTINGS)}
+            aria-label="Settings"
           >
-            <Bell size={iconSize} strokeWidth={activeTab === NavItem.ANNOUNCEMENTS ? 2 : 1.5} className={activeTab === NavItem.ANNOUNCEMENTS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
+            <Settings size={iconSize} strokeWidth={activeTab === NavItem.SETTINGS ? 2 : 1.6} />
           </button>
-          {announcementsArrivalLabel && (
-            <div className="absolute left-[74px] top-1/2 z-[95] -translate-y-1/2 rounded-full border border-white/10 bg-[#17191f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-200 pointer-events-none whitespace-nowrap">
-              {announcementsArrivalLabel}
-            </div>
-          )}
+
+          <div className={navTooltipClassName}>
+            Settings
+          </div>
         </div>
-
-        <div className="relative w-full flex justify-center">
-          <button
-            onClick={() => {
-              setActiveTab(NavItem.ACTIVITY);
-              setUnreadCounts(prev => ({ ...prev, activityCount: 0 }));
-            }}
-            className={getNavButtonClass(activeTab === NavItem.ACTIVITY)}
-          >
-            <Activity size={iconSize} strokeWidth={activeTab === NavItem.ACTIVITY ? 2 : 1.5} className={activeTab === NavItem.ACTIVITY ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
-          </button>
-          {activityArrivalLabel && (
-            <div className="absolute left-[74px] top-1/2 z-[95] -translate-y-1/2 rounded-full border border-white/10 bg-[#17191f] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-zinc-200 pointer-events-none whitespace-nowrap">
-              {activityArrivalLabel}
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={() => setActiveTab(NavItem.PLAYLISTS)}
-          className={getNavButtonClass(activeTab === NavItem.PLAYLISTS)}
-        >
-          <ListVideo size={iconSize} strokeWidth={activeTab === NavItem.PLAYLISTS ? 2 : 1.5} className={activeTab === NavItem.PLAYLISTS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
-        </button>
-
-        {canStream && (
-          <button
-            onClick={() => setActiveTab(NavItem.STATS)}
-            className={getNavButtonClass(activeTab === NavItem.STATS)}
-          >
-            <BarChart2 size={iconSize} strokeWidth={activeTab === NavItem.STATS ? 2 : 1.5} className={activeTab === NavItem.STATS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
-          </button>
-        )}
-
-        <button
-          onClick={() => setActiveTab(NavItem.SETTINGS)}
-          className={getNavButtonClass(activeTab === NavItem.SETTINGS)}
-        >
-          <Settings size={iconSize} strokeWidth={activeTab === NavItem.SETTINGS ? 2 : 1.5} className={activeTab === NavItem.SETTINGS ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" : ""} />
-        </button>
 
         {/* Profile */}
         <div className="relative group flex justify-center w-full mt-1 [@media(max-height:750px)]:mt-0">
@@ -449,9 +510,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
 
               setActiveTab(NavItem.PROFILE);
             }}
-            className={`p-1 [@media(max-height:750px)]:p-0.5 rounded-full border-2 transition-all duration-300 ${activeTab === NavItem.PROFILE ? 'border-white' : 'border-transparent hover:border-white/50'}`}
+            className={`rounded-full border p-1 transition-[border-color,background-color] duration-200 [@media(max-height:760px)]:p-0.5 ${activeTab === NavItem.PROFILE ? 'border-white/40 bg-white/[0.06]' : 'border-transparent hover:border-white/20 hover:bg-white/[0.05]'}`}
+            aria-label={isDesktop ? 'Desktop update and profile' : 'Profile'}
           >
-          <div className="w-7 h-7 rounded-full bg-zinc-800 overflow-hidden">
+          <div className="h-7 w-7 overflow-hidden rounded-full bg-zinc-800 [@media(max-height:760px)]:h-6 [@media(max-height:760px)]:w-6">
             <img
               src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&background=10b981&color=fff&bold=true`}
               alt="Profile"

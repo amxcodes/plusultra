@@ -5,13 +5,16 @@ import { MobileHero } from './MobileHero';
 import { MobileRow } from './MobileRow';
 import { PlaylistRow } from './PlaylistRow';
 import { requests } from '../services/tmdb';
+import type { CountryTrailerGroup } from '../services/latestTrailers';
 import { LibraryBig } from 'lucide-react';
+import { LatestTrailersByCountrySection } from './LatestTrailersByCountrySection';
 
 interface MobileHomeProps {
     heroMovie: HeroMovie | null;
     featuredMovies: Movie[];
     featuredPlaylists: Playlist[];
     communityTrending: Movie[];
+    latestTrailerGroups: CountryTrailerGroup[];
     continueWatching: Movie[];
     myList: Movie[];
     activeTab: NavItem;
@@ -29,6 +32,7 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
     featuredMovies,
     featuredPlaylists,
     communityTrending,
+    latestTrailerGroups,
     continueWatching,
     myList,
     activeTab,
@@ -96,6 +100,10 @@ export const MobileHome: React.FC<MobileHomeProps> = ({
                         onViewAll={() => onViewAll({ title: "Trending With Users", movies: communityTrending })}
                     />
                 )}
+
+                <LatestTrailersByCountrySection
+                    groups={latestTrailerGroups}
+                />
 
                 <MobileRow title="Trending Now" fetchUrl={requests.fetchTrending} onMovieSelect={onMovieSelect} isLarge onViewAll={() => onViewAll({ title: "Trending Now", fetchUrl: requests.fetchTrending })} />
                 <MobileRow title="Top Rated" fetchUrl={requests.fetchTopRated} onMovieSelect={onMovieSelect} onViewAll={() => onViewAll({ title: "Top Rated", fetchUrl: requests.fetchTopRated })} />
