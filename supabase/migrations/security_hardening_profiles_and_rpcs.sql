@@ -1,6 +1,6 @@
 -- SECURITY HARDENING
 -- Locks down profile privacy, blocks self-privilege escalation, hardens
--- SECURITY DEFINER playlist RPCs, and disables the legacy watch_party table.
+-- SECURITY DEFINER playlist RPCs, and disables legacy social surfaces.
 
 -- ---------------------------------------------------------------------------
 -- PROFILE READ BOUNDARIES
@@ -458,36 +458,3 @@ GRANT EXECUTE ON FUNCTION public.track_playlist_view(uuid) TO service_role;
 REVOKE ALL ON FUNCTION public.clear_my_watch_history() FROM public, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.clear_my_watch_history() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.clear_my_watch_history() TO service_role;
-
--- ---------------------------------------------------------------------------
--- LEGACY WATCH PARTY LOCKDOWN
--- ---------------------------------------------------------------------------
-
-DROP POLICY IF EXISTS "Anyone can view active parties" ON public.watch_parties;
-DROP POLICY IF EXISTS "Users can create parties" ON public.watch_parties;
-DROP POLICY IF EXISTS "Host can update party" ON public.watch_parties;
-DROP POLICY IF EXISTS "Host can delete party" ON public.watch_parties;
-DROP POLICY IF EXISTS "watch_parties_disabled_select" ON public.watch_parties;
-DROP POLICY IF EXISTS "watch_parties_disabled_insert" ON public.watch_parties;
-DROP POLICY IF EXISTS "watch_parties_disabled_update" ON public.watch_parties;
-DROP POLICY IF EXISTS "watch_parties_disabled_delete" ON public.watch_parties;
-
-CREATE POLICY "watch_parties_disabled_select"
-ON public.watch_parties FOR SELECT
-USING (false);
-
-CREATE POLICY "watch_parties_disabled_insert"
-ON public.watch_parties FOR INSERT
-WITH CHECK (false);
-
-CREATE POLICY "watch_parties_disabled_update"
-ON public.watch_parties FOR UPDATE
-USING (false)
-WITH CHECK (false);
-
-CREATE POLICY "watch_parties_disabled_delete"
-ON public.watch_parties FOR DELETE
-USING (false);
-
-COMMENT ON TABLE public.watch_parties IS
-  'LEGACY / DISABLED. Watch-together now relies on the browser extension flow, not database-backed party records.';

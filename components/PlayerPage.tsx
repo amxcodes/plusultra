@@ -32,7 +32,6 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episo
     return (
         <div className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-500">
             {/* Back Button */}
-            {/* Back Button */}
             <button
                 onClick={onBack}
                 className="absolute top-4 left-4 md:top-6 md:left-6 z-[120] flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full bg-black/60 hover:bg-white/10 text-white backdrop-blur-md border border-white/10 transition-all group shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
@@ -57,6 +56,7 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episo
                                 season,
                                 episode,
                                 provider: 'offline',
+                                progressSource: 'direct_exact',
                                 title: movie.title,
                                 posterUrl: movie.imageUrl,
                                 backdropUrl: movie.backdropUrl || movie.imageUrl,

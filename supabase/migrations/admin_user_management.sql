@@ -47,8 +47,6 @@ BEGIN
     -- Foreign key CASCADE will handle:
     --   - playlists (user_id FK)
     --   - playlist_items (via playlists cascade)
-    --   - watch_party (created_by FK)  
-    --   - watch_party_members (user_id FK)
     --   - playlist_likes (user_id FK)
     --   - follows (follower_id/following_id FK)
     DELETE FROM profiles WHERE id = p_user_id;

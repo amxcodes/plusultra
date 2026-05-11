@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Activity, Bell, Check, Heart, LibraryBig, MonitorPlay, UserCheck, UserPlus, X } from 'lucide-react';
+import { Activity, Bell, Check, Heart, LibraryBig, UserCheck, UserPlus, X } from 'lucide-react';
 import { useActivityFeed, type ActivityFeedTab } from '../hooks/useActivityFeed';
-import { Notification, PublicProfilePresence } from '../types';
+import { Notification } from '../types';
 
 interface MobileActivityPageProps {
     onNavigate?: (page: string, params?: any) => void;
@@ -34,12 +34,6 @@ const getNotificationAccent = (notification: Notification) => {
                 badge: 'New Follower',
                 iconClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
             };
-        case 'watch_party_invite':
-            return {
-                icon: <MonitorPlay size={16} />,
-                badge: 'Watch Party',
-                iconClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-            };
         default:
             return {
                 icon: <Bell size={16} />,
@@ -53,7 +47,6 @@ export const MobileActivityPage: React.FC<MobileActivityPageProps> = ({ onNaviga
     const {
         followers,
         followingIds,
-        publicPresence,
         requestNotifications,
         feedNotifications,
         isLoading,
@@ -66,31 +59,9 @@ export const MobileActivityPage: React.FC<MobileActivityPageProps> = ({ onNaviga
         setActiveTab(initialTab);
     }, [initialTab]);
 
-    const getPresenceLabel = (presence: PublicProfilePresence) => {
-        if (presence.state === 'hosting') {
-            const episodeLabel = presence.room_media_type === 'tv'
-                ? ` S${presence.room_season || 1}E${presence.room_episode || 1}`
-                : '';
-            return `Hosting now: ${presence.room_title || 'Watch party'}${episodeLabel}`;
-        }
-
-        if (presence.state === 'watching') {
-            return `Watching now: ${presence.watch_title || 'Something'}`;
-        }
-
-        if (presence.state === 'online') return 'Online';
-        if (presence.state === 'idle') return 'Idle';
-        return 'Offline';
-    };
-
     const openNotificationTarget = (notification: Notification) => {
         if (notification.type === 'direct_message' && notification.data?.conversation_id) {
             onNavigate?.('messages', { conversationId: notification.data.conversation_id });
-            return;
-        }
-
-        if (notification.type === 'watch_party_invite' && notification.data?.room_id) {
-            onNavigate?.('activity', { tab: 'requests' });
             return;
         }
 
@@ -224,12 +195,7 @@ export const MobileActivityPage: React.FC<MobileActivityPageProps> = ({ onNaviga
                                 </div>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={async () => {
-                                            const result = await handleRespondToInvite(notification, 'accepted');
-                                            if (notification.type === 'watch_party_invite' && result.watchPartyRoom) {
-                                                onNavigate?.('watch-party', { room: result.watchPartyRoom });
-                                            }
-                                        }}
+                                        onClick={() => void handleRespondToInvite(notification, 'accepted')}
                                         className="flex-1 py-2 bg-blue-500 text-white text-xs font-bold rounded-xl active:scale-95 transition-transform"
                                     >
                                         <span className="inline-flex items-center gap-1">
@@ -264,8 +230,6 @@ export const MobileActivityPage: React.FC<MobileActivityPageProps> = ({ onNaviga
                             <div className="space-y-1">
                                 {followers.map((follower) => {
                                     const isFollowingBack = followingIds.has(follower.id);
-                                    const presence = publicPresence[follower.id];
-
                                     return (
                                         <div key={follower.id} className="p-3 bg-zinc-900/30 rounded-2xl border border-white/5 flex items-center justify-between">
                                             <div
@@ -281,45 +245,7 @@ export const MobileActivityPage: React.FC<MobileActivityPageProps> = ({ onNaviga
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-bold text-white">{follower.username}</div>
-                                                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                        <div className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wide">Followed You</div>
-                                                        {presence && presence.state !== 'offline' && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    if (presence.state === 'hosting' && presence.is_joinable && presence.room_id) {
-                                                                        onNavigate?.('watch-party', { roomId: presence.room_id, joinById: true });
-                                                                        return;
-                                                                    }
-                                                                    onNavigate?.('profile', { id: follower.id });
-                                                                }}
-                                                                className={`rounded-full border px-2 py-1 text-[8px] font-bold uppercase tracking-[0.16em] ${
-                                                                    presence.state === 'hosting'
-                                                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
-                                                                        : presence.state === 'watching'
-                                                                            ? 'border-blue-500/20 bg-blue-500/10 text-blue-300'
-                                                                            : 'border-white/10 bg-white/[0.04] text-zinc-300'
-                                                                }`}
-                                                            >
-                                                                {getPresenceLabel(presence)}
-                                                            </button>
-                                                        )}
-                                                        {presence?.state === 'hosting' && presence.is_joinable && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(event) => {
-                                                                    event.stopPropagation();
-                                                                    if (presence.room_id) {
-                                                                        onNavigate?.('watch-party', { roomId: presence.room_id, joinById: true });
-                                                                    }
-                                                                }}
-                                                                className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.16em] text-amber-300"
-                                                            >
-                                                                Joinable now
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                    <div className="mt-1 text-[10px] text-zinc-500 font-semibold uppercase tracking-wide">Followed You</div>
                                                 </div>
                                             </div>
 

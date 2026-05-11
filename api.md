@@ -184,9 +184,6 @@ Enable/disable downloads menu (default: true)
 
 Set to false to hide the downloads menu
 Watch Party Parameter has-watchparty=true
-Enable/disable watch party feature (default: true)
-
-Set to false to hide the watch party menu
 Language Order Parameter language-order=en,hi,fr,de,nl,pt
 Set subtitle language priority order (default: en,hi,fr,de,nl,pt)
 

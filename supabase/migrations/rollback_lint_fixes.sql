@@ -37,8 +37,6 @@ ALTER FUNCTION public.refresh_community_stats_cache() RESET search_path;
 ALTER FUNCTION public.admin_delete_user(uuid) RESET search_path;
 ALTER FUNCTION public.handle_new_user() RESET search_path;
 ALTER FUNCTION public.check_registration_enabled() RESET search_path;
-ALTER FUNCTION public.cleanup_expired_parties() RESET search_path;
-ALTER FUNCTION public.generate_invite_code() RESET search_path;
 
 ALTER FUNCTION public.handle_reply_vote(UUID, INT) RESET search_path;
 ALTER FUNCTION public.auto_fulfill_request() RESET search_path;
@@ -134,14 +132,6 @@ CREATE POLICY "Users can unfollow" ON public.follows FOR DELETE USING (follower_
 -- Featured Movies
 DROP POLICY IF EXISTS "featured_movies_manage_admin" ON public.featured_movies;
 CREATE POLICY "Admins can manage featured movies" ON public.featured_movies FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
-
--- Watch Parties
-DROP POLICY IF EXISTS "Users can create parties" ON public.watch_parties;
-CREATE POLICY "Users can create parties" ON public.watch_parties FOR INSERT WITH CHECK (host_id = auth.uid());
-DROP POLICY IF EXISTS "Host can update party" ON public.watch_parties;
-CREATE POLICY "Host can update party" ON public.watch_parties FOR UPDATE USING (host_id = auth.uid());
-DROP POLICY IF EXISTS "Host can delete party" ON public.watch_parties;
-CREATE POLICY "Host can delete party" ON public.watch_parties FOR DELETE USING (host_id = auth.uid());
 
 -- Server Votes
 DROP POLICY IF EXISTS "Authenticated users can vote" ON public.server_votes;

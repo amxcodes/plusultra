@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
-import { Settings, Check, Users, Download, ExternalLink, ThumbsUp, X, SkipForward } from 'lucide-react';
+import { Settings, Check, Download, ExternalLink, ThumbsUp, X, SkipForward } from 'lucide-react';
 import { CommunityService, RequestReply } from '../lib/community';
 import { TmdbService } from '../services/tmdb';
-import { WatchPartyModal } from './WatchPartyModal';
 import { StatsService } from '../services/stats';
 import { ServerVotingModal } from './ServerVotingModal';
 import { VIEW_SESSION_HEARTBEAT_SECONDS } from '../lib/sessionTracking';
@@ -12,9 +11,7 @@ import { getProviderAdapter, PLAYER_PROVIDER_DEFAULTS, Provider, ProviderContext
 import { usePlayerProviders } from '../hooks/usePlayerProviders';
 import { StreamDownloadPanel } from './StreamDownloadPanel';
 import { getTrackingContext } from '../lib/activityTracking';
-import { WatchPartyService } from '../services/WatchPartyService';
 import { useAuth } from '../lib/AuthContext';
-import type { WatchPartyRoom, WatchPartySelectedSource } from '../types';
 
 interface UnifiedPlayerProps {
     tmdbId: string;
@@ -34,15 +31,6 @@ interface UnifiedPlayerProps {
 
 export type { Provider } from '../lib/playerProviders';
 export const PROVIDERS = PLAYER_PROVIDER_DEFAULTS;
-const WATCH_PARTY_STORAGE_PREFIX = 'plusultra:watch-party';
-
-const getWatchPartyStorageKey = (
-    userId: string | undefined,
-    tmdbId: string,
-    mediaType: 'movie' | 'tv',
-    season: number,
-    episode: number
-) => `${WATCH_PARTY_STORAGE_PREFIX}:${userId || 'guest'}:${tmdbId}:${mediaType}:${season}:${episode}`;
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     tmdbId,
@@ -95,7 +83,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             console.error("Failed to vote", e);
         }
     };
-    const [showWatchPartyModal, setShowWatchPartyModal] = useState(false);
     const [showVotingModal, setShowVotingModal] = useState(false);
     const [genres, setGenres] = useState<string[]>([]);
     const [nextEpisodeTarget, setNextEpisodeTarget] = useState<{ season: number; episode: number } | null>(null);
@@ -108,11 +95,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const directVideoRef = useRef<HTMLVideoElement>(null);
     const { providers } = usePlayerProviders();
     const [desktopCaptureKey, setDesktopCaptureKey] = useState<string | null>(null);
-    const [activeWatchPartyRoom, setActiveWatchPartyRoom] = useState<WatchPartyRoom | null>(null);
-    const [localWatchPartySourceOverride, setLocalWatchPartySourceOverride] = useState<WatchPartySelectedSource | null>(null);
-    const watchPartySyncGuardRef = useRef(false);
-    const lastGuestPlaybackUpdateRef = useRef<string | null>(null);
-    const countdownLaunchKeyRef = useRef<string | null>(null);
+    const lastLoggedPlaybackTargetRef = useRef<string | null>(null);
 
     // Fetch genres from TMDB for stats tracking
     useEffect(() => {
@@ -265,39 +248,44 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const directSources = currentProvider.renderMode === 'direct'
         ? currentProvider.getDirectSources?.(providerContext) || []
         : [];
-    const isWatchPartyHost = activeWatchPartyRoom?.host_id === user?.id;
-    const activeWatchPartySource = useMemo(() => {
-        if (isWatchPartyHost) {
-            return activeWatchPartyRoom?.selected_source || null;
-        }
-        if (activeWatchPartyRoom?.source_state && activeWatchPartyRoom.source_state !== 'portable') {
-            return localWatchPartySourceOverride || null;
-        }
-        return localWatchPartySourceOverride || activeWatchPartyRoom?.selected_source || null;
-    }, [activeWatchPartyRoom?.selected_source, activeWatchPartyRoom?.source_state, isWatchPartyHost, localWatchPartySourceOverride]);
-    const watchPartyOverrideSources = useMemo(() => {
-        if (!window.desktop?.isDesktop) return [];
-        if (!activeWatchPartySource?.resolvedUrl) return [];
-
-        return [{
-            src: activeWatchPartySource.resolvedUrl,
-            type: activeWatchPartySource.sourceType === 'm3u8'
-                ? 'application/x-mpegURL'
-                : activeWatchPartySource.sourceType === 'mpd'
-                    ? 'application/dash+xml'
-                    : activeWatchPartySource.sourceType === 'mp4'
-                        ? 'video/mp4'
-                        : undefined,
-        }];
-    }, [activeWatchPartySource, window.desktop?.isDesktop]);
-    const effectiveDirectSources = watchPartyOverrideSources.length > 0 ? watchPartyOverrideSources : directSources;
     const currentEmbedUrl = currentProvider.getEmbedUrl?.(providerContext) || '';
-    const playbackTargetKey = `${activeWatchPartyRoom?.id || 'solo'}:${currentProvider.id}:${tmdbId}:${mediaType}:${season}:${episode}`;
-    const isDesktopWatchPartyActive = Boolean(window.desktop?.isDesktop && activeWatchPartySource?.resolvedUrl);
-    const watchPartyStorageKey = useMemo(
-        () => getWatchPartyStorageKey(user?.id, tmdbId, mediaType, season, episode),
+    const playbackTargetKey = `${currentProvider.id}:${tmdbId}:${mediaType}:${season}:${episode}`;
+    const directProgressStorageKey = useMemo(
+        () => `plusultra:direct-progress:${user?.id || 'guest'}:${tmdbId}:${mediaType}:${season}:${episode}`,
         [episode, mediaType, season, tmdbId, user?.id]
     );
+    const directProgressContext = useMemo(() => ({
+        storageKey: directProgressStorageKey,
+        tmdbId,
+        mediaType,
+        season,
+        episode,
+        provider: currentProvider.id,
+        progressSource: 'direct_exact' as const,
+        title,
+        posterUrl,
+        backdropUrl: currentMovieBackdrop || backdropUrl,
+        year,
+        genres: genres.length > 0 ? genres : undefined,
+        voteAverage,
+        episodeImage: currentEpisodeImage || episodeImage,
+    }), [
+        backdropUrl,
+        currentEpisodeImage,
+        currentMovieBackdrop,
+        currentProvider.id,
+        directProgressStorageKey,
+        episode,
+        episodeImage,
+        genres,
+        mediaType,
+        posterUrl,
+        season,
+        title,
+        tmdbId,
+        voteAverage,
+        year,
+    ]);
 
     useEffect(() => {
         if (!availableProviders.some(item => item.id === provider)) {
@@ -307,6 +295,23 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
     useEffect(() => {
         if (!import.meta.env.DEV) return;
+
+        const playbackTargetKey = JSON.stringify({
+            provider: currentProvider.id,
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            mode: currentProvider.renderMode,
+            url: currentProvider.renderMode === 'direct'
+                ? directSources[0]?.src || ''
+                : currentEmbedUrl,
+        });
+
+        if (lastLoggedPlaybackTargetRef.current === playbackTargetKey) {
+            return;
+        }
+        lastLoggedPlaybackTargetRef.current = playbackTargetKey;
 
         console.info('[UnifiedPlayer] Playback target', {
             provider: currentProvider.id,
@@ -320,55 +325,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         });
     }, [currentProvider.id, currentProvider.renderMode, currentEmbedUrl, directSources, tmdbId, mediaType, season, episode]);
 
-    useEffect(() => {
-        if (!window.desktop?.isDesktop || activeWatchPartyRoom || !user?.id) {
-            return;
-        }
-
-        const raw = window.localStorage.getItem(watchPartyStorageKey);
-        if (!raw) return;
-
-        let parsed: { roomId?: string; localSourceOverride?: WatchPartySelectedSource | null } | null = null;
-        try {
-            parsed = JSON.parse(raw);
-        } catch {
-            window.localStorage.removeItem(watchPartyStorageKey);
-            return;
-        }
-
-        if (!parsed?.roomId) return;
-
-        let cancelled = false;
-        void WatchPartyService.getRoom(parsed.roomId).then((room) => {
-            if (cancelled) return;
-            if (!room || room.status === 'ended') {
-                window.localStorage.removeItem(watchPartyStorageKey);
-                return;
-            }
-            setActiveWatchPartyRoom(room);
-            setLocalWatchPartySourceOverride(parsed?.localSourceOverride || null);
-        }).catch(() => {
-            window.localStorage.removeItem(watchPartyStorageKey);
-        });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [activeWatchPartyRoom, user?.id, watchPartyStorageKey]);
-
-    useEffect(() => {
-        if (!window.desktop?.isDesktop) return;
-
-        if (!activeWatchPartyRoom?.id) {
-            window.localStorage.removeItem(watchPartyStorageKey);
-            return;
-        }
-
-        window.localStorage.setItem(watchPartyStorageKey, JSON.stringify({
-            roomId: activeWatchPartyRoom.id,
-            localSourceOverride: localWatchPartySourceOverride,
-        }));
-    }, [activeWatchPartyRoom?.id, localWatchPartySourceOverride, watchPartyStorageKey]);
 
     useEffect(() => {
         if (!window.desktop?.isDesktop) {
@@ -525,7 +481,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                         voteAverage,
                         backdropUrl: currentMovieBackdrop || backdropUrl,
                         episodeImage: currentEpisodeImage || episodeImage,
-                        genres: genres.length > 0 ? genres : undefined
+                        genres: genres.length > 0 ? genres : undefined,
+                        progressSource: 'embed_estimated',
                     });
                     if (!providerAttemptFinishedRef.current) {
                         void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, progress, 15);
@@ -567,7 +524,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                         voteAverage,
                         backdropUrl: currentMovieBackdrop || backdropUrl,
                         episodeImage: currentEpisodeImage || episodeImage,
-                        genres: genres.length > 0 ? genres : undefined
+                        genres: genres.length > 0 ? genres : undefined,
+                        progressSource: 'embed_estimated',
                     });
                     if (!providerAttemptFinishedRef.current) {
                         void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, progress, 15);
@@ -587,43 +545,32 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         let progressInterval: NodeJS.Timeout;
         let fallbackTime = 0; // Only used if we can't access video element
 
+        if (currentProvider.renderMode === 'direct') {
+            return;
+        }
+
         const saveProgress = () => {
             let currentPosition = 0;
             let videoDuration = 0;
 
-            if (currentProvider.renderMode === 'direct') {
-                const videoElement = directVideoRef.current;
-                if (videoElement) {
-                    currentPosition = videoElement.currentTime || 0;
-                    videoDuration = videoElement.duration || 0;
-                }
-            } else {
-                // Try to access the actual video element in iframe
-                try {
-                    const iframe = iframeRef.current;
-                    if (iframe && iframe.contentDocument) {
-                        const videoElement = iframe.contentDocument.querySelector('video');
-                        if (videoElement) {
-                            // SUCCESS: Got real video position!
-                            currentPosition = videoElement.currentTime || 0;
-                            videoDuration = videoElement.duration || 0;
-                            console.log(`[Progress] Real position: ${Math.round(currentPosition)}s / ${Math.round(videoDuration)}s`);
-                        } else {
-                            // No video element found, use fallback
-                            fallbackTime += 30;
-                            currentPosition = fallbackTime;
-                            console.log(`[Progress] Fallback timer: ${fallbackTime}s`);
-                        }
+            try {
+                const iframe = iframeRef.current;
+                if (iframe && iframe.contentDocument) {
+                    const videoElement = iframe.contentDocument.querySelector('video');
+                    if (videoElement) {
+                        currentPosition = videoElement.currentTime || 0;
+                        videoDuration = videoElement.duration || 0;
                     } else {
-                        // Can't access iframe (cross-origin), use fallback
                         fallbackTime += 30;
                         currentPosition = fallbackTime;
                     }
-                } catch (error) {
-                    // Cross-origin error, use fallback
+                } else {
                     fallbackTime += 30;
                     currentPosition = fallbackTime;
                 }
+            } catch (error) {
+                fallbackTime += 30;
+                currentPosition = fallbackTime;
             }
 
             // Only save if we have meaningful progress (>10s)
@@ -644,7 +591,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
                     backdropUrl: currentMovieBackdrop || backdropUrl,
                     episodeImage: currentEpisodeImage || episodeImage,
-                    genres: genres.length > 0 ? genres : undefined
+                    genres: genres.length > 0 ? genres : undefined,
+                    progressSource: 'embed_estimated',
                 });
             }
 
@@ -683,7 +631,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 providerId: provider,
                 title,
                 genres: genres.length > 0 ? genres : undefined,
-                context,
+                context: {
+                    ...context,
+                    resumeSource: currentProvider.renderMode === 'direct' ? 'direct_player' : 'embedded_player',
+                },
             });
         };
 
@@ -709,228 +660,24 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('focus', handleFocus);
         };
-    }, [tmdbId, mediaType, season, episode, provider, title, genres, isProviderReady]);
-
-    useEffect(() => {
-        if (!activeWatchPartyRoom) {
-            setLocalWatchPartySourceOverride(null);
-            return;
-        }
-
-        if (activeWatchPartyRoom.status === 'ended') {
-            setLocalWatchPartySourceOverride(null);
-            setActiveWatchPartyRoom(null);
-            setShowWatchPartyModal(false);
-            return;
-        }
-
-        if (isWatchPartyHost) {
-            setLocalWatchPartySourceOverride(null);
-        }
-
-        if (!activeWatchPartyRoom.countdown_started_at || activeWatchPartyRoom.status === 'live') {
-            countdownLaunchKeyRef.current = null;
-        }
-    }, [activeWatchPartyRoom, isWatchPartyHost]);
-
-    useEffect(() => {
-        if (!activeWatchPartyRoom?.id) return;
-
-        void WatchPartyService.touchPresence(activeWatchPartyRoom.id).catch(() => undefined);
-        const interval = window.setInterval(() => {
-            void WatchPartyService.touchPresence(activeWatchPartyRoom.id).catch(() => undefined);
-        }, 15000);
-
-        return () => window.clearInterval(interval);
-    }, [activeWatchPartyRoom?.id]);
-
-    useEffect(() => {
-        if (!activeWatchPartyRoom?.id) return;
-        if (!window.desktop?.isDesktop) return;
-
-        const unsubscribe = WatchPartyService.subscribeToRoom(activeWatchPartyRoom.id, {
-            onRoomChange: async () => {
-                try {
-                    const nextRoom = await WatchPartyService.getRoom(activeWatchPartyRoom.id);
-                    if (nextRoom) {
-                        setActiveWatchPartyRoom(nextRoom);
-                    }
-                } catch (error) {
-                    console.error('[UnifiedPlayer] Failed to refresh watch party room:', error);
-                }
-            },
-        });
-
-        return () => unsubscribe();
-    }, [activeWatchPartyRoom?.id]);
-
-    useEffect(() => {
-        const video = directVideoRef.current;
-        if (!video || !activeWatchPartyRoom?.selected_source || !activeWatchPartyRoom?.countdown_started_at || activeWatchPartyRoom.status === 'ended') {
-            return;
-        }
-
-        const runCountdown = () => {
-            const startedAt = new Date(activeWatchPartyRoom.countdown_started_at || '').getTime();
-            const seconds = activeWatchPartyRoom.countdown_seconds || 0;
-            if (!startedAt || !seconds) return;
-
-            const remaining = seconds - Math.floor((Date.now() - startedAt) / 1000);
-            if (remaining > 0) return;
-
-            const countdownKey = `${activeWatchPartyRoom.id}:${activeWatchPartyRoom.countdown_started_at}`;
-            if (countdownLaunchKeyRef.current === countdownKey) {
-                return;
-            }
-            countdownLaunchKeyRef.current = countdownKey;
-
-            if (isWatchPartyHost) {
-                void video.play().catch(() => undefined);
-                void WatchPartyService.updatePlayback({
-                    roomId: activeWatchPartyRoom.id,
-                    currentTimeSeconds: video.currentTime,
-                    isPaused: false,
-                    status: 'live',
-                }).catch((error) => {
-                    console.error('[UnifiedPlayer] Failed to flip watch party live after countdown:', error);
-                });
-            } else if (activeWatchPartySource?.resolvedUrl) {
-                void video.play().catch(() => undefined);
-            }
-        };
-
-        runCountdown();
-        const timer = window.setInterval(runCountdown, 300);
-        return () => window.clearInterval(timer);
-    }, [
-        activeWatchPartyRoom?.countdown_seconds,
-        activeWatchPartyRoom?.countdown_started_at,
-        activeWatchPartyRoom?.id,
-        activeWatchPartyRoom?.selected_source,
-        activeWatchPartyRoom?.status,
-        activeWatchPartySource?.resolvedUrl,
-        isWatchPartyHost,
-    ]);
-
-    useEffect(() => {
-        const video = directVideoRef.current;
-        if (!video || !activeWatchPartyRoom?.id || !isDesktopWatchPartyActive || !isWatchPartyHost) {
-            return;
-        }
-
-        let heartbeatTimer: number | null = null;
-
-        const publish = (status?: 'ready' | 'live') => {
-            if (watchPartySyncGuardRef.current) return;
-
-            void WatchPartyService.updatePlayback({
-                roomId: activeWatchPartyRoom.id,
-                currentTimeSeconds: video.currentTime,
-                isPaused: video.paused,
-                status: status || (video.paused ? 'ready' : 'live'),
-            }).catch((error) => {
-                console.error('[UnifiedPlayer] Failed to publish watch party playback:', error);
-            });
-        };
-
-        const startHeartbeat = () => {
-            if (heartbeatTimer !== null) {
-                window.clearInterval(heartbeatTimer);
-            }
-            heartbeatTimer = window.setInterval(() => {
-                if (!video.paused && !video.ended) {
-                    publish('live');
-                }
-            }, 4000);
-        };
-
-        const handlePlay = () => {
-            publish('live');
-            startHeartbeat();
-        };
-        const handlePause = () => publish('ready');
-        const handleSeeked = () => publish(video.paused ? 'ready' : 'live');
-
-        video.addEventListener('play', handlePlay);
-        video.addEventListener('pause', handlePause);
-        video.addEventListener('seeked', handleSeeked);
-        startHeartbeat();
-
-        return () => {
-            if (heartbeatTimer !== null) {
-                window.clearInterval(heartbeatTimer);
-            }
-            video.removeEventListener('play', handlePlay);
-            video.removeEventListener('pause', handlePause);
-            video.removeEventListener('seeked', handleSeeked);
-        };
-    }, [activeWatchPartyRoom?.id, isDesktopWatchPartyActive, isWatchPartyHost]);
-
-    useEffect(() => {
-        const video = directVideoRef.current;
-        if (!video || !activeWatchPartySource?.resolvedUrl || !isDesktopWatchPartyActive || isWatchPartyHost) {
-            return;
-        }
-
-        const playbackKey = activeWatchPartyRoom.playback_updated_at || `${activeWatchPartyRoom.current_time_seconds}:${activeWatchPartyRoom.is_paused}`;
-        if (lastGuestPlaybackUpdateRef.current === playbackKey) {
-            return;
-        }
-        lastGuestPlaybackUpdateRef.current = playbackKey;
-
-        watchPartySyncGuardRef.current = true;
-        const drift = Math.abs(video.currentTime - (activeWatchPartyRoom.current_time_seconds || 0));
-
-        if (drift > 2.5) {
-            video.currentTime = activeWatchPartyRoom.current_time_seconds || 0;
-        }
-
-        const playPromise = activeWatchPartyRoom.is_paused ? Promise.resolve() : video.play().catch(() => undefined);
-        void playPromise.finally(() => {
-            if (activeWatchPartyRoom.is_paused) {
-                video.pause();
-            }
-            window.setTimeout(() => {
-                watchPartySyncGuardRef.current = false;
-            }, 150);
-        });
-    }, [
-        activeWatchPartyRoom?.current_time_seconds,
-        activeWatchPartyRoom?.id,
-        activeWatchPartyRoom?.is_paused,
-        activeWatchPartyRoom?.playback_updated_at,
-        activeWatchPartySource?.resolvedUrl,
-        isDesktopWatchPartyActive,
-        isWatchPartyHost,
-    ]);
-
+    }, [tmdbId, mediaType, season, episode, provider, title, genres, isProviderReady, currentProvider.renderMode]);
 
 
     return (
         <div className="w-full h-full relative bg-black group">
 
-            {currentProvider.renderMode === 'direct' || isDesktopWatchPartyActive ? (
+            {currentProvider.renderMode === 'direct' ? (
                 <DirectMediaPlayer
                     key={`${playbackTargetKey}:direct`}
-                    sources={effectiveDirectSources}
-                    title={`${title || tmdbId} - ${isDesktopWatchPartyActive ? 'Watch Party' : currentProvider.name}`}
+                    sources={directSources}
+                    title={`${title || tmdbId} - ${currentProvider.name}`}
                     videoRef={directVideoRef}
                     onReady={markProviderReady}
                     onError={() => {
                         finishProviderAttempt('media_error');
                     }}
-                    badge={isDesktopWatchPartyActive ? 'Watch Party' : 'Direct Playback'}
-                    subtitle={isDesktopWatchPartyActive && activeWatchPartyRoom
-                        ? `Room ${activeWatchPartyRoom.room_code} • ${
-                            activeWatchPartyRoom.countdown_started_at && activeWatchPartyRoom.status !== 'live'
-                                ? 'Countdown running'
-                                : isWatchPartyHost
-                                    ? 'Host controls active'
-                                    : localWatchPartySourceOverride
-                                        ? 'Following host with local override'
-                                        : 'Following host playback'
-                        }`
-                        : undefined}
+                    badge="Direct Playback"
+                    progressContext={directProgressContext}
                 />
             ) : (
                 <iframe
@@ -955,7 +702,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
 
             {/* Controls Overlay (Top Right) */}
-            <div className={`absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4 transition-opacity duration-200 ${showWatchPartyModal ? 'pointer-events-none opacity-0' : 'opacity-100'}`}>
+            <div className="absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4 transition-opacity duration-200">
                 {mediaType === 'tv' && onPlayEpisode && (
                     <button
                         onClick={() => {
@@ -1095,15 +842,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     )}
                 </div>
 
-                {/* Watch Together Button - Synclify Redirect */}
-                <button
-                    onClick={() => setShowWatchPartyModal(true)}
-                    className="flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all bg-black/50 text-white hover:bg-white/20"
-                >
-                    <Users size={16} />
-                    <span className="text-sm font-medium hidden md:inline">Watch Together</span>
-                </button>
-
                 <div className="relative" id="server-menu">
                     <button
                         onClick={() => setShowServers(!showServers)}
@@ -1160,28 +898,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     )}
                 </div>
             </div>
-
-            {showWatchPartyModal && (
-                <WatchPartyModal
-                    isOpen={true}
-                    onClose={() => setShowWatchPartyModal(false)}
-                    tmdbId={tmdbId}
-                    mediaType={mediaType}
-                    season={season}
-                    episode={episode}
-                    title={title}
-                    providers={availableProviders}
-                    currentProviderId={currentProvider.id}
-                    currentProviderName={currentProvider.name}
-                    onProviderSelect={handleProviderSwitch}
-                    desktopCaptureKey={desktopCaptureKey}
-                    currentEmbedUrl={currentEmbedUrl}
-                    directSources={directSources}
-                    activeRoom={activeWatchPartyRoom}
-                    onActiveRoomChange={setActiveWatchPartyRoom}
-                    onLocalSourceOverrideChange={setLocalWatchPartySourceOverride}
-                />
-            )}
 
             {/* Provider Watermark (Fades out) */}
             <div className="absolute bottom-6 right-6 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-[10px] text-white/30 uppercase tracking-widest pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">

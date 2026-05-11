@@ -5,6 +5,9 @@ import { generateIdempotencyKey } from '../lib/idempotency';
 import { APP_CONSTANTS } from '../lib/constants';
 import { isLikelyNetworkError, isNavigatorOnline } from '../lib/network';
 
+const WATCH_PROGRESS_EVENT = 'plusultra-watch-progress-updated';
+export type WatchProgressSource = 'embed_estimated' | 'direct_exact';
+
 export interface WatchProgress {
   tmdbId: string;
   type: 'movie' | 'tv';
@@ -25,7 +28,48 @@ export interface WatchProgress {
   backdropUrl?: string; // New: For movie cards
   episodeImage?: string; // New: For TV cards
   genres?: string[]; // Genre names for stats tracking
+  progressSource?: WatchProgressSource;
 }
+
+const isExactProgressSource = (source?: WatchProgressSource | null) =>
+  source === 'direct_exact';
+
+const mergeWatchProgress = (current: WatchProgress | undefined, incoming: WatchProgress): WatchProgress => {
+  if (!current) return incoming;
+
+  const sameEpisode =
+    current.type === incoming.type &&
+    (current.type === 'movie' || (
+      (current.season || 1) === (incoming.season || 1) &&
+      (current.episode || 1) === (incoming.episode || 1)
+    ));
+
+  if (!sameEpisode) {
+    return { ...current, ...incoming };
+  }
+
+  const currentSource = current.progressSource || 'embed_estimated';
+  const incomingSource = incoming.progressSource || 'embed_estimated';
+  const currentIsExact = isExactProgressSource(currentSource);
+  const incomingIsExact = isExactProgressSource(incomingSource);
+
+  if (currentIsExact && !incomingIsExact) {
+    const currentTime = current.time || 0;
+    const incomingTime = incoming.time || 0;
+    const incomingClearlyAhead = incomingTime > currentTime + 120;
+    const incomingClearlyNewer = incoming.lastUpdated > current.lastUpdated + 15000;
+
+    if (!incomingClearlyAhead && !incomingClearlyNewer) {
+      return {
+        ...current,
+        duration: Math.max(current.duration || 0, incoming.duration || 0),
+        lastUpdated: Math.max(current.lastUpdated || 0, incoming.lastUpdated || 0),
+      };
+    }
+  }
+
+  return { ...current, ...incoming };
+};
 
 export const useWatchHistory = () => {
   const { user } = useAuth();
@@ -107,6 +151,27 @@ export const useWatchHistory = () => {
     loadHistory();
   }, [user]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleProgressEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ userId?: string; data?: WatchProgress }>;
+      const payload = customEvent.detail;
+      if (!payload?.userId || !payload?.data) return;
+      if (!user?.id || payload.userId !== user.id) return;
+
+      setHistory((prev) => ({
+        ...prev,
+        [payload.data!.tmdbId]: mergeWatchProgress(prev[payload.data!.tmdbId], payload.data!),
+      }));
+    };
+
+    window.addEventListener(WATCH_PROGRESS_EVENT, handleProgressEvent as EventListener);
+    return () => {
+      window.removeEventListener(WATCH_PROGRESS_EVENT, handleProgressEvent as EventListener);
+    };
+  }, [user?.id]);
+
   // Debounce ref to track pending saves
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -177,14 +242,25 @@ export const useWatchHistory = () => {
   };
 
   const updateProgress = async (data: WatchProgress) => {
+    const mergedData = mergeWatchProgress(history[data.tmdbId], data);
+
     // 1. Immediate Local Update (Fast/Optimistic)
     setHistory((prev) => ({
       ...prev,
-      [data.tmdbId]: data
+      [mergedData.tmdbId]: mergeWatchProgress(prev[mergedData.tmdbId], mergedData)
     }));
 
+    if (typeof window !== 'undefined' && user?.id) {
+      window.dispatchEvent(new CustomEvent(WATCH_PROGRESS_EVENT, {
+        detail: {
+          userId: user.id,
+          data: mergedData,
+        },
+      }));
+    }
+
     // Update ref for the debounced caller
-    latestDataRef.current = data;
+    latestDataRef.current = mergedData;
 
     if (!user) return;
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { DirectPlaybackSource } from '../lib/playerProviders';
-import { useWatchHistory } from './useWatchHistory';
+import { useWatchHistory, type WatchProgressSource } from './useWatchHistory';
 
 interface DirectMediaProgressContext {
     storageKey: string;
@@ -16,6 +16,7 @@ interface DirectMediaProgressContext {
     genres?: string[];
     voteAverage?: number;
     episodeImage?: string;
+    progressSource: WatchProgressSource;
 }
 
 interface DirectMediaPlayerProps {
@@ -56,7 +57,7 @@ export const DirectMediaPlayer: React.FC<DirectMediaPlayerProps> = ({
     const internalVideoRef = useRef<HTMLVideoElement | null>(null);
     const resolvedVideoRef = videoRef ?? internalVideoRef;
     const resumeAppliedRef = useRef(false);
-    const { updateProgress } = useWatchHistory();
+    const { updateProgress, flushNow } = useWatchHistory();
     const [resumeLabel, setResumeLabel] = useState<string | null>(null);
 
     const savedProgress = useMemo(() => {
@@ -118,6 +119,7 @@ export const DirectMediaPlayer: React.FC<DirectMediaPlayerProps> = ({
             backdropUrl: progressContext.backdropUrl,
             episodeImage: progressContext.episodeImage,
             genres: progressContext.genres,
+            progressSource: progressContext.progressSource,
         });
     };
 
@@ -158,8 +160,9 @@ export const DirectMediaPlayer: React.FC<DirectMediaPlayerProps> = ({
             video.removeEventListener('pause', handlePause);
             video.removeEventListener('ended', handleEnded);
             persistProgress(true);
+            void flushNow();
         };
-    }, [progressContext, resolvedVideoRef, updateProgress]);
+    }, [flushNow, progressContext, resolvedVideoRef, updateProgress]);
 
     useEffect(() => {
         resumeAppliedRef.current = false;

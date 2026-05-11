@@ -42,8 +42,6 @@ ALTER FUNCTION public.refresh_community_stats_cache() SET search_path = public;
 ALTER FUNCTION public.admin_delete_user(uuid) SET search_path = public;
 ALTER FUNCTION public.handle_new_user() SET search_path = public;
 ALTER FUNCTION public.check_registration_enabled() SET search_path = public;
-ALTER FUNCTION public.cleanup_expired_parties() SET search_path = public;
-ALTER FUNCTION public.generate_invite_code() SET search_path = public;
 
 ALTER FUNCTION public.handle_reply_vote(UUID, INT) SET search_path = public;
 ALTER FUNCTION public.auto_fulfill_request() SET search_path = public;
@@ -184,16 +182,6 @@ DROP POLICY IF EXISTS "featured_movies_manage_admin" ON public.featured_movies;
 CREATE POLICY "featured_movies_manage_admin" ON public.featured_movies FOR ALL USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE id = (select auth.uid()) AND role = 'admin')
 );
-
--- Table: watch_parties
-DROP POLICY IF EXISTS "Users can create parties" ON public.watch_parties;
-CREATE POLICY "Users can create parties" ON public.watch_parties FOR INSERT WITH CHECK (host_id = (select auth.uid()));
-
-DROP POLICY IF EXISTS "Host can update party" ON public.watch_parties;
-CREATE POLICY "Host can update party" ON public.watch_parties FOR UPDATE USING (host_id = (select auth.uid()));
-
-DROP POLICY IF EXISTS "Host can delete party" ON public.watch_parties;
-CREATE POLICY "Host can delete party" ON public.watch_parties FOR DELETE USING (host_id = (select auth.uid()));
 
 -- Table: server_votes
 DROP POLICY IF EXISTS "Authenticated users can vote" ON public.server_votes;

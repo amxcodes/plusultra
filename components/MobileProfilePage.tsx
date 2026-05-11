@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
-import { Profile, Playlist, Movie, PublicProfilePresence } from '../types';
-import { Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp, MonitorPlay } from 'lucide-react';
+import { Profile, Playlist, Movie } from '../types';
+import { Plus, Lock, Globe, Trash2, X, Search, Sparkles, TrendingUp } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import { MovieCard } from './MovieCard';
 import { PlaylistCard } from './PlaylistCard';
 import { isGuestAccount } from '../lib/guestAccess';
-import { WatchPartyService } from '../services/WatchPartyService';
-
 
 // --- DUPLICATED / SIMPLIFIED MODALS FOR MOBILE ---
 
@@ -160,7 +158,6 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
     const [stats, setStats] = useState({ followers: 0, following: 0 });
     const [isFollowing, setIsFollowing] = useState(false);
     const [watchHistory, setWatchHistory] = useState<any[]>([]);
-    const [publicPresence, setPublicPresence] = useState<PublicProfilePresence | null>(null);
     const [loading, setLoading] = useState(true);
 
     // Modals
@@ -190,13 +187,10 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                     setWatchHistory(history);
                 }
 
-                const [targetPresence] = await WatchPartyService.listPublicPresence([targetId]);
-
                 setProfile(prof);
                 setPlaylists(plays);
                 setStats(stat);
                 setIsFollowing(checkFollow);
-                setPublicPresence(targetPresence || null);
             } catch (e) {
                 console.error(e);
             } finally {
@@ -287,48 +281,6 @@ export const MobileProfilePage: React.FC<MobileProfilePageProps> = ({ userId, on
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 px-8 break-words w-full leading-tight">
                     {profile.username.split('@')[0]}
                 </h1>
-
-                {publicPresence && publicPresence.state !== 'offline' && (
-                    <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (publicPresence.state === 'hosting' && publicPresence.is_joinable && publicPresence.room_id) {
-                                    onNavigate?.('watch-party', { roomId: publicPresence.room_id, joinById: true });
-                                }
-                            }}
-                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] ${
-                                publicPresence.state === 'hosting'
-                                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
-                                    : publicPresence.state === 'watching'
-                                        ? 'border-blue-500/20 bg-blue-500/10 text-blue-300'
-                                        : 'border-white/10 bg-white/[0.04] text-zinc-300'
-                            }`}
-                        >
-                            <MonitorPlay size={12} />
-                            {publicPresence.state === 'hosting'
-                                ? `Hosting now: ${publicPresence.room_title || 'Watch party'}${publicPresence.room_media_type === 'tv' ? ` S${publicPresence.room_season || 1}E${publicPresence.room_episode || 1}` : ''}`
-                                : publicPresence.state === 'watching'
-                                    ? `Watching now: ${publicPresence.watch_title || 'Something'}`
-                                    : publicPresence.state === 'online'
-                                        ? 'Online'
-                                        : 'Idle'}
-                        </button>
-                        {publicPresence.state === 'hosting' && publicPresence.is_joinable && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    if (publicPresence.room_id) {
-                                        onNavigate?.('watch-party', { roomId: publicPresence.room_id, joinById: true });
-                                    }
-                                }}
-                                className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-300"
-                            >
-                                Joinable now
-                            </button>
-                        )}
-                    </div>
-                )}
 
                 {/* Role Badge (Optional, assuming User for now) */}
                 <div className="mb-6">
