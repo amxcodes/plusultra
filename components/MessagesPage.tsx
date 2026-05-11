@@ -933,7 +933,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({ onMovieSelect, initi
                                     <div ref={threadEndRef} />
                                 </div>
 
-                                <div className="border-t border-white/6 bg-[linear-gradient(180deg,rgba(20,21,27,0.98),rgba(14,15,20,0.98))] p-3 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] md:px-5 md:py-5">
+                                <div className="border-t border-white/6 bg-[linear-gradient(180deg,rgba(20,21,27,0.98),rgba(14,15,20,0.98))] p-3 pb-[calc(env(safe-area-inset-bottom,0px)+7.25rem)] md:px-5 md:py-5">
                                     {errorMessage && (
                                         <div className="mb-3 rounded-[16px] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
                                             {errorMessage}

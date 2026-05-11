@@ -171,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
 
   // DRY helper for adaptive button styles on short/zoomed screens.
   const getNavButtonClass = (isActive: boolean, variant: 'default' | 'activity' = 'default') => 
-    `relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-[background-color,border-color,color,transform] duration-200 [@media(max-height:850px)]:h-9 [@media(max-height:850px)]:w-9 [@media(max-height:720px)]:h-8 [@media(max-height:720px)]:w-8 ${
+    `relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-[background-color,border-color,color,transform] duration-200 [@media(max-height:850px)]:h-8 [@media(max-height:850px)]:w-8 ${
       isActive 
         ? 'border-white/[0.16] bg-[#303137] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]' 
         : variant === 'activity'
@@ -184,7 +184,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
       if (window.innerHeight <= 720) return 13;
       if (window.innerHeight <= 850) return 14;
     }
-    return 17;
+    return 16;
   };
   const iconSize = getIconSize();
   const isDownloadingUpdate = updatePhase === 'downloading';
@@ -360,10 +360,10 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
   };
 
   return (
-    <nav className="fixed left-3 top-1/2 z-[60] isolate hidden min-h-[clamp(520px,78dvh,760px)] max-h-[calc(100dvh-1rem)] w-[clamp(52px,4.8vw,66px)] -translate-y-1/2 overflow-visible rounded-[30px] border border-white/[0.09] bg-[#111216]/98 py-4 shadow-[0_18px_56px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.07)] md:flex md:flex-col md:items-center [@media(max-height:760px)]:min-h-[calc(100dvh-1rem)] [@media(max-height:760px)]:py-2">
+    <nav className="fixed left-2 top-1/2 z-[60] isolate hidden min-h-[clamp(500px,78dvh,740px)] max-h-[calc(100dvh-1.25rem)] w-[54px] -translate-y-1/2 overflow-visible rounded-[26px] border border-white/[0.09] bg-[#111216]/98 py-3 shadow-[0_18px_56px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.07)] md:flex md:flex-col md:items-center [@media(max-height:760px)]:min-h-[calc(100dvh-1.25rem)] [@media(max-height:760px)]:py-2">
 
       {/* Top: Home/Logo */}
-      <div className="mb-2 shrink-0 [@media(max-height:760px)]:mb-1">
+      <div className="mb-1.5 shrink-0 [@media(max-height:760px)]:mb-1">
         <button
           onClick={() => setActiveTab(NavItem.DASHBOARD)}
           className={getNavButtonClass(activeTab === NavItem.DASHBOARD)}
@@ -374,7 +374,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
       </div>
 
       {/* Middle: core navigation. Lower-frequency routes live in the More flyout so the rail never scrolls. */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-1.5 [@media(max-height:760px)]:gap-1">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1.5 px-1 [@media(max-height:760px)]:gap-1">
 
         {/* Search - Distinct */}
         <div className="relative group flex justify-center w-full">
@@ -481,7 +481,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
       </div>
 
       {/* Bottom: profile/update entry stays fixed; the rest is in More. */}
-      <div className="mt-2 flex shrink-0 flex-col items-center gap-1.5 px-1.5 [@media(max-height:760px)]:mt-1 [@media(max-height:760px)]:gap-1">
+      <div className="mt-1.5 flex shrink-0 flex-col items-center gap-1 px-1 [@media(max-height:760px)]:mt-1">
         <div className={navDividerClassName}></div>
 
         <div className="relative group flex justify-center w-full">
@@ -513,7 +513,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onSearc
             className={`rounded-full border p-1 transition-[border-color,background-color] duration-200 [@media(max-height:760px)]:p-0.5 ${activeTab === NavItem.PROFILE ? 'border-white/40 bg-white/[0.06]' : 'border-transparent hover:border-white/20 hover:bg-white/[0.05]'}`}
             aria-label={isDesktop ? 'Desktop update and profile' : 'Profile'}
           >
-          <div className="h-7 w-7 overflow-hidden rounded-full bg-zinc-800 [@media(max-height:760px)]:h-6 [@media(max-height:760px)]:w-6">
+          <div className="h-6 w-6 overflow-hidden rounded-full bg-zinc-800">
             <img
               src={profile?.avatar_url || `https://ui-avatars.com/api/?name=${profile?.username || 'User'}&background=10b981&color=fff&bold=true`}
               alt="Profile"

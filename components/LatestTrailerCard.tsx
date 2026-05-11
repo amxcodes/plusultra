@@ -14,7 +14,7 @@ export const LatestTrailerCard: React.FC<LatestTrailerCardProps> = ({ movie }) =
             href={movie.url}
             target="_blank"
             rel="noreferrer"
-            className="relative group/card block min-w-[240px] w-[240px] cursor-pointer md:min-w-[320px] md:w-[320px]"
+            className="relative group/card block min-w-[82vw] w-[82vw] max-w-[340px] cursor-pointer sm:min-w-[320px] sm:w-[320px] md:min-w-[320px] md:w-[320px]"
         >
             <div className="relative aspect-video overflow-hidden rounded-[24px] border border-white/5 bg-[#0a0a0a] transition-all duration-500 transform-gpu group-hover/card:-translate-y-2 group-hover/card:border-white/10 group-hover/card:shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
                 <img

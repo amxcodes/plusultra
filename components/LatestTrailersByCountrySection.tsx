@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CountryTrailerGroup } from '../services/latestTrailers';
 import { LatestTrailerCard } from './LatestTrailerCard';
 
@@ -51,14 +51,36 @@ export const LatestTrailersByCountrySection: React.FC<LatestTrailersByCountrySec
 
     return (
         <section className="relative z-10 group my-6 pl-4 md:my-8 md:pl-12">
-            <div className="mb-4 flex flex-col gap-3 pr-4 md:flex-row md:items-end md:justify-between md:pr-12">
-                <div className="pl-2">
+            <div className="mb-3 flex flex-col gap-3 pr-4 md:mb-4 md:flex-row md:items-end md:justify-between md:pr-12">
+                <div className="flex items-end justify-between gap-3 pl-2 md:block">
                     <h2 className="text-lg font-semibold text-white/90 transition-colors group-hover:text-white md:text-2xl">
                         Latest Trailers
                     </h2>
+
+                    <label className="relative md:hidden">
+                        <span className="sr-only">Select trailer country</span>
+                        <select
+                            value={activeGroup.country.code}
+                            onChange={(event) => {
+                                setActiveCountry(event.target.value);
+                                rowRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
+                            }}
+                            className="h-9 appearance-none rounded-full border border-white/10 bg-[#17181e] pl-4 pr-9 text-[10px] font-black uppercase tracking-[0.16em] text-white outline-none"
+                        >
+                            {availableGroups.map(group => (
+                                <option key={group.country.code} value={group.country.code}>
+                                    {group.country.label}
+                                </option>
+                            ))}
+                        </select>
+                        <ChevronDown
+                            size={13}
+                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/50"
+                        />
+                    </label>
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto px-2 pb-1 scrollbar-hide md:max-w-[50vw]">
+                <div className="hidden items-center gap-2 overflow-x-auto px-2 pb-1 scrollbar-hide md:flex md:max-w-[50vw]">
                     {availableGroups.map(group => {
                         const isActive = activeGroup.country.code === group.country.code;
                         return (
@@ -98,7 +120,7 @@ export const LatestTrailersByCountrySection: React.FC<LatestTrailersByCountrySec
                 <div
                     ref={rowRef}
                     onScroll={handleScroll}
-                    className="flex items-stretch gap-3 overflow-x-auto px-2 py-4 scrollbar-hide md:gap-6 md:px-4 md:py-6"
+                    className="flex items-stretch gap-3 overflow-x-auto px-2 py-3 pr-5 scrollbar-hide md:gap-6 md:px-4 md:py-6"
                     style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
                 >
                     {activeGroup.trailers.map(movie => (
