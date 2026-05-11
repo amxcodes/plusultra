@@ -10,6 +10,14 @@ interface HeroProps {
 
 import { useAuth } from '../lib/AuthContext';
 
+const HeroMetaPebble: React.FC<{ children: React.ReactNode; muted?: boolean }> = ({ children, muted = false }) => (
+  <span
+    className={`inline-flex h-9 items-center rounded-full border border-white/[0.08] bg-[#242529]/78 px-3.5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors duration-200 hover:border-white/[0.14] hover:bg-[#2b2c30]/86 md:h-9 md:px-4 md:text-[10px] ${muted ? 'text-white/72' : ''}`}
+  >
+    {children}
+  </span>
+);
+
 export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) => {
   const { profile } = useAuth();
   const canStream = profile?.can_stream || profile?.role === 'admin';
@@ -57,17 +65,14 @@ export const Hero: React.FC<HeroProps> = ({ movie, onPlay, onAddToPlaylist }) =>
           {movie.title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-2 md:gap-3 text-[10px] md:text-[11px] font-bold text-gray-300 mb-4 tracking-widest uppercase">
-          <span className="text-green-400 drop-shadow-sm bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5">{movie.match}% Match</span>
-          
-          <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-white/90">{movie.year}</span>
-          
-          <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-white/80">{movie.duration || "2h 15m"}</span>
-          
+        <div className="mb-4 flex max-w-3xl flex-wrap items-center gap-2">
+          <HeroMetaPebble>{movie.match}% Match</HeroMetaPebble>
+          <HeroMetaPebble>{movie.year}</HeroMetaPebble>
+          <HeroMetaPebble>{movie.duration || "2h 15m"}</HeroMetaPebble>
           {movie.genre && movie.genre.length > 0 && (
-              <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-white/80">{movie.genre[0]}</span>
+            <HeroMetaPebble>{movie.genre[0]}</HeroMetaPebble>
           )}
-          <span className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/5 text-zinc-300">4K UHD</span>
+          <HeroMetaPebble muted>4K UHD</HeroMetaPebble>
         </div>
 
         {/* Description / Logline */}

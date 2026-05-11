@@ -10,6 +10,14 @@ interface MobileHeroProps {
 
 import { useAuth } from '../lib/AuthContext';
 
+const MobileHeroMetaPebble: React.FC<{ children: React.ReactNode; muted?: boolean }> = ({ children, muted = false }) => (
+    <span
+        className={`inline-flex h-7 items-center rounded-full border border-white/[0.08] bg-[#242529]/78 px-2.5 text-[9px] font-black uppercase tracking-[0.13em] text-white shadow-[0_8px_18px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)] ${muted ? 'text-white/70' : ''}`}
+    >
+        {children}
+    </span>
+);
+
 export const MobileHero: React.FC<MobileHeroProps> = ({ movie, onPlay, onAddToPlaylist }) => {
     const { profile } = useAuth();
     const canStream = profile?.can_stream || profile?.role === 'admin';
@@ -64,11 +72,11 @@ export const MobileHero: React.FC<MobileHeroProps> = ({ movie, onPlay, onAddToPl
                     {movie.title}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold text-gray-300 tracking-widest uppercase">
-                    <span className="text-green-400 bg-white/5 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5">{movie.match}% Match</span>
-                    <span className="bg-white/5 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5 text-white/90">{movie.year}</span>
-                    <span className="bg-white/5 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/5 text-white/80">{movie.duration || "2h 15m"}</span>
-                    <span className="ml-auto text-[9px] font-bold text-zinc-400 border border-white/10 px-1 py-0.5 rounded uppercase">4K UHD</span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                    <MobileHeroMetaPebble>{movie.match}% Match</MobileHeroMetaPebble>
+                    <MobileHeroMetaPebble>{movie.year}</MobileHeroMetaPebble>
+                    <MobileHeroMetaPebble>{movie.duration || "2h 15m"}</MobileHeroMetaPebble>
+                    <MobileHeroMetaPebble muted>4K UHD</MobileHeroMetaPebble>
                 </div>
 
                 {/* Mobile Horizontal Buttons layout */}

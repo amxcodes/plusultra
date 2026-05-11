@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Movie, OfflineDownloadEntry } from '../types';
-import { Play, HardDriveDownload, ChevronLeft, ThumbsUp, Clock, Calendar, ListPlus, Shuffle, Lock, Send } from 'lucide-react';
+import { Play, HardDriveDownload, ChevronLeft, CircleGauge, Timer, CalendarDays, Monitor, ListPlus, Shuffle, Lock, Send } from 'lucide-react';
 import { MovieCard } from './MovieCard';
 import { AddToPlaylistModal } from './AddToPlaylistModal';
 import { MobileAddToPlaylistModal } from './MobileAddToPlaylistModal';
@@ -18,6 +18,40 @@ interface MovieDetailProps {
     similarMovies?: Movie[];
     onMovieSelect?: (movie: Movie) => void;
 }
+
+interface DetailMetricPebbleProps {
+    label: string;
+    value: React.ReactNode;
+    icon?: React.ReactNode;
+    iconClassName?: string;
+    valueClassName?: string;
+    className?: string;
+}
+
+const DetailMetricPebble: React.FC<DetailMetricPebbleProps> = ({
+    label,
+    value,
+    icon,
+    iconClassName = 'bg-white/[0.055] text-white/80 ring-white/10',
+    valueClassName = 'text-white/95',
+    className = '',
+}) => (
+    <div
+        className={`relative isolate flex min-h-[46px] items-center gap-2.5 overflow-hidden rounded-full border border-white/[0.08] bg-[#242529]/80 px-3 py-2 text-white shadow-[0_12px_28px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] transition-[background-color,border-color] duration-200 hover:border-white/[0.14] hover:bg-[#2b2c30]/86 ${className}`}
+    >
+        {icon && (
+            <div className={`relative flex h-7 w-7 shrink-0 items-center justify-center rounded-full ring-1 ${iconClassName}`}>
+                {icon}
+            </div>
+        )}
+        <div className="relative flex min-w-0 flex-col pr-1">
+            <span className="text-[8px] font-black uppercase tracking-[0.24em] text-zinc-400/85">{label}</span>
+            <span className={`mt-0.5 text-[12px] font-black uppercase leading-none tracking-[0.055em] md:text-[13px] ${valueClassName}`}>
+                {value}
+            </span>
+        </div>
+    </div>
+);
 
 export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay, onPlayOffline, offlineDownloads = null, onMovieSelect }) => {
     const { profile, user } = useAuth();
@@ -335,40 +369,33 @@ export const MovieDetail: React.FC<MovieDetailProps> = ({ movie, onClose, onPlay
                                 {activeMovie.title}
                             </h1>
 
-                            <div className="flex flex-wrap items-stretch gap-2 md:gap-3 text-[10px] md:text-[11px] font-bold uppercase tracking-[0.18em]">
-                                <div className="flex min-w-[148px] items-center gap-3 rounded-[18px] border border-white/8 bg-[#14161b]/92 px-4 py-3 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-400/12 text-emerald-300">
-                                        <ThumbsUp size={14} className="fill-emerald-300" />
-                                    </div>
-                                    <div className="flex min-w-0 flex-col">
-                                        <span className="text-[9px] tracking-[0.22em] text-zinc-500">Match</span>
-                                        <span className="mt-1 text-sm tracking-[0.04em] text-emerald-300">{activeMovie.match}% Rating</span>
-                                    </div>
-                                </div>
+                            <div className="flex max-w-3xl flex-wrap items-center gap-2 md:gap-2.5">
+                                <DetailMetricPebble
+                                    label="Match"
+                                    value={`${activeMovie.match}% rating`}
+                                    icon={<CircleGauge size={13} strokeWidth={2.1} />}
+                                    valueClassName="text-white"
+                                    className="pr-3.5"
+                                />
 
-                                <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-[#14161b]/82 px-4 py-3 text-zinc-200">
-                                    <Calendar size={13} className="text-zinc-500" />
-                                    <div className="flex flex-col">
-                                        <span className="text-[9px] tracking-[0.22em] text-zinc-500">Year</span>
-                                        <span className="mt-1 text-sm tracking-[0.04em] text-white/92">{activeMovie.year}</span>
-                                    </div>
-                                </div>
+                                <DetailMetricPebble
+                                    label="Year"
+                                    value={activeMovie.year}
+                                    icon={<CalendarDays size={13} strokeWidth={2.1} />}
+                                />
 
-                                <div className="flex items-center gap-2 rounded-[18px] border border-white/8 bg-[#14161b]/82 px-4 py-3 text-zinc-200">
-                                    <Clock size={13} className="text-zinc-500" />
-                                    <div className="flex flex-col">
-                                        <span className="text-[9px] tracking-[0.22em] text-zinc-500">{activeMovie.mediaType === 'tv' ? 'Run' : 'Length'}</span>
-                                        <span className="mt-1 text-sm tracking-[0.04em] text-white/92">{activeMovie.duration || "2h 15m"}</span>
-                                    </div>
-                                </div>
+                                <DetailMetricPebble
+                                    label={activeMovie.mediaType === 'tv' ? 'Run' : 'Length'}
+                                    value={activeMovie.duration || "2h 15m"}
+                                    icon={<Timer size={13} strokeWidth={2.1} />}
+                                />
 
                                 {activeMovie.mediaType === 'tv' && (
-                                    <div className="flex items-center rounded-[18px] border border-white/8 bg-[#14161b]/82 px-4 py-3 text-zinc-200">
-                                        <div className="flex flex-col">
-                                            <span className="text-[9px] tracking-[0.22em] text-zinc-500">Format</span>
-                                            <span className="mt-1 text-sm tracking-[0.04em] text-white/92">TV Series</span>
-                                        </div>
-                                    </div>
+                                    <DetailMetricPebble
+                                        label="Format"
+                                        value="TV series"
+                                        icon={<Monitor size={13} strokeWidth={2.1} />}
+                                    />
                                 )}
                             </div>
 
