@@ -33,9 +33,7 @@ interface UnifiedPlayerProps {
 export type { Provider } from '../lib/playerProviders';
 export const PROVIDERS = PLAYER_PROVIDER_DEFAULTS;
 
-const BROWSER_SAFE_PROVIDER_IDS = new Set(['zxcplayer', 'zxcembed', 'cinemaos']);
 
-const isBrowserSafeProvider = (providerId: Provider) => BROWSER_SAFE_PROVIDER_IDS.has(providerId);
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     tmdbId,
@@ -253,11 +251,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
     const isDesktopRuntime = Boolean(window.desktop?.isDesktop);
     const enabledProviders = providers.filter(item => item.enabled);
-    const browserSafeProviders = enabledProviders.filter(item => isBrowserSafeProvider(item.id));
-    const browserSafeFallbackProviders = PLAYER_PROVIDER_DEFAULTS.filter(item => item.enabled && isBrowserSafeProvider(item.id));
-    const availableProviders = isDesktopRuntime
-        ? (enabledProviders.length > 0 ? enabledProviders : PLAYER_PROVIDER_DEFAULTS)
-        : (browserSafeProviders.length > 0 ? browserSafeProviders : browserSafeFallbackProviders);
+    const availableProviders = enabledProviders.length > 0 ? enabledProviders : PLAYER_PROVIDER_DEFAULTS;
     const currentProvider = getProviderAdapter(availableProviders, provider);
     const directSources = currentProvider.renderMode === 'direct'
         ? currentProvider.getDirectSources?.(providerContext) || []
