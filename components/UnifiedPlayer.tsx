@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useWatchHistory } from './useWatchHistory';
-import { Settings, Check, Download, ExternalLink, ThumbsUp, X, SkipForward } from 'lucide-react';
+import { Settings, Check, Download, ExternalLink, ThumbsUp, X, SkipForward, Maximize2, PictureInPicture2 } from 'lucide-react';
 import { CommunityService, RequestReply } from '../lib/community';
 import { TmdbService } from '../services/tmdb';
 import { StatsService } from '../services/stats';
@@ -12,6 +12,7 @@ import { usePlayerProviders } from '../hooks/usePlayerProviders';
 import { StreamDownloadPanel } from './StreamDownloadPanel';
 import { getTrackingContext } from '../lib/activityTracking';
 import { useAuth } from '../lib/AuthContext';
+import { withTrustedPopup } from '../lib/popupGuard';
 
 interface UnifiedPlayerProps {
     tmdbId: string;
@@ -31,6 +32,10 @@ interface UnifiedPlayerProps {
 
 export type { Provider } from '../lib/playerProviders';
 export const PROVIDERS = PLAYER_PROVIDER_DEFAULTS;
+
+const BROWSER_SAFE_PROVIDER_IDS = new Set(['zxcplayer', 'zxcembed', 'cinemaos']);
+
+const isBrowserSafeProvider = (providerId: Provider) => BROWSER_SAFE_PROVIDER_IDS.has(providerId);
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     tmdbId,
@@ -136,6 +141,10 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
     const { updateProgress } = useWatchHistory();
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const playerShellRef = useRef<HTMLDivElement>(null);
+    const popoutWindowRef = useRef<Window | null>(null);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [popoutError, setPopoutError] = useState<string | null>(null);
 
     // Fetch specific episode image (screenshot) if TV
     const [currentEpisodeImage, setCurrentEpisodeImage] = useState<string>(episodeImage || '');
@@ -242,8 +251,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         episode,
     };
 
+    const isDesktopRuntime = Boolean(window.desktop?.isDesktop);
     const enabledProviders = providers.filter(item => item.enabled);
-    const availableProviders = enabledProviders.length > 0 ? enabledProviders : PLAYER_PROVIDER_DEFAULTS;
+    const browserSafeProviders = enabledProviders.filter(item => isBrowserSafeProvider(item.id));
+    const browserSafeFallbackProviders = PLAYER_PROVIDER_DEFAULTS.filter(item => item.enabled && isBrowserSafeProvider(item.id));
+    const availableProviders = isDesktopRuntime
+        ? (enabledProviders.length > 0 ? enabledProviders : PLAYER_PROVIDER_DEFAULTS)
+        : (browserSafeProviders.length > 0 ? browserSafeProviders : browserSafeFallbackProviders);
     const currentProvider = getProviderAdapter(availableProviders, provider);
     const directSources = currentProvider.renderMode === 'direct'
         ? currentProvider.getDirectSources?.(providerContext) || []
@@ -292,6 +306,15 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             setProvider(availableProviders[0].id);
         }
     }, [availableProviders, provider]);
+
+    useEffect(() => {
+        const syncFullscreenState = () => {
+            setIsFullscreen(document.fullscreenElement === playerShellRef.current);
+        };
+
+        document.addEventListener('fullscreenchange', syncFullscreenState);
+        return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+    }, []);
 
     useEffect(() => {
         if (!import.meta.env.DEV) return;
@@ -662,9 +685,77 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         };
     }, [tmdbId, mediaType, season, episode, provider, title, genres, isProviderReady, currentProvider.renderMode]);
 
+    const handleFullscreen = async () => {
+        try {
+            if (document.fullscreenElement) {
+                await document.exitFullscreen();
+                return;
+            }
+
+            await playerShellRef.current?.requestFullscreen({ navigationUI: 'hide' });
+        } catch (err) {
+            console.error('[UnifiedPlayer] Failed to toggle fullscreen', err);
+        }
+    };
+
+    const handlePopout = async () => {
+        setPopoutError(null);
+
+        if (currentProvider.renderMode === 'direct') {
+            const video = directVideoRef.current;
+            if (video && 'requestPictureInPicture' in video && !video.disablePictureInPicture) {
+                try {
+                    await video.requestPictureInPicture();
+                    return;
+                } catch (err) {
+                    console.warn('[UnifiedPlayer] Native PiP failed, opening popout window instead', err);
+                }
+            }
+        }
+
+        const popoutUrl = currentProvider.renderMode === 'direct'
+            ? directSources[0]?.src
+            : currentEmbedUrl;
+
+        if (!popoutUrl) {
+            setPopoutError('No stream URL is ready yet.');
+            return;
+        }
+
+        const popout = withTrustedPopup(() => (
+            window.open('', `plusultra-popout-${playbackTargetKey}`, 'popup=yes,width=960,height=540,resizable=yes,noopener=no')
+        ));
+        if (!popout) {
+            setPopoutError('Popout was blocked by the browser.');
+            return;
+        }
+
+        popoutWindowRef.current = popout;
+        const popoutTitle = `${title || 'Plus Ultra Player'} - ${currentProvider.name}`;
+        const content = currentProvider.renderMode === 'direct'
+            ? `<video src="${escapeHtml(popoutUrl)}" controls autoplay playsinline style="width:100%;height:100%;background:#000;object-fit:contain"></video>`
+            : `<iframe src="${escapeHtml(popoutUrl)}" allowfullscreen allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" referrerpolicy="no-referrer" style="width:100%;height:100%;border:0"></iframe>`;
+
+        popout.document.open();
+        popout.document.write(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(popoutTitle)}</title>
+<style>
+html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: hidden; }
+</style>
+</head>
+<body>${content}</body>
+</html>`);
+        popout.document.close();
+        popout.focus();
+    };
+
 
     return (
-        <div className="w-full h-full relative bg-black group">
+        <div ref={playerShellRef} className="w-full h-full relative bg-black group">
 
             {currentProvider.renderMode === 'direct' ? (
                 <DirectMediaPlayer
@@ -687,7 +778,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     width="100%"
                     height="100%"
                     allowFullScreen
-                    allow="fullscreen; encrypted-media; picture-in-picture"
+                    allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
                     className="w-full h-full border-none"
                     title={`Player - ${provider}`}
                     id="unified-iframe"
@@ -703,6 +794,30 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
             {/* Controls Overlay (Top Right) */}
             <div className="absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4 transition-opacity duration-200">
+                {isDesktopRuntime && (
+                    <button
+                        onClick={handlePopout}
+                        className="flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-all hover:bg-white/20"
+                        title={currentProvider.renderMode === 'direct' ? 'Open picture-in-picture' : 'Open popout player'}
+                    >
+                        <PictureInPicture2 size={16} />
+                        <span className="text-sm font-medium hidden md:inline">
+                            {currentProvider.renderMode === 'direct' ? 'PiP' : 'Popout'}
+                        </span>
+                    </button>
+                )}
+
+                <button
+                    onClick={handleFullscreen}
+                    className="flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-all hover:bg-white/20"
+                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen player'}
+                >
+                    <Maximize2 size={16} />
+                    <span className="text-sm font-medium hidden md:inline">
+                        {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                    </span>
+                </button>
+
                 {mediaType === 'tv' && onPlayEpisode && (
                     <button
                         onClick={() => {
@@ -904,6 +1019,12 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 {currentProvider.name}
             </div>
 
+            {popoutError && (
+                <div className="absolute bottom-6 left-6 z-50 max-w-[min(24rem,calc(100%-3rem))] rounded-2xl border border-red-400/20 bg-red-950/80 px-4 py-3 text-xs font-medium text-red-100 shadow-2xl backdrop-blur-xl">
+                    {popoutError}
+                </div>
+            )}
+
             <ServerVotingModal
                 isOpen={showVotingModal}
                 onClose={() => setShowVotingModal(false)}
@@ -918,6 +1039,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         </div>
     );
 };
+
+const escapeHtml = (value: string) => value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 // --- Helper Icon for Badges ---
 const LinkTypeBadge: React.FC<{ type: string }> = ({ type }) => {

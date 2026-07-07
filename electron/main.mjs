@@ -20,6 +20,80 @@ const MAX_CAPTURED_MEDIA = 100;
 const CAPTURE_COOLDOWN_MS = 500;
 const CAPTURE_TTL_MS = 1000 * 60 * 20;
 const DESKTOP_USER_AGENT = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`;
+const AD_BLOCK_HOST_PATTERNS = [
+    /(^|\.)doubleclick\.net$/i,
+    /(^|\.)googlesyndication\.com$/i,
+    /(^|\.)googleadservices\.com$/i,
+    /(^|\.)adservice\.google\./i,
+    /(^|\.)adnxs\.com$/i,
+    /(^|\.)adsystem\.com$/i,
+    /(^|\.)adsystem\.amazon\./i,
+    /(^|\.)taboola\.com$/i,
+    /(^|\.)outbrain\.com$/i,
+    /(^|\.)popads\.net$/i,
+    /(^|\.)popcash\.net$/i,
+    /(^|\.)propellerads\.com$/i,
+    /(^|\.)propeller-tracking\.com$/i,
+    /(^|\.)onclickads\.net$/i,
+    /(^|\.)adsterra\.com$/i,
+    /(^|\.)exoclick\.com$/i,
+    /(^|\.)trafficjunky\.net$/i,
+    /(^|\.)juicyads\.com$/i,
+    /(^|\.)hilltopads\.net$/i,
+    /(^|\.)yandexadexchange\.net$/i,
+    /(^|\.)mgid\.com$/i,
+    /(^|\.)revcontent\.com$/i,
+    /(^|\.)media\.net$/i,
+    /(^|\.)adform\.net$/i,
+    /(^|\.)adsafeprotected\.com$/i,
+    /(^|\.)adscore\.com$/i,
+    /(^|\.)adskeeper\.co\.uk$/i,
+    /(^|\.)adskeeper\.com$/i,
+    /(^|\.)adtelligent\.com$/i,
+    /(^|\.)adtrafficquality\.google$/i,
+    /(^|\.)betweendigital\.com$/i,
+    /(^|\.)bidgear\.com$/i,
+    /(^|\.)clickadu\.com$/i,
+    /(^|\.)clickaine\.com$/i,
+    /(^|\.)clksite\.com$/i,
+    /(^|\.)criteo\.com$/i,
+    /(^|\.)criteo\.net$/i,
+    /(^|\.)dtscout\.com$/i,
+    /(^|\.)exdynsrv\.com$/i,
+    /(^|\.)go2cloud\.org$/i,
+    /(^|\.)histats\.com$/i,
+    /(^|\.)in-page-push\.com$/i,
+    /(^|\.)inpagepush\.com$/i,
+    /(^|\.)intergient\.com$/i,
+    /(^|\.)lijit\.com$/i,
+    /(^|\.)magsrv\.com$/i,
+    /(^|\.)onclickalgo\.com$/i,
+    /(^|\.)onclickperformance\.com$/i,
+    /(^|\.)popmonetizer\.com$/i,
+    /(^|\.)popmyads\.com$/i,
+    /(^|\.)pubfuture\.com$/i,
+    /(^|\.)pushads\.biz$/i,
+    /(^|\.)pushengage\.com$/i,
+    /(^|\.)realsrv\.com$/i,
+    /(^|\.)runative-syndicate\.com$/i,
+    /(^|\.)runative\.com$/i,
+    /(^|\.)shorte\.st$/i,
+    /(^|\.)smartadserver\.com$/i,
+    /(^|\.)smartstream\.tv$/i,
+    /(^|\.)trafficfactory\.biz$/i,
+    /(^|\.)trafficstars\.com$/i,
+    /(^|\.)undertone\.com$/i,
+    /(^|\.)yllix\.com$/i,
+    /(^|\.)zedo\.com$/i,
+];
+const AD_BLOCK_URL_PATTERNS = [
+    /[/?&](ad|ads|advert|advertisement|adserver|adservice|adunit|popunder|popup|banner|prebid|vast|vpaid|ima)([/?&=_-]|$)/i,
+    /\/(ads?|adserver|advertising|popunder|popup|prebid|vast|vpaid|ima)\//i,
+    /\.(doubleclick|googlesyndication|googleadservices)\./i,
+    /[/?&](clickid|popunder|push_sub|subid|zoneid|campaignid|adzone|adsterra|propeller|onclick)(=|&|$)/i,
+    /\/(ad-tag|ad_tags|adscript|ad_script|ad-provider|ad-provider|popads|pushads|vast|vpaid|prebid|ima3?)\b/i,
+    /\.(ads?|pop|push|track|tracker|analytics)\./i,
+];
 
 let mainWindow = null;
 let capturedMedia = [];
@@ -432,6 +506,89 @@ const isInterestingRequest = (rawUrl) => {
     );
 };
 
+const isBlockedAdRequest = (rawUrl) => {
+    try {
+        const parsed = new URL(rawUrl);
+        const host = parsed.hostname.toLowerCase();
+        const normalizedUrl = parsed.href.toLowerCase();
+        const pathAndSearch = `${parsed.pathname}${parsed.search}`.toLowerCase();
+
+        return (
+            AD_BLOCK_HOST_PATTERNS.some((pattern) => pattern.test(host)) ||
+            AD_BLOCK_URL_PATTERNS.some((pattern) => pattern.test(normalizedUrl)) ||
+            pathAndSearch.includes('popunder') ||
+            pathAndSearch.includes('onclick') ||
+            pathAndSearch.includes('adsterra') ||
+            pathAndSearch.includes('propeller')
+        );
+    } catch {
+        return false;
+    }
+};
+
+const isAppControlledPopout = (details) => (
+    details.url === 'about:blank' &&
+    typeof details.frameName === 'string' &&
+    details.frameName.startsWith('plusultra-popout-')
+);
+
+const isTrustedAppUrl = (targetUrl) => {
+    if (!targetUrl) {
+        return false;
+    }
+
+    if (targetUrl === 'about:blank') {
+        return true;
+    }
+
+    try {
+        const parsed = new URL(targetUrl);
+        if (parsed.protocol === 'file:') {
+            return true;
+        }
+
+        if (localServerUrl && parsed.origin === new URL(localServerUrl).origin) {
+            return true;
+        }
+
+        const devServerUrl = process.env.ELECTRON_START_URL;
+        if (devServerUrl && parsed.origin === new URL(devServerUrl).origin) {
+            return true;
+        }
+    } catch {
+        return false;
+    }
+
+    return false;
+};
+
+const configurePopupBlocking = (webContents) => {
+    webContents.setWindowOpenHandler((details) => {
+        if (isAppControlledPopout(details)) {
+            return {
+                action: 'allow',
+                overrideBrowserWindowOptions: {
+                    autoHideMenuBar: true,
+                    backgroundColor: '#000000',
+                    webPreferences: {
+                        nodeIntegration: false,
+                        contextIsolation: true,
+                        sandbox: true,
+                    },
+                },
+            };
+        }
+
+        return { action: 'deny' };
+    });
+
+    webContents.on('will-navigate', (event, targetUrl) => {
+        if (!isTrustedAppUrl(targetUrl)) {
+            event.preventDefault();
+        }
+    });
+};
+
 const extractSafePlaybackHeaders = (requestHeaders = {}) => {
     const allowedHeaders = ['referer', 'origin'];
     return Object.fromEntries(
@@ -590,6 +747,10 @@ const registerOfflineDownloadHandler = () => {
 
 const registerNetworkCapture = () => {
     session.defaultSession.setUserAgent(DESKTOP_USER_AGENT);
+    session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+        const allowedPermissions = new Set(['fullscreen']);
+        callback(allowedPermissions.has(permission));
+    });
 
     session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['*://*/*'] }, (details, callback) => {
         if (isInterestingRequest(details.url)) {
@@ -609,6 +770,16 @@ const registerNetworkCapture = () => {
     });
 
     session.defaultSession.webRequest.onBeforeRequest({ urls: ['*://*/*'] }, (details, callback) => {
+        if (details.resourceType === 'mainFrame' && !isTrustedAppUrl(details.url)) {
+            callback({ cancel: true });
+            return;
+        }
+
+        if (isBlockedAdRequest(details.url)) {
+            callback({ cancel: true });
+            return;
+        }
+
         if (isInterestingRequest(details.url)) {
             rememberCapturedMedia({
                 url: details.url,
@@ -1049,6 +1220,8 @@ const createWindow = async () => {
         mainWindow = null;
     });
 
+    configurePopupBlocking(mainWindow.webContents);
+
     const devServerUrl = process.env.ELECTRON_START_URL;
     if (devServerUrl) {
         mainWindow.webContents.setUserAgent(DESKTOP_USER_AGENT);
@@ -1415,6 +1588,10 @@ ipcMain.handle('desktop:install-update', async () => {
 });
 
 app.whenReady().then(async () => {
+    app.on('web-contents-created', (_event, contents) => {
+        configurePopupBlocking(contents);
+    });
+
     await loadOfflineCatalog();
     registerNetworkCapture();
     registerOfflineDownloadHandler();

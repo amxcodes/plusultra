@@ -3,6 +3,7 @@ import { Download, ExternalLink, Info } from 'lucide-react';
 import { useToast } from '../lib/ToastContext';
 import { buildStreamDownloadCandidates, type StreamDownloadCandidate } from '../lib/streamDownloads';
 import { DirectPlaybackSource, MediaType, Provider } from '../lib/playerProviders';
+import { withTrustedPopup } from '../lib/popupGuard';
 
 interface StreamDownloadPanelProps {
     providerId: Provider;
@@ -157,7 +158,9 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
             return;
         }
 
-        window.open(url, '_blank', 'noopener,noreferrer');
+        withTrustedPopup(() => {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        });
         info('Opened download target in a new tab');
     };
 
