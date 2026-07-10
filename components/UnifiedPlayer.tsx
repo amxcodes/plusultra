@@ -728,7 +728,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         const popoutTitle = `${title || 'Plus Ultra Player'} - ${currentProvider.name}`;
         const content = currentProvider.renderMode === 'direct'
             ? `<video src="${escapeHtml(popoutUrl)}" controls autoplay playsinline style="width:100%;height:100%;background:#000;object-fit:contain"></video>`
-            : `<iframe src="${escapeHtml(popoutUrl)}" allowfullscreen allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *" sandbox="allow-scripts allow-same-origin allow-forms allow-presentation" referrerpolicy="no-referrer" style="width:100%;height:100%;border:0"></iframe>`;
+            : `<iframe src="${escapeHtml(popoutUrl)}" allowfullscreen allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *" referrerpolicy="no-referrer" style="width:100%;height:100%;border:0"></iframe>`;
 
         popout.document.open();
         popout.document.write(`<!doctype html>
@@ -778,7 +778,7 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                     id="unified-iframe"
                     onLoad={markProviderReady}
                     referrerPolicy="no-referrer"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+                    sandbox={isDesktopRuntime ? 'allow-scripts allow-same-origin allow-forms allow-presentation' : undefined}
                 />
             )}
 
