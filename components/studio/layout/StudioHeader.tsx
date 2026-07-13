@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Clapperboard, Home, Menu, Search, Settings, Tv, User, Bookmark, ListVideo, BarChart2, Newspaper, Activity, MessageSquarePlus, Shield, MessagesSquare } from 'lucide-react';
+import { Bell, Clapperboard, Home, Menu, Search, Settings, Tv, Bookmark, ListVideo, BarChart2, Newspaper, Activity, MessageSquarePlus, Shield, MessagesSquare } from 'lucide-react';
 import { NavItem, Profile } from '../../../types';
 import { StudioButton } from '../system/StudioButton';
 import { StudioDropdownContent, StudioDropdownItem, StudioDropdownRoot, StudioDropdownTrigger } from '../system/StudioControls';
@@ -60,8 +60,10 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
                 type="button"
                 onClick={() => setActiveTab(item)}
                 className={cn(
-                  'flex h-10 items-center gap-2 rounded-full px-3 text-sm font-medium transition-colors',
-                  active ? 'bg-white text-black' : 'text-white/62 hover:bg-white/10 hover:text-white'
+                  'flex h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold transition-[background-color,border-color,color,box-shadow] duration-200',
+                  active
+                    ? 'border border-white/80 bg-white text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_22px_rgba(255,255,255,0.12)]'
+                    : 'border border-transparent text-white/62 hover:border-white/10 hover:bg-white/[0.08] hover:text-white'
                 )}
               >
                 <Icon size={15} />
@@ -96,7 +98,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
           <button
             type="button"
             onClick={() => setActiveTab(NavItem.PROFILE)}
-            className="ml-1 h-9 w-9 overflow-hidden rounded-full border border-white/12 bg-white/8"
+            className="ml-1 h-9 w-9 overflow-hidden rounded-full border border-white/14 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-colors hover:border-white/24 hover:bg-white/[0.12]"
             aria-label="Profile"
           >
             <img
@@ -146,7 +148,12 @@ export const StudioBottomDock: React.FC<Pick<StudioHeaderProps, 'activeTab' | 's
               key={item}
               type="button"
               onClick={() => setActiveTab(item)}
-              className={cn('relative flex h-10 w-10 items-center justify-center rounded-full transition-colors', active ? 'bg-white text-black' : 'text-white/62 hover:bg-white/10 hover:text-white')}
+              className={cn(
+                'relative flex h-10 w-10 items-center justify-center rounded-full border transition-[background-color,border-color,color,box-shadow]',
+                active
+                  ? 'border-white/80 bg-white text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_8px_22px_rgba(255,255,255,0.12)]'
+                  : 'border-transparent text-white/62 hover:border-white/10 hover:bg-white/[0.08] hover:text-white'
+              )}
               aria-label={label}
             >
               <Icon size={18} />

@@ -17,6 +17,7 @@ export const StudioBadge: React.FC<StudioBadgeProps> = ({ className, tone = 'neu
   <span
     className={cn(
       'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none backdrop-blur-sm',
+      'max-w-full whitespace-nowrap',
       toneClass[tone],
       className
     )}

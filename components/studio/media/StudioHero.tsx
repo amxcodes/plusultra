@@ -27,6 +27,7 @@ export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, o
 
   const backdrop = movie.backdropUrl || movie.imageUrl;
   const runtime = typeof movie.duration === 'number' ? `${Math.floor(movie.duration / 60)}h ${movie.duration % 60}m` : movie.duration;
+  const score = movie.match > 10 ? `${Math.round(movie.match)}%` : `${movie.match.toFixed(1)}/10`;
 
   return (
     <section className="relative h-[82vh] min-h-[620px] overflow-hidden bg-black md:h-[90vh]">
@@ -41,7 +42,7 @@ export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, o
 
       <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-5 pt-16 md:px-8">
         <div className="max-w-2xl">
-          <h1 className="max-w-[760px] text-5xl font-black tracking-tight text-white drop-shadow-2xl md:text-7xl">
+          <h1 className="max-w-[780px] break-words text-5xl font-black leading-[0.95] tracking-tight text-white drop-shadow-2xl md:text-7xl">
             {movie.title}
           </h1>
 
@@ -49,7 +50,7 @@ export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, o
             {movie.match > 0 && (
               <StudioBadge tone="accent">
                 <Star size={12} fill="currentColor" />
-                {(movie.match / 10).toFixed(1)}/10
+                {score}
               </StudioBadge>
             )}
             {movie.year && <StudioBadge>{movie.year}</StudioBadge>}
