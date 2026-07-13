@@ -8,6 +8,7 @@ export type ActivityFeedTab = 'notifications' | 'requests' | 'followers';
 export const useActivityFeed = () => {
     const { user } = useAuth();
     const [followers, setFollowers] = useState<Profile[]>([]);
+    const [following, setFollowing] = useState<Profile[]>([]);
     const [followingIds, setFollowingIds] = useState<Set<string>>(new Set());
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +16,7 @@ export const useActivityFeed = () => {
     useEffect(() => {
         if (!user) {
             setFollowers([]);
+            setFollowing([]);
             setFollowingIds(new Set());
             setNotifications([]);
             setIsLoading(false);
@@ -26,8 +28,9 @@ export const useActivityFeed = () => {
         const fetchData = async () => {
             setIsLoading(true);
             try {
-                const [myFollowers, myFollowingIds, activityNotifications] = await Promise.all([
+                const [myFollowers, myFollowing, myFollowingIds, activityNotifications] = await Promise.all([
                     SocialService.getFollowers(user.id),
+                    SocialService.getFollowing(user.id),
                     SocialService.getFollowingIds(user.id),
                     SocialService.getNotifications(user.id),
                 ]);
@@ -35,6 +38,7 @@ export const useActivityFeed = () => {
                 if (cancelled) return;
 
                 setFollowers(myFollowers);
+                setFollowing(myFollowing);
                 setFollowingIds(new Set(myFollowingIds));
                 setNotifications(activityNotifications);
 
@@ -103,6 +107,7 @@ export const useActivityFeed = () => {
     return {
         user,
         followers,
+        following,
         followingIds,
         requestNotifications,
         feedNotifications,

@@ -255,8 +255,12 @@ export const TmdbService = {
                 director = data.created_by?.map((c: any) => c.name).join(', ');
             }
 
-            // Extract top 3 cast
-            const cast = data.credits?.cast?.slice(0, 5).map((p: any) => p.name);
+            const castProfiles = data.credits?.cast?.slice(0, 12).map((p: any) => ({
+                name: p.name,
+                character: p.character,
+                profileUrl: p.profile_path ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : undefined,
+            })) || [];
+            const cast = castProfiles.map((p: any) => p.name);
 
             // Extract Genres
             const genre = data.genres?.map((g: any) => g.name) || [];
@@ -294,6 +298,7 @@ export const TmdbService = {
                 ...mapTmdbToMovie(data),
                 director,
                 cast,
+                castProfiles,
                 duration,
                 genre,
                 trailerKey: preferredVideo?.key,

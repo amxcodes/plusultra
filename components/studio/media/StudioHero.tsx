@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BookmarkPlus, Info, Play, Star } from 'lucide-react';
 import { HeroMovie, Movie } from '../../../types';
 import { StudioBadge } from '../system/StudioBadge';
 import { StudioButton } from '../system/StudioButton';
+import { getUiPreferences, subscribeToUiPreferences, UiPreferences } from '../../../lib/uiPreferences';
 
 interface StudioHeroProps {
   movie: HeroMovie | null;
@@ -12,6 +13,10 @@ interface StudioHeroProps {
 }
 
 export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, onAddToPlaylist }) => {
+  const [preferences, setPreferences] = useState<UiPreferences>(() => getUiPreferences());
+
+  useEffect(() => subscribeToUiPreferences(setPreferences), []);
+
   if (!movie) {
     return (
       <section className="relative h-[82vh] min-h-[620px] overflow-hidden bg-black">
@@ -28,10 +33,23 @@ export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, o
   const backdrop = movie.backdropUrl || movie.imageUrl;
   const runtime = typeof movie.duration === 'number' ? `${Math.floor(movie.duration / 60)}h ${movie.duration % 60}m` : movie.duration;
   const score = movie.match >= 1 ? (movie.match > 10 ? `${Math.round(movie.match)}%` : `${movie.match.toFixed(1)}/10`) : null;
+  const trailerPreviewEnabled = preferences.heroPreviewMotion && !preferences.reduceMotion && movie.trailerKey && movie.trailerSite === 'YouTube';
+  const trailerPreviewUrl = trailerPreviewEnabled
+    ? `https://www.youtube-nocookie.com/embed/${movie.trailerKey}?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist=${movie.trailerKey}&modestbranding=1&rel=0&disablekb=1&fs=0`
+    : null;
 
   return (
     <section className="relative h-[82vh] min-h-[620px] overflow-hidden bg-black md:h-[90vh]">
-      {backdrop && (
+      {trailerPreviewUrl ? (
+        <iframe
+          src={trailerPreviewUrl}
+          title={`${movie.title} trailer preview`}
+          className="studio-hero-trailer absolute left-1/2 top-1/2 h-[120%] w-[120%] -translate-x-1/2 -translate-y-1/2 border-0 opacity-70"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      ) : backdrop && (
         <img
           src={backdrop}
           alt={movie.title}
@@ -65,17 +83,16 @@ export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, o
           )}
 
           <div className="mt-7 flex flex-wrap items-center gap-3">
-            <StudioButton variant="primary" size="lg" onClick={() => onPlay(movie as Movie)}>
-              <Play size={18} fill="currentColor" />
+            <StudioButton variant="glass" size="md" onClick={() => onPlay(movie as Movie)} className="h-11 px-5">
+              <Play size={17} fill="currentColor" />
               Play
             </StudioButton>
-            <StudioButton variant="glass" size="lg" onClick={() => onInfo(movie as Movie)}>
-              <Info size={18} />
-              Details
+            <StudioButton variant="glass" size="md" onClick={() => onInfo(movie as Movie)} className="h-11 px-4">
+              <Info size={17} />
             </StudioButton>
             {onAddToPlaylist && (
-              <StudioButton variant="subtle" size="icon" onClick={() => onAddToPlaylist(movie as Movie)} aria-label="Add to playlist">
-                <BookmarkPlus size={18} />
+              <StudioButton variant="glass" size="icon" onClick={() => onAddToPlaylist(movie as Movie)} aria-label="Add to playlist" className="h-11 w-11">
+                <BookmarkPlus size={17} />
               </StudioButton>
             )}
           </div>

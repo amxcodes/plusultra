@@ -113,7 +113,7 @@ export const StudioAddToPlaylistSheet: React.FC<StudioAddToPlaylistSheetProps> =
           <button
             type="button"
             onClick={onClose}
-            className="studio-control-glass absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-white/78 hover:bg-white hover:text-black"
+            className="studio-control-glass absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full text-white/78 hover:bg-white/[0.14] hover:text-white"
             aria-label="Close"
           >
             <X size={18} />
@@ -160,7 +160,7 @@ export const StudioAddToPlaylistSheet: React.FC<StudioAddToPlaylistSheetProps> =
                   type="button"
                   onClick={() => handleTogglePlaylist(playlist.id)}
                   className={`flex w-full items-center gap-3 rounded-[20px] border p-3 text-left transition-colors ${
-                    isAdded ? 'border-white/22 bg-white/[0.10]' : 'border-white/7 bg-white/[0.035] hover:border-white/14 hover:bg-white/[0.07]'
+                    isAdded ? 'border-[color:var(--studio-accent)] bg-[var(--studio-accent-soft)]' : 'border-white/7 bg-white/[0.035] hover:border-white/18 hover:bg-white/[0.09]'
                   }`}
                 >
                   <div className={`flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl ${isAdded ? 'bg-white text-black' : 'bg-white/[0.07] text-white/34'}`}>
@@ -187,14 +187,17 @@ export const StudioAddToPlaylistSheet: React.FC<StudioAddToPlaylistSheetProps> =
 
         <div className="shrink-0 border-t border-white/8 bg-black/22 p-4">
           {isCreating ? (
-            <div className="space-y-3">
+            <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.025))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-bold text-white">New playlist</div>
-                <button type="button" className="text-white/42 hover:text-white" onClick={() => setIsCreating(false)} aria-label="Cancel">
+                <div>
+                  <div className="text-sm font-bold text-white">Create new shelf</div>
+                  <div className="mt-0.5 text-xs text-white/38">{isPublic ? 'Public solo playlist' : 'Private solo playlist'}</div>
+                </div>
+                <button type="button" className="rounded-full p-2 text-white/42 hover:bg-white/8 hover:text-white" onClick={() => setIsCreating(false)} aria-label="Cancel">
                   <X size={16} />
                 </button>
               </div>
-              <div className="flex gap-2">
+              <div className="mt-3 flex gap-2">
                 <input
                   ref={inputRef}
                   value={newName}
@@ -203,13 +206,13 @@ export const StudioAddToPlaylistSheet: React.FC<StudioAddToPlaylistSheetProps> =
                     if (event.key === 'Enter') handleCreate();
                   }}
                   placeholder="Playlist name"
-                  className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-black/36 px-4 text-sm text-white outline-none placeholder:text-white/32 focus:border-white/24"
+                  className="h-12 min-w-0 flex-1 rounded-full border border-white/10 bg-black/36 px-4 text-sm font-semibold text-white outline-none placeholder:text-white/32 focus:border-white/24"
                 />
                 <StudioButton type="button" size="icon" variant="subtle" onClick={() => setIsPublic(prev => !prev)} aria-label={isPublic ? 'Public playlist' : 'Private playlist'}>
                   {isPublic ? <Globe size={17} /> : <Lock size={17} />}
                 </StudioButton>
               </div>
-              <StudioButton type="button" variant="primary" className="w-full" disabled={!newName.trim()} onClick={handleCreate}>
+              <StudioButton type="button" variant="glass" className="mt-3 w-full" disabled={!newName.trim()} onClick={handleCreate}>
                 Create playlist
               </StudioButton>
             </div>

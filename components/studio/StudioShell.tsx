@@ -12,12 +12,12 @@ import { StudioMediaCard } from './media/StudioMediaCard';
 import { StudioSearchOverlay } from './pages/StudioSearchOverlay';
 import { StudioSettingsPage } from './pages/StudioSettingsPage';
 import { StudioViewAllPage } from './pages/StudioViewAllPage';
+import { StudioPlaylistDetailPage } from './pages/StudioPlaylistDetailPage';
+import { StudioProfilePage } from './pages/StudioProfilePage';
 import { StudioPageFrame } from './system/StudioPageFrame';
 import { StudioSurface } from './system/StudioSurface';
 import { StudioButton } from './system/StudioButton';
-import { PlaylistPage } from '../PlaylistPage';
-import { PlaylistsPage } from '../PlaylistsPage';
-import { ProfilePage } from '../ProfilePage';
+import { StudioPlaylistCard, StudioPlaylistsPage } from './pages/StudioPlaylistsPage';
 import { AdminDashboard } from '../AdminDashboard';
 import { ActivityPage } from '../ActivityPage';
 import { MessagesPage } from '../MessagesPage';
@@ -31,7 +31,6 @@ import { AsianDramaPage } from '../AsianDramaPage';
 import { ForYouPage } from '../ForYouPage';
 import { DownloadQuestPage, type OfflineDownloadGroup } from '../DownloadQuestPage';
 import { StudioAddToPlaylistSheet } from './media/StudioAddToPlaylistSheet';
-import { PlaylistRow } from '../PlaylistRow';
 import { LatestTrailersByCountrySection } from '../LatestTrailersByCountrySection';
 import type { ActivityFeedTab } from '../../hooks/useActivityFeed';
 import type { CountryTrailerGroup } from '../../services/latestTrailers';
@@ -120,9 +119,9 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
 
   useEffect(() => subscribeToUiPreferences(setPreferences), []);
 
-  const playTitle = (movie: Movie) => {
+  const playTitle = (movie: Movie, season?: number, episode?: number) => {
     if (movie.mediaType === 'tv') {
-      props.onPlay(movie, movie.season || 1, movie.episode || 1);
+      props.onPlay(movie, season || movie.season || 1, episode || movie.episode || 1);
       return;
     }
 
@@ -167,8 +166,15 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
           />
         )}
         {props.featuredPlaylists.length > 0 && (
-          <div className="mx-auto max-w-[1500px] px-4 py-4 md:px-8">
-            <PlaylistRow title="Featured Playlists" playlists={props.featuredPlaylists} onPlaylistSelect={props.onPlaylistSelect} />
+          <div className="mx-auto max-w-[1500px] px-4 py-5 md:px-8">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold tracking-tight text-white md:text-2xl">Featured Playlists</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {props.featuredPlaylists.slice(0, 6).map(playlist => (
+                <StudioPlaylistCard key={playlist.id} playlist={playlist} onClick={() => props.onPlaylistSelect(playlist)} />
+              ))}
+            </div>
           </div>
         )}
         {props.communityTrending.length > 0 && (
@@ -218,7 +224,13 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
     if (props.selectedPlaylistId) {
       return (
         <StudioPageFrame>
-          <PlaylistPage playlistId={props.selectedPlaylistId} onMovieSelect={props.onMovieSelect} onBack={() => props.setActiveTab(NavItem.DASHBOARD)} />
+          <StudioPlaylistDetailPage
+            playlistId={props.selectedPlaylistId}
+            onMovieSelect={props.onMovieSelect}
+            onBack={() => props.setActiveTab(NavItem.DASHBOARD)}
+            onPlay={playTitle}
+            onAddToPlaylist={props.openPlaylistModal}
+          />
         </StudioPageFrame>
       );
     }
@@ -264,15 +276,15 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       case NavItem.SETTINGS:
         return <StudioSettingsPage />;
       case NavItem.PLAYLISTS:
-        return <StudioPageFrame className="studio-classic-bridge"><PlaylistsPage onBack={() => props.setActiveTab(NavItem.DASHBOARD)} onPlaylistSelect={props.onPlaylistSelect} /></StudioPageFrame>;
+        return <StudioPageFrame><StudioPlaylistsPage onPlaylistSelect={props.onPlaylistSelect} /></StudioPageFrame>;
       case NavItem.PROFILE:
-        return <StudioPageFrame className="studio-classic-bridge"><ProfilePage userId={props.selectedProfileId} onNavigate={props.onNavigate} onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
+        return <StudioPageFrame><StudioProfilePage userId={props.selectedProfileId} onPlaylistSelect={props.onPlaylistSelect} onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
       case NavItem.ADMIN:
         return <StudioPageFrame className="studio-classic-bridge"><AdminDashboard onNavigate={props.onNavigate} /></StudioPageFrame>;
       case NavItem.ACTIVITY:
         return <StudioPageFrame className="studio-classic-bridge"><ActivityPage onNavigate={props.onNavigate} initialTab={props.selectedActivityTab} /></StudioPageFrame>;
       case NavItem.MESSAGES:
-        return <StudioPageFrame className="max-w-none px-0 md:px-4"><MessagesPage onMovieSelect={props.onMovieSelect} initialConversationId={props.selectedMessageConversationId} onConversationChange={props.onConversationChange} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-messages-bridge max-w-none px-0 md:px-4"><MessagesPage onMovieSelect={props.onMovieSelect} initialConversationId={props.selectedMessageConversationId} onConversationChange={props.onConversationChange} /></StudioPageFrame>;
       case NavItem.ANNOUNCEMENTS:
         return <StudioPageFrame className="studio-classic-bridge"><AnnouncementsPage /></StudioPageFrame>;
       case NavItem.STATS:
@@ -309,7 +321,9 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
         />
         <StudioBottomDock activeTab={props.activeTab} setActiveTab={props.setActiveTab} messageUnreadCount={props.messageUnreadCount} />
 
-        <main>{renderActivePage()}</main>
+        <main className={drawerOpen ? 'studio-shell-main studio-shell-main--drawer-open' : 'studio-shell-main'}>
+          {renderActivePage()}
+        </main>
 
         <StudioMediaDrawer
           movie={props.selectedMovie}
@@ -319,6 +333,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
           }}
           onPlay={playTitle}
           onAddToPlaylist={props.openPlaylistModal}
+          onMovieSelect={props.onMovieSelect}
         />
 
         {props.isSearchOpen && (

@@ -1,18 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import { BookmarkPlus, Calendar, Clock, Clapperboard, Play, Sparkles, Star, Tv, Users } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowUpDown, BookmarkPlus, Calendar, ChevronDown, Clapperboard, Clock, Grid2X2, ListVideo, Play, Plus, Sparkles, Star, Tv, Users } from 'lucide-react';
 import { Movie } from '../../../types';
 import { TmdbService } from '../../../services/tmdb';
 import { StudioBadge } from '../system/StudioBadge';
 import { StudioButton } from '../system/StudioButton';
-import { StudioDrawerContent, StudioDrawerRoot, StudioDrawerTitle, StudioDrawerX } from '../system/StudioDrawer';
+import { StudioDrawerContent, StudioDrawerRoot, StudioDrawerTitle } from '../system/StudioDrawer';
 
 interface StudioMediaDrawerProps {
   movie: Movie | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPlay: (movie: Movie) => void;
+  onPlay: (movie: Movie, season?: number, episode?: number) => void;
   onAddToPlaylist?: (movie: Movie) => void;
+  onMovieSelect?: (movie: Movie) => void;
 }
+
+type StudioEpisode = {
+  episode_number: number;
+  id: number;
+  name: string;
+  overview: string;
+  still_path: string | null;
+  air_date: string;
+  vote_average: number;
+  runtime?: number;
+};
 
 const formatRuntime = (duration?: string | number) => {
   if (!duration) return null;
@@ -26,34 +38,27 @@ const formatScore = (score: number) => (
   score >= 1 ? (score > 10 ? `${Math.round(score)}%` : `${score.toFixed(1)}/10`) : null
 );
 
-interface DetailItemProps {
-  label: string;
-  value?: React.ReactNode;
-}
-
-const DetailItem: React.FC<DetailItemProps> = ({ label, value }) => {
-  if (!value) return null;
-
-  return (
-    <div className="rounded-[18px] border border-white/8 bg-white/[0.045] px-4 py-3">
-      <div className="text-[11px] font-bold uppercase text-white/35">{label}</div>
-      <div className="mt-1 text-sm leading-5 text-white/82">{value}</div>
-    </div>
-  );
-};
-
-export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, open, onOpenChange, onPlay, onAddToPlaylist }) => {
+export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, open, onOpenChange, onPlay, onAddToPlaylist, onMovieSelect }) => {
   const [details, setDetails] = useState<Movie | null>(movie);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [episodes, setEpisodes] = useState<StudioEpisode[]>([]);
+  const [episodesLoading, setEpisodesLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState<Movie[]>([]);
+  const [newestFirst, setNewestFirst] = useState(false);
+  const [episodeView, setEpisodeView] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     let cancelled = false;
 
     if (!movie || !open) {
       setDetails(movie);
+      setDetailsLoading(false);
       return;
     }
 
     setDetails(movie);
+    setDetailsLoading(true);
 
     const mediaType = movie.mediaType || 'movie';
     TmdbService.getDetails(String(movie.tmdbId || movie.id), mediaType)
@@ -63,6 +68,9 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
       })
       .catch(() => {
         if (!cancelled) setDetails(movie);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailsLoading(false);
       });
 
     return () => {
@@ -72,17 +80,82 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
 
   const activeMovie = details || movie;
   const runtime = formatRuntime(activeMovie?.duration);
-  const cast = activeMovie?.cast?.filter(Boolean) || [];
-  const genres = activeMovie?.genre?.filter(Boolean) || [];
-  const seasons = activeMovie?.seasons?.filter(season => season.season_number > 0) || [];
+  const cast = useMemo(() => activeMovie?.cast?.filter(Boolean) || [], [activeMovie?.cast]);
+  const castProfiles = useMemo(() => activeMovie?.castProfiles?.filter(person => person.name) || [], [activeMovie?.castProfiles]);
+  const castCards = useMemo(() => (
+    castProfiles.length > 0
+      ? castProfiles
+      : cast.map(name => ({ name, character: undefined, profileUrl: undefined }))
+  ), [cast, castProfiles]);
+  const seasons = useMemo(() => activeMovie?.seasons?.filter(season => season.season_number > 0) || [], [activeMovie?.seasons]);
+  const selectedSeasonData = seasons.find(season => season.season_number === selectedSeason) || null;
+  const sortedEpisodes = useMemo(() => (
+    newestFirst ? [...episodes].reverse() : episodes
+  ), [episodes, newestFirst]);
+
+  useEffect(() => {
+    if (!open || !activeMovie || activeMovie.mediaType !== 'tv' || seasons.length === 0) {
+      setSelectedSeason(null);
+      setEpisodes([]);
+      return;
+    }
+
+    if (!selectedSeason || !seasons.some(season => season.season_number === selectedSeason)) {
+      setSelectedSeason(seasons[0].season_number);
+    }
+  }, [activeMovie?.id, activeMovie?.mediaType, open, seasons, selectedSeason]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!open || !activeMovie || activeMovie.mediaType !== 'tv' || !selectedSeason) {
+      setEpisodes([]);
+      return;
+    }
+
+    setEpisodesLoading(true);
+    TmdbService.getSeasonDetails(String(activeMovie.tmdbId || activeMovie.id), selectedSeason)
+      .then(seasonDetails => {
+        if (!cancelled) setEpisodes(seasonDetails?.episodes || []);
+      })
+      .catch(() => {
+        if (!cancelled) setEpisodes([]);
+      })
+      .finally(() => {
+        if (!cancelled) setEpisodesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeMovie?.id, activeMovie?.mediaType, activeMovie?.tmdbId, open, selectedSeason]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!open || !activeMovie) {
+      setRecommendations([]);
+      return;
+    }
+
+    TmdbService.getRecommendations(String(activeMovie.tmdbId || activeMovie.id), activeMovie.mediaType || 'movie')
+      .then(items => {
+        if (!cancelled) setRecommendations(items.slice(0, 8));
+      })
+      .catch(() => {
+        if (!cancelled) setRecommendations([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeMovie?.id, activeMovie?.mediaType, activeMovie?.tmdbId, open]);
 
   return (
     <StudioDrawerRoot open={open} onOpenChange={onOpenChange}>
       <StudioDrawerContent>
         {activeMovie && (
-          <div className="studio-scrollbar max-h-[92dvh] overflow-y-auto">
-            <StudioDrawerX />
-
+          <div className="studio-drawer-scroll max-h-[92dvh] overflow-y-auto">
             <div className="relative min-h-[360px] overflow-hidden bg-black md:min-h-[460px]">
               {(activeMovie.backdropUrl || activeMovie.imageUrl) && (
                 <img
@@ -119,23 +192,22 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                   )}
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <StudioButton variant="primary" size="lg" onClick={() => onPlay(activeMovie)}>
-                    <Play size={18} fill="currentColor" />
-                    Play
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <StudioButton variant="glass" size="md" onClick={() => onPlay(activeMovie)} className="px-4">
+                    <Play size={15} fill="currentColor" />
+                    {activeMovie.mediaType === 'tv' ? 'S1 E1' : 'Play'}
                   </StudioButton>
                   {onAddToPlaylist && (
-                    <StudioButton variant="glass" size="lg" onClick={() => onAddToPlaylist(activeMovie)}>
-                      <BookmarkPlus size={18} />
-                      Add
+                    <StudioButton variant="ghost" size="icon" onClick={() => onAddToPlaylist(activeMovie)} aria-label="Save to playlist">
+                      <BookmarkPlus size={17} />
                     </StudioButton>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-6 p-5 md:grid-cols-[minmax(0,1fr)_340px] md:p-8">
-              <div className="space-y-6">
+            <div className="space-y-8 p-5 md:p-8">
+              <div className="space-y-8">
                 <section>
                   <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase text-white/38">
                     <Sparkles size={14} />
@@ -146,64 +218,220 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                   </p>
                 </section>
 
-                {cast.length > 0 && (
-                  <section>
+                {(detailsLoading && castCards.length === 0) && (
+                  <section className="animate-[studio-rise_260ms_var(--studio-ease)]">
                     <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase text-white/38">
                       <Users size={14} />
                       Cast
                     </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {cast.slice(0, 12).map(actor => (
-                        <span key={actor} className="rounded-full border border-white/9 bg-white/[0.06] px-3 py-1.5 text-sm text-white/78">
-                          {actor}
-                        </span>
+                    <div className="flex flex-wrap gap-3">
+                      {Array.from({ length: 8 }).map((_, index) => (
+                        <div key={index} className="w-20 shrink-0">
+                          <div className="aspect-[3/4] animate-pulse rounded-[16px] border border-white/8 bg-white/[0.055]" />
+                          <div className="mt-2 h-2.5 animate-pulse rounded-full bg-white/[0.08]" />
+                        </div>
                       ))}
                     </div>
                   </section>
                 )}
 
-                {seasons.length > 0 && (
+                {castCards.length > 0 && (
                   <section>
                     <h3 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase text-white/38">
-                      <Tv size={14} />
-                      Seasons
+                      <Users size={14} />
+                      Cast
                     </h3>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {seasons.slice(0, 8).map(season => (
-                        <div key={season.id || season.season_number} className="rounded-[18px] border border-white/8 bg-white/[0.045] p-3">
-                          <div className="line-clamp-1 text-sm font-semibold text-white">{season.name || `Season ${season.season_number}`}</div>
-                          <div className="mt-1 text-xs text-white/45">{season.episode_count} episodes</div>
+                    <div className="flex flex-wrap gap-3">
+                      {castCards.slice(0, 10).map(actor => (
+                        <div key={`${actor.name}-${actor.character || ''}`} className="w-20 shrink-0">
+                          <div className="aspect-[3/4] overflow-hidden rounded-[16px] border border-white/8 bg-white/[0.045]">
+                            {actor.profileUrl ? (
+                              <img src={actor.profileUrl} alt={actor.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-white/28">
+                                <Users size={24} />
+                              </div>
+                            )}
+                          </div>
+                          <div className="mt-2 line-clamp-1 text-[11px] font-bold text-white/88">{actor.name}</div>
+                          {actor.character && <div className="mt-0.5 line-clamp-1 text-xs text-white/42">{actor.character}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {activeMovie.mediaType === 'tv' && selectedSeason && (
+                  <section>
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="flex items-center gap-2 text-2xl font-black tracking-tight text-white">
+                        Episodes
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewestFirst(value => !value)}
+                          className="studio-control-glass hidden h-10 items-center gap-2 rounded-full px-3 text-sm font-semibold text-white/86 transition-colors hover:bg-white/[0.12] sm:inline-flex"
+                          aria-label="Toggle episode sort"
+                        >
+                          <ArrowUpDown size={15} />
+                          <span>Sort: {newestFirst ? 'Newest First' : 'Oldest First'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEpisodeView('list')}
+                          className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${episodeView === 'list' ? 'border-white/32 bg-white/14 text-white' : 'border-white/10 bg-black/50 text-white/62 hover:text-white'}`}
+                          aria-label="Episode list view"
+                        >
+                          <ListVideo size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEpisodeView('grid')}
+                          className={`inline-flex h-10 w-10 items-center justify-center rounded-full border transition-colors ${episodeView === 'grid' ? 'border-white/32 bg-white/14 text-white' : 'border-white/10 bg-black/50 text-white/62 hover:text-white'}`}
+                          aria-label="Episode grid view"
+                        >
+                          <Grid2X2 size={15} />
+                        </button>
+                        {seasons.length > 0 && (
+                          <label className="relative">
+                            <span className="sr-only">Season</span>
+                            <select
+                              value={selectedSeason}
+                              onChange={(event) => setSelectedSeason(Number(event.target.value))}
+                              className="h-10 min-w-[150px] appearance-none rounded-full border border-white/12 bg-black/62 py-0 pl-4 pr-10 text-sm font-semibold text-white outline-none transition-colors hover:border-white/22"
+                            >
+                              {seasons.map(season => (
+                                <option key={season.id || season.season_number} value={season.season_number}>
+                                  {season.name || `Season ${season.season_number}`}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown size={15} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/60" />
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                    {selectedSeasonData && (
+                      <div className="mb-3 text-sm text-white/42">
+                        {selectedSeasonData.episode_count} episodes
+                      </div>
+                    )}
+                    {episodesLoading ? (
+                      <div className="overflow-hidden rounded-[24px] border border-white/9">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                          <div key={index} className="h-32 animate-pulse border-b border-white/7 bg-white/[0.035] last:border-b-0" />
+                        ))}
+                      </div>
+                    ) : sortedEpisodes.length > 0 && episodeView === 'list' ? (
+                      <div className="overflow-hidden rounded-[24px] border border-white/9 bg-black/45">
+                        {sortedEpisodes.map(episode => (
+                          <button
+                            key={episode.id}
+                            type="button"
+                            onClick={() => onPlay(activeMovie, selectedSeason, episode.episode_number)}
+                            className="group/episode grid w-full grid-cols-[32px_96px_minmax(0,1fr)] items-center gap-3 border-b border-white/7 px-3 py-4 text-left transition-colors last:border-b-0 hover:bg-white/[0.055] md:grid-cols-[44px_132px_minmax(0,1fr)_auto] md:gap-4 md:px-4"
+                          >
+                            <div className="text-center text-xl font-black text-white/45">
+                              {episode.episode_number}
+                            </div>
+                            <div className="relative h-20 overflow-hidden rounded-[16px] bg-white/[0.06]">
+                              {episode.still_path ? (
+                                <img src={`https://image.tmdb.org/t/p/w300${episode.still_path}`} alt="" className="h-full w-full object-cover opacity-80 transition-opacity group-hover/episode:opacity-100" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-white/24">
+                                  <Play size={18} />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/24 opacity-0 transition-opacity group-hover/episode:opacity-100">
+                                <span className="studio-control-glass flex h-9 w-9 items-center justify-center rounded-full text-white">
+                                  <Play size={14} fill="currentColor" />
+                                </span>
+                              </div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="mt-1 line-clamp-1 font-bold text-white">{episode.name || `Episode ${episode.episode_number}`}</div>
+                              <div className="mt-0.5 text-xs text-white/38">{episode.air_date || 'Air date unavailable'}</div>
+                              <p className="mt-1 line-clamp-2 text-sm leading-6 text-white/50">{episode.overview || 'No episode overview available.'}</p>
+                            </div>
+                            <div className="hidden text-sm font-bold text-white/45 md:block">
+                              {episode.runtime ? formatRuntime(episode.runtime) : ''}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : sortedEpisodes.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {sortedEpisodes.map(episode => (
+                          <button
+                            key={episode.id}
+                            type="button"
+                            onClick={() => onPlay(activeMovie, selectedSeason, episode.episode_number)}
+                            className="group/episode overflow-hidden rounded-[22px] border border-white/8 bg-black/45 text-left transition-colors hover:border-white/18 hover:bg-white/[0.055]"
+                          >
+                            <div className="relative aspect-video bg-white/[0.055]">
+                              {episode.still_path ? (
+                                <img src={`https://image.tmdb.org/t/p/w500${episode.still_path}`} alt="" className="h-full w-full object-cover opacity-82 transition-opacity group-hover/episode:opacity-100" />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-white/24">
+                                  <Play size={20} />
+                                </div>
+                              )}
+                              <div className="absolute left-3 top-3 rounded-full bg-black/62 px-2.5 py-1 text-xs font-black text-white/78">
+                                {episode.episode_number}
+                              </div>
+                            </div>
+                            <div className="p-3">
+                              <div className="line-clamp-1 font-bold text-white">{episode.name || `Episode ${episode.episode_number}`}</div>
+                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-white/48">{episode.overview || 'No episode overview available.'}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-[20px] border border-white/8 bg-white/[0.045] p-5 text-sm text-white/46">
+                        Episodes are not available for this season yet.
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {recommendations.length > 0 && (
+                  <section>
+                    <h3 className="mb-4 text-2xl font-black tracking-tight text-white">More Like This</h3>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                      {recommendations.map(item => (
+                        <div
+                          key={`${item.mediaType || 'movie'}-${item.id}`}
+                          className="group/reco relative text-left"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => onAddToPlaylist?.(item)}
+                            className="absolute right-2 top-2 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/58 text-white transition-colors hover:bg-black/78"
+                            aria-label="Add to playlist"
+                          >
+                            <Plus size={17} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onMovieSelect?.(item)}
+                            className="block w-full text-left"
+                          >
+                            <div className="aspect-[2/3] overflow-hidden rounded-[22px] border border-white/8 bg-white/[0.045]">
+                              <img src={item.posterUrl || item.imageUrl || item.backdropUrl} alt={item.title} className="h-full w-full object-cover transition-transform duration-300 group-hover/reco:scale-[1.03]" />
+                            </div>
+                            <div className="mt-2 line-clamp-1 text-sm font-bold text-white/84">{item.title}</div>
+                            <div className="mt-0.5 text-xs text-white/36">
+                              {[item.year, item.mediaType === 'tv' ? 'Series' : 'Movie'].filter(Boolean).join(' - ')}
+                            </div>
+                          </button>
                         </div>
                       ))}
                     </div>
                   </section>
                 )}
               </div>
-
-              <aside className="space-y-3">
-                <div className="rounded-[var(--studio-radius-lg)] border border-white/10 bg-white/[0.045] p-4">
-                  <h3 className="mb-3 text-xs font-bold uppercase text-white/38">Details</h3>
-                  <div className="grid gap-3">
-                    <DetailItem label={activeMovie.mediaType === 'tv' ? 'Created by' : 'Director'} value={activeMovie.director || 'Unknown'} />
-                    <DetailItem label="Released" value={activeMovie.year} />
-                    <DetailItem label="Runtime" value={runtime} />
-                    <DetailItem label="Score" value={formatScore(activeMovie.match) || undefined} />
-                  </div>
-                </div>
-
-                {genres.length > 0 && (
-                  <div className="rounded-[var(--studio-radius-lg)] border border-white/10 bg-white/[0.045] p-4">
-                    <h3 className="mb-3 text-xs font-bold uppercase text-white/38">Genres</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {genres.map(genre => (
-                        <span key={genre} className="rounded-full bg-white/[0.075] px-3 py-1.5 text-xs font-semibold text-white/72">
-                          {genre}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </aside>
             </div>
           </div>
         )}

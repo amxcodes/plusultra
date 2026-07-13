@@ -34,10 +34,11 @@ export const PlayerPage: React.FC<PlayerPageProps> = ({ movie, season = 1, episo
             {/* Back Button */}
             <button
                 onClick={onBack}
-                className="absolute top-4 left-4 md:top-6 md:left-6 z-[120] flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full bg-black/60 hover:bg-white/10 text-white backdrop-blur-md border border-white/10 transition-all group shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
+                className="absolute left-1/2 top-0 z-[120] flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-b-2xl border border-t-0 border-white/10 bg-black/54 px-3 text-xs font-semibold text-white/78 shadow-[0_12px_30px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-colors hover:bg-white/10 hover:text-white"
+                aria-label="Exit player"
             >
-                <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="font-medium hidden md:inline">Exit Player</span>
+                <ChevronLeft size={15} />
+                Exit
             </button>
 
             {/* Player Container */}

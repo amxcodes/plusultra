@@ -122,7 +122,7 @@ export const StudioDropdownContent = React.forwardRef<
       ref={ref}
       align="end"
       sideOffset={10}
-      className={cn('z-[120] min-w-[230px] rounded-[24px] border border-white/10 bg-[#111216] p-2 text-white shadow-[var(--studio-shadow)]', className)}
+      className={cn('studio-nav-liquid z-[120] min-w-[230px] rounded-[24px] p-2 text-white shadow-[var(--studio-shadow)]', className)}
       {...props}
     />
   </DropdownMenu.Portal>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LogOut, Palette, SlidersHorizontal, Zap } from 'lucide-react';
-import { getUiPreferences, saveUiPreferences, StudioAccentColor, StudioGlassIntensity, StudioPosterDensity, UiPreferences } from '../../../lib/uiPreferences';
+import { getUiPreferences, saveUiPreferences, StudioAccentColor, StudioGlassIntensity, StudioGlassRefraction, StudioPlayerChrome, StudioPlayerControlDensity, StudioPosterDensity, UiPreferences } from '../../../lib/uiPreferences';
 import { StudioPageFrame } from '../system/StudioPageFrame';
 import { StudioSurface } from '../system/StudioSurface';
 import { StudioButton } from '../system/StudioButton';
@@ -23,9 +23,25 @@ const glassOptions: { value: StudioGlassIntensity; label: string }[] = [
   { value: 'strong', label: 'Strong' },
 ];
 
+const refractionOptions: { value: StudioGlassRefraction; label: string }[] = [
+  { value: 'calm', label: 'Calm' },
+  { value: 'balanced', label: 'Balanced' },
+  { value: 'deep', label: 'Deep' },
+];
+
 const densityOptions: { value: StudioPosterDensity; label: string }[] = [
   { value: 'comfortable', label: 'Comfortable' },
   { value: 'compact', label: 'Compact' },
+];
+
+const playerChromeOptions: { value: StudioPlayerChrome; label: string }[] = [
+  { value: 'studio', label: 'Studio' },
+  { value: 'classic', label: 'Classic' },
+];
+
+const playerDensityOptions: { value: StudioPlayerControlDensity; label: string }[] = [
+  { value: 'compact', label: 'Compact' },
+  { value: 'comfortable', label: 'Comfortable' },
 ];
 
 interface PreferenceRowProps {
@@ -72,6 +88,7 @@ export const StudioSettingsPage: React.FC = () => {
       <StudioTabsRoot defaultValue="appearance" className="space-y-6">
         <StudioTabsList>
           <StudioTabsTrigger value="appearance">Appearance</StudioTabsTrigger>
+          <StudioTabsTrigger value="player">Player</StudioTabsTrigger>
           <StudioTabsTrigger value="performance">Performance</StudioTabsTrigger>
         </StudioTabsList>
 
@@ -129,6 +146,23 @@ export const StudioSettingsPage: React.FC = () => {
 
             <PreferenceRow
               icon={<SlidersHorizontal size={18} />}
+              title="Glass refraction"
+              description="Controls the edge-bending effect on Studio glass surfaces like the nav and search bar."
+            >
+              <StudioSelectRoot value={preferences.glassRefraction} onValueChange={(value) => updatePreferences({ glassRefraction: value as StudioGlassRefraction })}>
+                <StudioSelectTrigger>
+                  <StudioSelectValue />
+                </StudioSelectTrigger>
+                <StudioSelectContent>
+                  {refractionOptions.map(option => (
+                    <StudioSelectItem key={option.value} value={option.value}>{option.label}</StudioSelectItem>
+                  ))}
+                </StudioSelectContent>
+              </StudioSelectRoot>
+            </PreferenceRow>
+
+            <PreferenceRow
+              icon={<SlidersHorizontal size={18} />}
               title="Poster density"
               description="Compact mode fits more posters per row while keeping the same card component."
             >
@@ -146,6 +180,60 @@ export const StudioSettingsPage: React.FC = () => {
           </StudioSurface>
         </StudioTabsContent>
 
+        <StudioTabsContent value="player">
+          <StudioSurface className="p-5 md:p-7">
+            <PreferenceRow
+              icon={<SlidersHorizontal size={18} />}
+              title="Player chrome"
+              description="Controls the unified player overlay. Studio uses smaller glass controls while Classic keeps the older labeled toolbar."
+            >
+              <StudioSelectRoot value={preferences.playerChrome} onValueChange={(value) => updatePreferences({ playerChrome: value as StudioPlayerChrome })}>
+                <StudioSelectTrigger>
+                  <StudioSelectValue />
+                </StudioSelectTrigger>
+                <StudioSelectContent>
+                  {playerChromeOptions.map(option => (
+                    <StudioSelectItem key={option.value} value={option.value}>{option.label}</StudioSelectItem>
+                  ))}
+                </StudioSelectContent>
+              </StudioSelectRoot>
+            </PreferenceRow>
+
+            <PreferenceRow
+              icon={<SlidersHorizontal size={18} />}
+              title="Control size"
+              description="Compact keeps the player closer to Shuttle-style icon controls. Comfortable gives controls more hit area."
+            >
+              <StudioSelectRoot value={preferences.playerControlDensity} onValueChange={(value) => updatePreferences({ playerControlDensity: value as StudioPlayerControlDensity })}>
+                <StudioSelectTrigger>
+                  <StudioSelectValue />
+                </StudioSelectTrigger>
+                <StudioSelectContent>
+                  {playerDensityOptions.map(option => (
+                    <StudioSelectItem key={option.value} value={option.value}>{option.label}</StudioSelectItem>
+                  ))}
+                </StudioSelectContent>
+              </StudioSelectRoot>
+            </PreferenceRow>
+
+            <PreferenceRow
+              icon={<SlidersHorizontal size={18} />}
+              title="Control labels"
+              description="Shows short text labels beside player icons. Keep this off for the cleanest Studio player."
+            >
+              <StudioSwitch checked={preferences.playerControlLabels} onCheckedChange={(checked) => updatePreferences({ playerControlLabels: checked })} />
+            </PreferenceRow>
+
+            <PreferenceRow
+              icon={<SlidersHorizontal size={18} />}
+              title="Auto-hide controls"
+              description="Fades Studio player controls until hover or focus so embeds stay visually clean."
+            >
+              <StudioSwitch checked={preferences.playerAutoHideControls} onCheckedChange={(checked) => updatePreferences({ playerAutoHideControls: checked })} />
+            </PreferenceRow>
+          </StudioSurface>
+        </StudioTabsContent>
+
         <StudioTabsContent value="performance">
           <StudioSurface className="p-5 md:p-7">
             <PreferenceRow
@@ -158,8 +246,8 @@ export const StudioSettingsPage: React.FC = () => {
 
             <PreferenceRow
               icon={<Zap size={18} />}
-              title="Hero preview motion"
-              description="Allows subtle hero motion where supported. Turn this off for a calmer, faster-feeling home."
+              title="Hero trailer preview"
+              description="Autoplays a muted trailer layer in the Studio hero when a trailer is available. Turn it off for a calmer home."
             >
               <StudioSwitch checked={preferences.heroPreviewMotion} onCheckedChange={(checked) => updatePreferences({ heroPreviewMotion: checked })} />
             </PreferenceRow>

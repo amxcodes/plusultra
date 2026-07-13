@@ -14,6 +14,7 @@ export interface Movie {
   duration?: string | number; // Can be string for display or number for progress calc
   director?: string;
   cast?: string[];
+  castProfiles?: { name: string; character?: string; profileUrl?: string }[];
   tagline?: string;
   mediaType?: 'movie' | 'tv';
   tmdbId?: number;

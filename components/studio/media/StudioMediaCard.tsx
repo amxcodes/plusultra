@@ -3,7 +3,6 @@ import { BookmarkPlus, Play } from 'lucide-react';
 import { Movie } from '../../../types';
 import { cn } from '../../../lib/utils';
 import { StudioBadge } from '../system/StudioBadge';
-import { StudioButton } from '../system/StudioButton';
 
 interface StudioMediaCardProps {
   movie: Movie;
@@ -30,12 +29,13 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
     ? Math.min(Math.max(movie.progress > 1 ? movie.progress / 100 : movie.progress, 0), 1)
     : null;
   const score = getScoreLabel(movie.match);
+  const isLandscape = variant === 'landscape';
 
   return (
     <article
       className={cn(
-        'group/card relative cursor-pointer overflow-hidden rounded-[var(--studio-radius-md)] bg-white/[0.055] shadow-[0_14px_38px_rgba(0,0,0,0.34)] transition-[transform,filter,box-shadow] duration-300 hover:z-10 hover:scale-[1.025] hover:brightness-110 hover:shadow-[0_18px_48px_rgba(0,0,0,0.5)]',
-        variant === 'landscape' ? 'aspect-video' : 'aspect-[2/3]'
+        'group/card relative cursor-pointer overflow-hidden rounded-[var(--studio-radius-md)] border border-white/[0.055] bg-white/[0.045] shadow-[0_14px_38px_rgba(0,0,0,0.34)] transition-[transform,filter,box-shadow,border-color] duration-300 hover:z-10 hover:scale-[1.018] hover:brightness-110 hover:border-white/14 hover:shadow-[0_18px_48px_rgba(0,0,0,0.5)]',
+        isLandscape ? 'aspect-video' : 'aspect-[2/3]'
       )}
       onClick={() => onSelect(movie)}
     >
@@ -47,18 +47,21 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
         </div>
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover/card:opacity-100" />
+      <div className={cn(
+        'absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/card:opacity-100',
+        isLandscape ? 'bg-black/34' : 'bg-gradient-to-t from-black via-black/25 to-transparent'
+      )} />
 
       {progress !== null && (
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/12">
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-transparent">
           <div className="h-full bg-[var(--studio-accent)]" style={{ width: `${progress * 100}%` }} />
         </div>
       )}
 
-      {onAddToPlaylist && (
+      {!isLandscape && onAddToPlaylist && (
         <button
           type="button"
-          className="studio-control-glass absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-white/80 opacity-0 transition-all hover:bg-white hover:text-black group-hover/card:opacity-100"
+          className="studio-control-glass absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-white/80 opacity-0 transition-all hover:bg-white/[0.16] hover:text-white group-hover/card:opacity-100"
           onClick={(event) => {
             event.stopPropagation();
             onAddToPlaylist(movie);
@@ -69,28 +72,46 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
         </button>
       )}
 
-      <div className="absolute bottom-0 left-0 right-0 translate-y-3 p-3 opacity-0 transition-all duration-300 group-hover/card:translate-y-0 group-hover/card:opacity-100">
-        <div className="mb-2 line-clamp-2 min-h-[2.25rem] break-words text-sm font-semibold leading-[1.15] text-white">{movie.title}</div>
-        <div className="mb-3 flex min-h-6 flex-wrap items-center gap-1.5 overflow-hidden">
-          {movie.year && <StudioBadge>{movie.year}</StudioBadge>}
-          {score && <StudioBadge tone="accent">{score}</StudioBadge>}
+      {isLandscape ? (
+        <div className="absolute inset-0 flex translate-y-1 items-center justify-center gap-2 opacity-0 transition-all duration-300 group-hover/card:translate-y-0 group-hover/card:opacity-100">
+          {onPlay && (
+            <button
+              type="button"
+              className="studio-control-glass flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform hover:scale-105 hover:bg-white/[0.16]"
+              onClick={(event) => {
+                event.stopPropagation();
+                onPlay(movie);
+              }}
+              aria-label="Play"
+            >
+              <Play size={17} fill="currentColor" />
+            </button>
+          )}
         </div>
-        {onPlay && (
-          <StudioButton
-            type="button"
-            size="sm"
-            variant="primary"
-            className="h-8"
-            onClick={(event) => {
-              event.stopPropagation();
-              onPlay(movie);
-            }}
-          >
-            <Play size={13} fill="currentColor" />
-            Play
-          </StudioButton>
-        )}
-      </div>
+      ) : (
+        <div className="absolute bottom-0 left-0 right-0 translate-y-3 p-3 opacity-0 transition-all duration-300 group-hover/card:translate-y-0 group-hover/card:opacity-100">
+          <div className="mb-2 line-clamp-2 min-h-[2.25rem] break-words text-sm font-semibold leading-[1.15] text-white">{movie.title}</div>
+          <div className="mb-3 flex min-h-6 flex-wrap items-center gap-1.5 overflow-hidden">
+            {movie.year && <StudioBadge>{movie.year}</StudioBadge>}
+            {score && <StudioBadge tone="accent">{score}</StudioBadge>}
+          </div>
+          <div className="flex items-center gap-2">
+            {onPlay && (
+              <button
+                type="button"
+                className="studio-control-glass flex h-9 w-9 items-center justify-center rounded-full text-white transition-transform hover:scale-105 hover:bg-white/[0.16]"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onPlay(movie);
+                }}
+                aria-label="Play"
+              >
+                <Play size={14} fill="currentColor" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </article>
   );
 };

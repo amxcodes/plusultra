@@ -13,6 +13,7 @@ import { StreamDownloadPanel } from './StreamDownloadPanel';
 import { getTrackingContext } from '../lib/activityTracking';
 import { useAuth } from '../lib/AuthContext';
 import { withTrustedPopup } from '../lib/popupGuard';
+import { getUiPreferences, subscribeToUiPreferences, UiPreferences } from '../lib/uiPreferences';
 
 interface UnifiedPlayerProps {
     tmdbId: string;
@@ -33,7 +34,35 @@ interface UnifiedPlayerProps {
 export type { Provider } from '../lib/playerProviders';
 export const PROVIDERS = PLAYER_PROVIDER_DEFAULTS;
 
+const SERVER_FRUITS = [
+    '\u{1F347}',
+    '\u{1FAD0}',
+    '\u{1F352}',
+    '\u{1FAD1}',
+    '\u{1F349}',
+    '\u{1FAD0}',
+    '\u{1F353}',
+    '\u{1FAD2}',
+    '\u{1F34E}',
+    '\u{1F95D}',
+    '\u{1F965}',
+    '\u{1F34D}',
+    '\u{1F34A}',
+    '\u{1F350}',
+    '\u{1F34B}',
+    '\u{1F351}',
+];
 
+const getServerFruit = (value: string) => {
+    const lower = value.toLowerCase();
+    if (lower.includes('honey')) return '\u{1F347}';
+    if (lower.includes('oreo')) return '\u{1FAD0}';
+    if (lower.includes('galaxy')) return '\u{1FAD0}';
+    if (lower.includes('kit')) return '\u{1F352}';
+    if (lower.includes('ice')) return '\u{1F353}';
+    const sum = value.split('').reduce((total, char) => total + char.charCodeAt(0), 0);
+    return SERVER_FRUITS[sum % SERVER_FRUITS.length];
+};
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     tmdbId,
@@ -60,6 +89,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [showServers, setShowServers] = useState(false);
     const [showCommunity, setShowCommunity] = useState(false);
     const [communityLinks, setCommunityLinks] = useState<RequestReply[]>([]);
+    const [uiPreferences, setUiPreferences] = useState<UiPreferences>(() => getUiPreferences());
 
     // ... rest state
 
@@ -148,6 +178,8 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [currentEpisodeImage, setCurrentEpisodeImage] = useState<string>(episodeImage || '');
     // Fetch specific backdrop if Movie (sometimes we only get posterUrl passed in)
     const [currentMovieBackdrop, setCurrentMovieBackdrop] = useState<string>(backdropUrl || '');
+
+    useEffect(() => subscribeToUiPreferences(setUiPreferences), []);
 
     useEffect(() => {
         if (mediaType === 'tv' && season && episode) {
@@ -799,9 +831,31 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
         popout.focus();
     };
 
+    const useStudioChrome = uiPreferences.playerChrome === 'studio' || uiPreferences.layoutMode === 'studio';
+    const compactControls = uiPreferences.playerControlDensity === 'compact';
+    const showControlLabels = !useStudioChrome || uiPreferences.playerControlLabels;
+    const controlIconSize = compactControls ? 16 : 18;
+    const toolbarClassName = useStudioChrome
+        ? `absolute right-4 top-3 z-50 flex items-center gap-2 rounded-full border border-white/12 bg-black/78 p-2 text-white shadow-[0_16px_46px_rgba(0,0,0,0.58)] backdrop-blur-2xl transition-opacity duration-200 ${uiPreferences.playerAutoHideControls ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'opacity-100'}`
+        : 'absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4 transition-opacity duration-200';
+    const controlButtonClassName = (active = false, disabled = false) => useStudioChrome
+        ? `${compactControls ? 'h-10 min-w-10 px-2.5' : 'h-11 min-w-11 px-3'} inline-flex items-center justify-center gap-1.5 rounded-full border text-xs font-semibold backdrop-blur-md transition-colors ${disabled
+            ? 'cursor-not-allowed border-white/8 bg-white/[0.035] text-white/32'
+            : active
+                ? 'border-white/18 bg-white text-black'
+                : 'border-white/10 bg-white/[0.055] text-white/82 hover:bg-white/[0.12] hover:text-white'}`
+        : `flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all ${disabled
+            ? 'bg-black/30 text-white/50 cursor-not-allowed'
+            : active
+                ? 'bg-white text-black'
+                : 'bg-black/50 text-white hover:bg-white/20'}`;
+    const panelClassName = useStudioChrome
+        ? 'fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[90vw] md:w-80 mt-0 md:mt-2 rounded-[24px] border border-white/10 bg-[#09090b]/92 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.62)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] md:max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[70] md:z-[60]'
+        : 'fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[90vw] md:w-80 mt-0 md:mt-2 bg-[#0f1014] md:bg-[#0f1014]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] md:max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[70] md:z-[60]';
+
 
     return (
-        <div ref={playerShellRef} className="w-full h-full relative bg-black group">
+        <div ref={playerShellRef} className={`w-full h-full relative bg-black group ${useStudioChrome ? 'studio-player-shell' : ''}`}>
 
             {currentProvider.renderMode === 'direct' ? (
                 <DirectMediaPlayer
@@ -838,30 +892,39 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
 
 
 
+            {useStudioChrome && (
+                <div className={`pointer-events-none absolute left-3 top-3 z-50 max-w-[min(680px,calc(100%-13rem))] transition-opacity duration-200 ${uiPreferences.playerAutoHideControls ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'opacity-100'}`}>
+                    <div className="line-clamp-1 min-h-12 rounded-full border border-white/12 bg-black/82 px-5 py-3 text-sm font-bold text-white/86 shadow-[0_14px_38px_rgba(0,0,0,0.52)] backdrop-blur-2xl">
+                        {title || tmdbId}
+                        <span className="ml-2 text-white/42">{getServerFruit(currentProvider.name)} {currentProvider.name}</span>
+                    </div>
+                </div>
+            )}
+
             {/* Controls Overlay (Top Right) */}
-            <div className="absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4 transition-opacity duration-200">
+            <div className={toolbarClassName}>
                 {isDesktopRuntime && (
                     <button
                         onClick={handlePopout}
-                        className="flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-all hover:bg-white/20"
+                        className={controlButtonClassName()}
                         title={currentProvider.renderMode === 'direct' ? 'Open picture-in-picture' : 'Open popout player'}
                     >
-                        <PictureInPicture2 size={16} />
-                        <span className="text-sm font-medium hidden md:inline">
+                        <PictureInPicture2 size={controlIconSize} />
+                        {showControlLabels && <span className="hidden text-sm font-medium md:inline">
                             {currentProvider.renderMode === 'direct' ? 'PiP' : 'Popout'}
-                        </span>
+                        </span>}
                     </button>
                 )}
 
                 <button
                     onClick={handleFullscreen}
-                    className="flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 bg-black/50 text-white backdrop-blur-md transition-all hover:bg-white/20"
+                    className={controlButtonClassName()}
                     title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen player'}
                 >
-                    <Maximize2 size={16} />
-                    <span className="text-sm font-medium hidden md:inline">
+                    <Maximize2 size={controlIconSize} />
+                    {showControlLabels && <span className="hidden text-sm font-medium md:inline">
                         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-                    </span>
+                    </span>}
                 </button>
 
                 {mediaType === 'tv' && onPlayEpisode && (
@@ -872,22 +935,19 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                             }
                         }}
                         disabled={isResolvingNextEpisode || !nextEpisodeTarget}
-                        className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all ${isResolvingNextEpisode || !nextEpisodeTarget
-                            ? 'bg-black/30 text-white/50 cursor-not-allowed'
-                            : 'bg-black/50 text-white hover:bg-white/20'
-                            }`}
+                        className={controlButtonClassName(false, isResolvingNextEpisode || !nextEpisodeTarget)}
                         title={nextEpisodeTarget
                             ? `Play S${nextEpisodeTarget.season} E${nextEpisodeTarget.episode}`
                             : 'No next episode available'}
                     >
-                        <SkipForward size={16} />
-                        <span className="text-sm font-medium hidden md:inline">
+                        <SkipForward size={controlIconSize} />
+                        {showControlLabels && <span className="hidden text-sm font-medium md:inline">
                             {isResolvingNextEpisode
                                 ? 'Finding Next'
                                 : nextEpisodeTarget
                                     ? `Next S${nextEpisodeTarget.season}E${nextEpisodeTarget.episode}`
                                     : 'No Next'}
-                        </span>
+                        </span>}
                     </button>
                 )}
 
@@ -895,11 +955,11 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                 <div className="relative">
                     <button
                         onClick={() => setShowCommunity(!showCommunity)}
-                        className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all
-                        ${showCommunity ? 'bg-white text-black' : 'bg-black/50 text-white hover:bg-white/20'}`}
+                        className={controlButtonClassName(showCommunity)}
+                        title="Downloads"
                     >
-                        <Download size={16} />
-                        <span className="text-sm font-medium hidden md:inline">Downloads</span>
+                        <Download size={controlIconSize} />
+                        {showControlLabels && <span className="hidden text-sm font-medium md:inline">Downloads</span>}
                         {communityLinks.length > 0 && (
                             <span className={`text-[10px] font-bold px-1.5 rounded-full ${showCommunity ? 'bg-black/10 text-black' : 'bg-white/20 text-white'}`}>
                                 {communityLinks.length}
@@ -916,9 +976,7 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                     )}
 
                     {showCommunity && (
-                        <div className="fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 
-                                            w-[90vw] md:w-80 mt-0 md:mt-2 bg-[#0f1014] md:bg-[#0f1014]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl 
-                                            p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] md:max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[70] md:z-[60]">
+                        <div className={panelClassName}>
 
                             {/* Mobile Header */}
                             <div className="flex items-center justify-between px-2 pt-2 pb-1 md:hidden">
@@ -1006,35 +1064,53 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                 <div className="relative" id="server-menu">
                     <button
                         onClick={() => setShowServers(!showServers)}
-                        className={`flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all
-                        ${showServers ? 'bg-white text-black' : 'bg-black/50 text-white hover:bg-white/20'}`}
+                        className={controlButtonClassName(showServers)}
+                        title="Servers"
                     >
-                        <Settings size={16} />
-                        <span className="text-sm font-medium hidden md:inline">Servers</span>
+                        <Settings size={controlIconSize} />
+                        {showControlLabels && <span className="hidden text-sm font-medium md:inline">Servers</span>}
                     </button>
 
                     {showServers && (
-                        <div className="absolute right-0 top-full mt-2 w-64 md:w-72 bg-[#0f1014]/90 backdrop-blur-2xl border border-white/5 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-1">
+                        <div className={`absolute right-0 top-full mt-2 ${useStudioChrome ? 'w-[min(20rem,calc(100vw-2rem))] rounded-[24px] border border-white/10 bg-[#070708]/92 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.68)]' : 'w-64 md:w-72 bg-[#0f1014]/90 border border-white/5 rounded-2xl shadow-2xl p-2'} backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[min(360px,calc(100vh-5.5rem))] overflow-hidden flex flex-col gap-1.5`}>
+                            {useStudioChrome && (
+                                <div className="shrink-0 px-2 pb-1.5 pt-1">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/34">Playback source</div>
+                                            <div className="mt-1 text-sm font-black text-white">{getServerFruit(currentProvider.name)} {currentProvider.name}</div>
+                                        </div>
+                                        <span className="rounded-full border border-white/10 bg-white/[0.055] px-2 py-1 text-[10px] font-bold uppercase text-white/50">
+                                            {currentProvider.renderMode === 'direct' ? 'Direct' : 'Embed'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="studio-scrollbar min-h-0 space-y-1 overflow-y-auto pr-1">
                             {availableProviders.map((p) => {
                                 const isActive = provider === p.id;
+                                const providerTag = (p.tags?.[0] || (p.renderMode === 'direct' ? 'Direct' : 'Embed')).replace('Redirect Issues', 'Redirects');
                                 return (
                                     <button
                                         key={p.id}
                                         onClick={() => {
                                             handleProviderSwitch(p.id);
                                         }}
-                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border border-transparent
-                                        ${isActive
+                                        className={useStudioChrome
+                                            ? `group/server flex h-14 w-full items-center justify-between gap-3 overflow-hidden rounded-[16px] border px-3 text-left transition-colors ${isActive
+                                                ? 'border-white/18 bg-white text-black shadow-[0_14px_38px_rgba(255,255,255,0.08)]'
+                                                : 'border-white/[0.055] bg-white/[0.035] text-white/60 hover:border-white/12 hover:bg-white/[0.075] hover:text-white'}`
+                                            : `w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all border border-transparent ${isActive
                                                 ? 'bg-white text-black shadow-lg shadow-white/10'
                                                 : 'text-zinc-400 hover:bg-white/5 hover:border-white/5 hover:text-white'}`}
                                     >
-                                        <div className="flex flex-col gap-0.5 items-start">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-sm font-bold ${isActive ? 'text-black' : 'text-zinc-200'}`}>
-                                                    {p.name}
+                                        <div className="flex min-w-0 flex-col gap-0.5 items-start">
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                <span className={`truncate text-sm font-bold ${isActive ? 'text-black' : 'text-zinc-200'}`}>
+                                                    {getServerFruit(p.name)} {p.name}
                                                 </span>
                                                 {(p.tags?.[0] || p.renderMode === 'direct') && (
-                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold ${isActive
+                                                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isActive
                                                         ? 'bg-black/10 text-black/70'
                                                         : (p.tags?.[0] || '').includes('Redirect') || (p.tags?.[0] || '').includes('Ads')
                                                             ? 'bg-red-500/20 text-red-400'
@@ -1042,19 +1118,20 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                                                                 ? 'bg-green-500/20 text-green-400'
                                                             : 'bg-white/10 text-zinc-500'
                                                         }`}>
-                                                        {(p.tags?.[0] || (p.renderMode === 'direct' ? 'Direct' : 'Embed')).replace('Redirect Issues', 'Redirects')}
+                                                        {providerTag}
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className={`text-[10px] ${isActive ? 'text-black/60' : 'text-zinc-600'}`}>
-                                                {p.bestFor}{p.renderMode === 'direct' ? ' · Direct playback' : ''}
+                                            <span className={`line-clamp-1 text-[10px] ${isActive ? 'text-black/60' : useStudioChrome ? 'text-white/34' : 'text-zinc-600'}`}>
+                                                {p.bestFor}{p.renderMode === 'direct' ? ' - Direct playback' : ''}
                                             </span>
                                         </div>
 
-                                        {isActive && <div className="bg-black text-white rounded-full p-0.5"><Check size={10} /></div>}
+                                        {isActive && <div className="shrink-0 rounded-full bg-black p-0.5 text-white"><Check size={10} /></div>}
                                     </button>
                                 );
                             })}
+                            </div>
                         </div>
                     )}
                 </div>

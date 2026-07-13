@@ -71,23 +71,21 @@ export const StudioViewAllPage: React.FC<StudioViewAllPageProps> = ({
 
   return (
     <div className="pb-20">
-      <div className="sticky top-20 z-40 mb-8 rounded-[var(--studio-radius-lg)] border border-white/9 bg-[#0c0c0e]/88 p-4 shadow-[0_16px_55px_rgba(0,0,0,0.42)] backdrop-blur-2xl md:p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <StudioButton type="button" size="icon" variant="ghost" onClick={onBack} aria-label="Back">
-              <ArrowLeft size={22} />
-            </StudioButton>
-            <h1 className="min-w-0 truncate text-3xl font-black tracking-tight text-white md:text-5xl">{title}</h1>
-          </div>
-          <div className="relative w-full md:w-[420px]">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/36" size={18} />
-            <input
-              value={query}
-              onChange={event => setQuery(event.target.value)}
-              placeholder={`Search in ${title}...`}
-              className="h-12 w-full rounded-full border border-white/10 bg-black/28 pl-12 pr-4 text-sm text-white outline-none placeholder:text-white/32 focus:border-white/24"
-            />
-          </div>
+      <div className="mb-7 flex flex-col gap-4 border-b border-white/8 pb-5 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <StudioButton type="button" size="icon" variant="ghost" onClick={onBack} aria-label="Back">
+            <ArrowLeft size={22} />
+          </StudioButton>
+          <h1 className="min-w-0 truncate text-3xl font-black leading-tight tracking-tight text-white md:text-4xl">{title}</h1>
+        </div>
+        <div className="relative w-full shrink-0 md:w-[360px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/34" size={17} />
+          <input
+            value={query}
+            onChange={event => setQuery(event.target.value)}
+            placeholder={`Search in ${title}...`}
+            className="h-11 w-full rounded-full border border-white/10 bg-white/[0.035] pl-11 pr-4 text-sm font-semibold text-white outline-none placeholder:text-white/30 focus:border-white/22"
+          />
         </div>
       </div>
 

@@ -6,8 +6,8 @@ interface StudioBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const toneClass: Record<NonNullable<StudioBadgeProps['tone']>, string> = {
-  neutral: 'border-white/12 bg-black/35 text-white/80',
-  accent: 'border-[var(--studio-accent)]/35 bg-[var(--studio-accent-soft)] text-white',
+  neutral: 'border-white/12 bg-black/62 text-white/86 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
+  accent: 'border-white/14 bg-black/68 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]',
   success: 'border-emerald-400/25 bg-emerald-500/12 text-emerald-200',
   warning: 'border-amber-300/25 bg-amber-400/12 text-amber-100',
   danger: 'border-red-400/25 bg-red-500/12 text-red-100',

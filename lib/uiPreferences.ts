@@ -1,15 +1,23 @@
 export type StudioLayoutMode = 'classic' | 'studio';
 export type StudioAccentColor = 'default' | 'purple' | 'blue' | 'red' | 'green' | 'orange' | 'pink' | 'cyan';
 export type StudioGlassIntensity = 'subtle' | 'standard' | 'strong';
+export type StudioGlassRefraction = 'calm' | 'balanced' | 'deep';
 export type StudioPosterDensity = 'comfortable' | 'compact';
+export type StudioPlayerChrome = 'studio' | 'classic';
+export type StudioPlayerControlDensity = 'compact' | 'comfortable';
 
 export interface UiPreferences {
   layoutMode: StudioLayoutMode;
   accentColor: StudioAccentColor;
   glassIntensity: StudioGlassIntensity;
+  glassRefraction: StudioGlassRefraction;
   smoothScroll: boolean;
   heroPreviewMotion: boolean;
   posterDensity: StudioPosterDensity;
+  playerChrome: StudioPlayerChrome;
+  playerControlDensity: StudioPlayerControlDensity;
+  playerControlLabels: boolean;
+  playerAutoHideControls: boolean;
   reduceMotion: boolean;
 }
 
@@ -17,12 +25,17 @@ export const UI_PREFERENCES_KEY = 'PLUS_ULTRA_UI_PREFERENCES';
 export const UI_PREFERENCES_CHANGED_EVENT = 'plus-ultra-ui-preferences-changed';
 
 export const DEFAULT_UI_PREFERENCES: UiPreferences = {
-  layoutMode: 'classic',
+  layoutMode: 'studio',
   accentColor: 'default',
   glassIntensity: 'standard',
+  glassRefraction: 'balanced',
   smoothScroll: true,
-  heroPreviewMotion: true,
+  heroPreviewMotion: false,
   posterDensity: 'comfortable',
+  playerChrome: 'studio',
+  playerControlDensity: 'compact',
+  playerControlLabels: false,
+  playerAutoHideControls: true,
   reduceMotion: false,
 };
 

@@ -16,6 +16,7 @@ export const StudioThemeProvider: React.FC<StudioThemeProviderProps> = ({ childr
       className="studio-theme min-h-screen"
       data-studio-accent={preferences.accentColor}
       data-studio-glass={preferences.glassIntensity}
+      data-studio-refraction={preferences.glassRefraction}
       data-studio-density={preferences.posterDensity}
       data-studio-reduce-motion={preferences.reduceMotion ? 'true' : 'false'}
     >
