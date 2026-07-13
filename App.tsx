@@ -62,6 +62,8 @@ import { LatestTrailersService, type CountryTrailerGroup } from './services/late
 import type { OfflineDownloadEntry } from './types';
 import { setActivityMode, type ActivityMode } from './lib/activityTracking';
 import type { ActivityFeedTab } from './hooks/useActivityFeed';
+import { getUiPreferences, subscribeToUiPreferences, UiPreferences } from './lib/uiPreferences';
+import { StudioShell } from './components/studio/StudioShell';
 
 type ViewAllCategoryState = {
   title: string;
@@ -115,6 +117,9 @@ function StreamApp() {
   const [guestExpiryNow, setGuestExpiryNow] = useState(() => Date.now());
   const guestExpired = isGuestExpired(profile, guestExpiryNow);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [uiPreferences, setUiPreferences] = useState<UiPreferences>(() => getUiPreferences());
+
+  useEffect(() => subscribeToUiPreferences(setUiPreferences), []);
 
   useEffect(() => {
     if (profile?.account_kind !== 'guest' || !profile.guest_expires_at) return;
@@ -875,6 +880,49 @@ function StreamApp() {
             offlinePlaybackUrl: null,
           }), { scrollToTop: false });
         }}
+      />
+    );
+  }
+
+  if (uiPreferences.layoutMode === 'studio') {
+    return (
+      <StudioShell
+        activeTab={activeTab}
+        setActiveTab={handleTabChange}
+        isSearchOpen={isSearchOpen}
+        closeSearch={closeSearch}
+        openSearch={openSearch}
+        selectedMovie={selectedMovie}
+        closeDetail={handleCloseDetail}
+        selectedPlaylistId={selectedPlaylistId}
+        selectedProfileId={selectedProfileId}
+        selectedMessageConversationId={selectedMessageConversationId}
+        selectedActivityTab={selectedActivityTab}
+        viewAllCategory={viewAllCategory}
+        closeViewAll={closeViewAll}
+        openViewAll={openViewAll}
+        playlistModalMovie={playlistModalMovie}
+        closePlaylistModal={closePlaylistModal}
+        openPlaylistModal={openPlaylistModal}
+        heroMovie={heroMovie}
+        featuredMovies={featuredMovies}
+        featuredPlaylists={featuredPlaylists}
+        communityTrending={communityTrending}
+        latestTrailerGroups={latestTrailerGroups}
+        continueWatching={continueWatching}
+        myList={myList}
+        canStream={canStream}
+        profile={profile}
+        messageUnreadCount={messageUnreadCount}
+        onMovieSelect={handleMovieSelect}
+        onContinueWatchingSelect={handleContinueWatchingSelect}
+        onPlay={handlePlay}
+        onPlaylistSelect={handlePlaylistSelect}
+        onNavigate={handleNavigate}
+        onConversationChange={(conversationId) => {
+          setSelectedMessageConversationId(conversationId || undefined);
+        }}
+        onOfflineGroupSelect={handleOfflineGroupSelect}
       />
     );
   }

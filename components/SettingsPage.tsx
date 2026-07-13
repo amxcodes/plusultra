@@ -11,13 +11,15 @@ import {
     Trophy,
     Play,
     Tv,
-    ShieldCheck
+    ShieldCheck,
+    Palette
 } from 'lucide-react';
 import { WrappedPage } from './WrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { isWrappedUnlocked } from '../lib/wrappedSettings';
 import { GuestSecurityCard } from './GuestSecurityCard';
+import { getUiPreferences, saveUiPreferences, UiPreferences } from '../lib/uiPreferences';
 
 interface UserStats {
     historyCount: number;
@@ -35,6 +37,7 @@ export const SettingsPage: React.FC = () => {
     const [wrappedUnlocked, setWrappedUnlocked] = useState(false);
     const [showWrapped, setShowWrapped] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'data'>('overview');
+    const [uiPreferences, setUiPreferences] = useState<UiPreferences>(() => getUiPreferences());
     const currentYear = new Date().getFullYear();
 
     useEffect(() => {
@@ -135,6 +138,10 @@ export const SettingsPage: React.FC = () => {
         }
     };
 
+    const setLayoutMode = (layoutMode: UiPreferences['layoutMode']) => {
+        setUiPreferences(saveUiPreferences({ layoutMode }));
+    };
+
     return (
         <div className="w-full pl-24 pr-8 pt-8 h-screen flex flex-col overflow-hidden bg-[#0f1014] animate-in fade-in duration-700">
             {showWrapped && <WrappedPage onClose={() => setShowWrapped(false)} />}
@@ -195,6 +202,42 @@ export const SettingsPage: React.FC = () => {
                 
                 {activeTab === 'overview' ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <section className="lg:col-span-2 bg-[#121214] border border-white/5 p-6 rounded-[24px] flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-start gap-4">
+                                <div className="p-3 bg-zinc-900 rounded-2xl text-zinc-300 border border-white/5 shrink-0">
+                                    <Palette size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-white tracking-tight">Interface</h3>
+                                    <p className="text-sm text-zinc-500 mt-1 leading-relaxed">
+                                        Keep Classic unchanged or switch to the separate Studio layout inspired by cinematic drawer-first browsing.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex p-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/5 z-10 shadow-2xl relative">
+                                <button
+                                    onClick={() => setLayoutMode('classic')}
+                                    className={`px-6 py-2 rounded-full text-xs uppercase tracking-widest font-bold transition-all duration-300 ${
+                                        uiPreferences.layoutMode === 'classic'
+                                            ? 'bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]'
+                                            : 'bg-transparent text-zinc-500 hover:text-zinc-300 border border-transparent'
+                                    }`}
+                                >
+                                    Classic
+                                </button>
+                                <button
+                                    onClick={() => setLayoutMode('studio')}
+                                    className={`px-6 py-2 rounded-full text-xs uppercase tracking-widest font-bold transition-all duration-300 ${
+                                        uiPreferences.layoutMode === 'studio'
+                                            ? 'bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]'
+                                            : 'bg-transparent text-zinc-500 hover:text-zinc-300 border border-transparent'
+                                    }`}
+                                >
+                                    Studio
+                                </button>
+                            </div>
+                        </section>
+
                         {/* Guest Security Card is naturally compact now */}
                         <div className="lg:col-span-2">
                             <GuestSecurityCard compact />

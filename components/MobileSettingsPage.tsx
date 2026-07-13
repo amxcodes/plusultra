@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-    Download, LogOut, Trash2, Trophy, Play, ShieldCheck
+    Download, LogOut, Trash2, Trophy, Play, ShieldCheck, Palette
 } from 'lucide-react';
 import { MobileWrappedPage } from './MobileWrappedPage';
 import { useAuth } from '../lib/AuthContext';
 import { SocialService } from '../lib/social';
 import { isWrappedUnlocked } from '../lib/wrappedSettings';
 import { GuestSecurityCard } from './GuestSecurityCard';
+import { getUiPreferences, saveUiPreferences, UiPreferences } from '../lib/uiPreferences';
 
 interface UserStats {
     historyCount: number;
@@ -24,6 +25,7 @@ export const MobileSettingsPage: React.FC = () => {
     const [wrappedUnlocked, setWrappedUnlocked] = useState(false);
     const [showWrapped, setShowWrapped] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'data'>('overview');
+    const [uiPreferences, setUiPreferences] = useState<UiPreferences>(() => getUiPreferences());
     const currentYear = new Date().getFullYear();
 
     useEffect(() => {
@@ -78,6 +80,10 @@ export const MobileSettingsPage: React.FC = () => {
         }
     };
 
+    const setLayoutMode = (layoutMode: UiPreferences['layoutMode']) => {
+        setUiPreferences(saveUiPreferences({ layoutMode }));
+    };
+
     return (
         <div className="w-full h-screen flex flex-col overflow-hidden bg-[#0f1014] animate-in fade-in duration-500 relative">
             {showWrapped && <MobileWrappedPage onClose={() => setShowWrapped(false)} />}
@@ -120,6 +126,40 @@ export const MobileSettingsPage: React.FC = () => {
             <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-6 pb-24">
                 {activeTab === 'overview' ? (
                     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="p-5 bg-[#121214] rounded-[20px] border border-white/5">
+                            <div className="flex items-start gap-3">
+                                <div className="p-3 bg-white/5 rounded-full text-zinc-400 shrink-0">
+                                    <Palette size={18} />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-sm font-bold text-white mb-1">Interface</h3>
+                                    <p className="text-[11px] text-zinc-500 leading-relaxed">Switch between Classic and the separate Studio layout.</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex p-1 bg-black/40 backdrop-blur-2xl rounded-full border border-white/5">
+                                <button
+                                    onClick={() => setLayoutMode('classic')}
+                                    className={`flex-1 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all duration-300 ${
+                                        uiPreferences.layoutMode === 'classic'
+                                            ? 'bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 text-white shadow-[0_4px_15px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]'
+                                            : 'bg-transparent text-zinc-500 hover:text-zinc-300 border border-transparent'
+                                    }`}
+                                >
+                                    Classic
+                                </button>
+                                <button
+                                    onClick={() => setLayoutMode('studio')}
+                                    className={`flex-1 py-2.5 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all duration-300 ${
+                                        uiPreferences.layoutMode === 'studio'
+                                            ? 'bg-gradient-to-tr from-white/20 to-white/5 border border-white/10 text-white shadow-[0_4px_15px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.2)]'
+                                            : 'bg-transparent text-zinc-500 hover:text-zinc-300 border border-transparent'
+                                    }`}
+                                >
+                                    Studio
+                                </button>
+                            </div>
+                        </div>
+
                         <GuestSecurityCard compact />
 
                         <div
