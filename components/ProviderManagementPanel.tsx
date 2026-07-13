@@ -95,7 +95,10 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
         setDragOverId(null);
 
         try {
-            await SocialService.upsertProviders(reorderedProviders);
+            await SocialService.updateProviderSortOrders(reorderedProviders.map(provider => ({
+                id: provider.id,
+                sort_order: provider.sort_order,
+            })));
             success('Provider ordering saved');
             await loadProviders();
         } catch (err) {
@@ -172,10 +175,7 @@ export const ProviderManagementPanel: React.FC<ProviderManagementPanelProps> = (
 
     const toggleProvider = async (provider: PlayerProviderRecord) => {
         try {
-            await SocialService.upsertProvider({
-                ...provider,
-                enabled: !provider.enabled,
-            });
+            await SocialService.updateProviderEnabled(provider.id, !provider.enabled);
             setProviders(prev => prev.map(item => item.id === provider.id ? {
                 ...item,
                 enabled: !item.enabled,

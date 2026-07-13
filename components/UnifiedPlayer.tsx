@@ -475,13 +475,22 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 return;
             }
 
-            if (currentProvider.id === 'vidora' && event.data?.type === 'MEDIA_DATA') {
+            let eventData = event.data;
+            if (typeof eventData === 'string') {
+                try {
+                    eventData = JSON.parse(eventData);
+                } catch {
+                    return;
+                }
+            }
+
+            if (currentProvider.id === 'vidora' && eventData?.type === 'MEDIA_DATA') {
                 // Provider is ready once we start getting data
                 if (!isProviderReady) {
                     markProviderReady();
                 }
 
-                const { progress, duration } = event.data.data || {};
+                const { progress, duration } = eventData.data || {};
                 if (progress) {
                     setLastTime(progress);
                     updateProgress({
@@ -509,7 +518,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             }
 
             if (currentProvider.id === 'cinesrc') {
-                const eventType = event.data?.type;
+                const eventType = eventData?.type;
 
                 if (eventType === 'cinesrc:error') {
                     finishProviderAttempt('media_error');
@@ -522,9 +531,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                     }
                 }
 
-                if (eventType === 'cinesrc:timeupdate' && typeof event.data?.currentTime === 'number') {
-                    const progress = event.data.currentTime;
-                    const duration = typeof event.data?.duration === 'number' ? event.data.duration : 0;
+                if (eventType === 'cinesrc:timeupdate' && typeof eventData?.currentTime === 'number') {
+                    const progress = eventData.currentTime;
+                    const duration = typeof eventData?.duration === 'number' ? eventData.duration : 0;
 
                     setLastTime(progress);
                     updateProgress({
@@ -536,6 +545,49 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                         duration,
                         lastUpdated: Date.now(),
                         provider: 'cinesrc',
+                        title,
+                        posterPath: posterUrl,
+                        voteAverage,
+                        backdropUrl: currentMovieBackdrop || backdropUrl,
+                        episodeImage: currentEpisodeImage || episodeImage,
+                        genres: genres.length > 0 ? genres : undefined,
+                        progressSource: 'embed_estimated',
+                    });
+                    if (!providerAttemptFinishedRef.current) {
+                        void StatsService.heartbeatProviderAttempt(providerAttemptIdRef.current, progress, 15);
+                    }
+                }
+                return;
+            }
+
+            if (currentProvider.id === 'cinextream') {
+                const eventType = eventData?.event;
+
+                if (eventType === 'player_error') {
+                    finishProviderAttempt('media_error');
+                    return;
+                }
+
+                if (eventType === 'player_ready' || eventType === 'time') {
+                    if (!isProviderReady) {
+                        markProviderReady();
+                    }
+                }
+
+                if (eventType === 'time' && typeof eventData?.time === 'number') {
+                    const progress = eventData.time;
+                    const duration = typeof eventData?.duration === 'number' ? eventData.duration : 0;
+
+                    setLastTime(progress);
+                    updateProgress({
+                        tmdbId,
+                        type: mediaType,
+                        season,
+                        episode,
+                        time: progress,
+                        duration,
+                        lastUpdated: Date.now(),
+                        provider: 'cinextream',
                         title,
                         posterPath: posterUrl,
                         voteAverage,

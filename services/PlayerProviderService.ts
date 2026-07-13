@@ -41,6 +41,33 @@ export const PlayerProviderService = {
         if (error) throw error;
     },
 
+    async updateProviderEnabled(id: string, enabled: boolean) {
+        const { error } = await supabase
+            .from('player_providers')
+            .update({
+                enabled,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
+    async updateProviderSortOrders(providers: Pick<PlayerProviderRecord, 'id' | 'sort_order'>[]) {
+        const results = await Promise.all(providers.map(provider => (
+            supabase
+                .from('player_providers')
+                .update({
+                    sort_order: provider.sort_order,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', provider.id)
+        )));
+
+        const failed = results.find(result => result.error);
+        if (failed?.error) throw failed.error;
+    },
+
     async deleteProvider(id: string) {
         const { error } = await supabase
             .from('player_providers')

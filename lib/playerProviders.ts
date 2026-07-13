@@ -160,15 +160,20 @@ const interpolateTemplate = (template: string | undefined, context: ProviderCont
     if (!template) return '';
 
     const replacements: Record<string, string | number> = {
+        id: context.tmdbId,
         tmdbId: context.tmdbId,
+        tmdb_id: context.tmdbId,
+        tmdbid: context.tmdbId,
         season: context.season || 1,
         episode: context.episode || 1,
         mediaType: context.mediaType,
+        media_type: context.mediaType,
     };
 
-    return template.replace(/\{\{(\w+)\}\}/g, (_match, token: string) => {
-        return String(replacements[token] ?? '');
-    });
+    return template
+        .replace(/\{\{(\w+)\}\}/g, (_match, token: string) => String(replacements[token] ?? ''))
+        .replace(/\{(\w+)\}/g, (_match, token: string) => String(replacements[token] ?? _match))
+        .replace(/\[(\w+)\]/g, (_match, token: string) => String(replacements[token] ?? _match));
 };
 
 export const createProviderAdapter = (record: PlayerProviderRecord): PlayerProviderAdapter => ({
