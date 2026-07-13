@@ -11,10 +11,10 @@ import { StudioMediaDrawer } from './media/StudioMediaDrawer';
 import { StudioMediaCard } from './media/StudioMediaCard';
 import { StudioSearchOverlay } from './pages/StudioSearchOverlay';
 import { StudioSettingsPage } from './pages/StudioSettingsPage';
+import { StudioViewAllPage } from './pages/StudioViewAllPage';
 import { StudioPageFrame } from './system/StudioPageFrame';
 import { StudioSurface } from './system/StudioSurface';
 import { StudioButton } from './system/StudioButton';
-import { ViewAllPage } from '../ViewAllPage';
 import { PlaylistPage } from '../PlaylistPage';
 import { PlaylistsPage } from '../PlaylistsPage';
 import { ProfilePage } from '../ProfilePage';
@@ -30,7 +30,7 @@ import { AnimePage } from '../AnimePage';
 import { AsianDramaPage } from '../AsianDramaPage';
 import { ForYouPage } from '../ForYouPage';
 import { DownloadQuestPage, type OfflineDownloadGroup } from '../DownloadQuestPage';
-import { AddToPlaylistModal } from '../AddToPlaylistModal';
+import { StudioAddToPlaylistSheet } from './media/StudioAddToPlaylistSheet';
 import { PlaylistRow } from '../PlaylistRow';
 import { LatestTrailersByCountrySection } from '../LatestTrailersByCountrySection';
 import type { ActivityFeedTab } from '../../hooks/useActivityFeed';
@@ -152,6 +152,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             variant="landscape"
             onMovieSelect={props.onContinueWatchingSelect}
             onPlay={props.onContinueWatchingSelect}
+            onAddToPlaylist={props.openPlaylistModal}
             onViewAll={() => props.openViewAll({ title: 'Continue Watching', movies: props.continueWatching })}
           />
         )}
@@ -161,6 +162,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             movies={props.featuredMovies}
             onMovieSelect={props.onMovieSelect}
             onPlay={playTitle}
+            onAddToPlaylist={props.openPlaylistModal}
             onViewAll={() => props.openViewAll({ title: 'Featured Movies', movies: props.featuredMovies })}
           />
         )}
@@ -175,6 +177,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             movies={props.communityTrending}
             onMovieSelect={props.onMovieSelect}
             onPlay={playTitle}
+            onAddToPlaylist={props.openPlaylistModal}
             onViewAll={() => props.openViewAll({ title: 'Trending With Users', movies: props.communityTrending })}
           />
         )}
@@ -186,6 +189,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             fetchUrl={row.fetchUrl}
             onMovieSelect={props.onMovieSelect}
             onPlay={playTitle}
+            onAddToPlaylist={props.openPlaylistModal}
             onViewAll={() => props.openViewAll({ title: row.title, fetchUrl: row.fetchUrl })}
           />
         ))}
@@ -198,7 +202,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       {movies.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
           {movies.map(movie => (
-            <StudioMediaCard key={`${movie.mediaType || 'movie'}-${movie.id}`} movie={movie} onSelect={props.onMovieSelect} onPlay={playTitle} />
+            <StudioMediaCard key={`${movie.mediaType || 'movie'}-${movie.id}`} movie={movie} onSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
           ))}
         </div>
       ) : (
@@ -222,13 +226,15 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
     if (props.viewAllCategory) {
       return (
         <StudioPageFrame>
-          <ViewAllPage
+          <StudioViewAllPage
             title={props.viewAllCategory.title}
             fetchUrl={props.viewAllCategory.fetchUrl}
             initialMovies={props.viewAllCategory.movies}
             forcedMediaType={props.viewAllCategory.forcedMediaType}
             onBack={props.closeViewAll}
             onMovieSelect={props.viewAllCategory.title === 'Continue Watching' ? props.onContinueWatchingSelect : props.onMovieSelect}
+            onPlay={props.viewAllCategory.title === 'Continue Watching' ? props.onContinueWatchingSelect : playTitle}
+            onAddToPlaylist={props.openPlaylistModal}
           />
         </StudioPageFrame>
       );
@@ -240,17 +246,17 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       case NavItem.MOVIES:
         return (
           <StudioPageFrame title="Movies" subtitle="Browse">
-            <StudioRow title="Now Playing" fetchUrl={requests.fetchNowPlaying} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={playTitle} />
-            <StudioRow title="Top Rated Movies" fetchUrl={requests.fetchTopRated} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={playTitle} />
-            <StudioRow title="Action" fetchUrl={requests.fetchActionMovies} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={playTitle} />
+            <StudioRow title="Now Playing" fetchUrl={requests.fetchNowPlaying} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioRow title="Top Rated Movies" fetchUrl={requests.fetchTopRated} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioRow title="Action" fetchUrl={requests.fetchActionMovies} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
           </StudioPageFrame>
         );
       case NavItem.SERIES:
         return (
           <StudioPageFrame title="Series" subtitle="Browse">
-            <StudioRow title="Popular Series" fetchUrl={requests.fetchTvPopular} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={playTitle} />
-            <StudioRow title="Airing Today" fetchUrl={requests.fetchAiringToday} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={playTitle} />
-            <StudioRow title="On The Air" fetchUrl={requests.fetchOnTheAir} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={playTitle} />
+            <StudioRow title="Popular Series" fetchUrl={requests.fetchTvPopular} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioRow title="Airing Today" fetchUrl={requests.fetchAiringToday} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioRow title="On The Air" fetchUrl={requests.fetchOnTheAir} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
           </StudioPageFrame>
         );
       case NavItem.MY_LIST:
@@ -258,33 +264,33 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       case NavItem.SETTINGS:
         return <StudioSettingsPage />;
       case NavItem.PLAYLISTS:
-        return <StudioPageFrame title="Playlists"><PlaylistsPage onBack={() => props.setActiveTab(NavItem.DASHBOARD)} onPlaylistSelect={props.onPlaylistSelect} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><PlaylistsPage onBack={() => props.setActiveTab(NavItem.DASHBOARD)} onPlaylistSelect={props.onPlaylistSelect} /></StudioPageFrame>;
       case NavItem.PROFILE:
-        return <StudioPageFrame><ProfilePage userId={props.selectedProfileId} onNavigate={props.onNavigate} onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><ProfilePage userId={props.selectedProfileId} onNavigate={props.onNavigate} onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
       case NavItem.ADMIN:
-        return <StudioPageFrame><AdminDashboard onNavigate={props.onNavigate} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><AdminDashboard onNavigate={props.onNavigate} /></StudioPageFrame>;
       case NavItem.ACTIVITY:
-        return <StudioPageFrame><ActivityPage onNavigate={props.onNavigate} initialTab={props.selectedActivityTab} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><ActivityPage onNavigate={props.onNavigate} initialTab={props.selectedActivityTab} /></StudioPageFrame>;
       case NavItem.MESSAGES:
         return <StudioPageFrame className="max-w-none px-0 md:px-4"><MessagesPage onMovieSelect={props.onMovieSelect} initialConversationId={props.selectedMessageConversationId} onConversationChange={props.onConversationChange} /></StudioPageFrame>;
       case NavItem.ANNOUNCEMENTS:
-        return <StudioPageFrame><AnnouncementsPage /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><AnnouncementsPage /></StudioPageFrame>;
       case NavItem.STATS:
-        return <StudioPageFrame>{props.canStream ? <StatsDashboard /> : null}</StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge">{props.canStream ? <StatsDashboard /> : null}</StudioPageFrame>;
       case NavItem.NEWS:
-        return <StudioPageFrame><NewsFeed onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><NewsFeed onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
       case NavItem.REQUESTS:
-        return <StudioPageFrame>{props.canStream ? <RequestsPage /> : null}</StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge">{props.canStream ? <RequestsPage /> : null}</StudioPageFrame>;
       case NavItem.CURATOR:
-        return <StudioPageFrame><CuratorLabPage onMovieSelect={props.onMovieSelect} onPlaylistSelect={props.onPlaylistSelect} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><CuratorLabPage onMovieSelect={props.onMovieSelect} onPlaylistSelect={props.onPlaylistSelect} /></StudioPageFrame>;
       case NavItem.ANIME:
-        return <StudioPageFrame><AnimePage onMovieSelect={props.onMovieSelect} onViewAll={props.openViewAll} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><AnimePage onMovieSelect={props.onMovieSelect} onViewAll={props.openViewAll} /></StudioPageFrame>;
       case NavItem.ASIAN_DRAMA:
-        return <StudioPageFrame><AsianDramaPage onMovieSelect={props.onMovieSelect} onViewAll={props.openViewAll} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><AsianDramaPage onMovieSelect={props.onMovieSelect} onViewAll={props.openViewAll} /></StudioPageFrame>;
       case NavItem.FOR_YOU:
-        return <StudioPageFrame><ForYouPage onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><ForYouPage onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
       case NavItem.DOWNLOAD_QUEST:
-        return <StudioPageFrame><DownloadQuestPage onSelectGroup={props.onOfflineGroupSelect} /></StudioPageFrame>;
+        return <StudioPageFrame className="studio-classic-bridge"><DownloadQuestPage onSelectGroup={props.onOfflineGroupSelect} /></StudioPageFrame>;
       default:
         return renderHome();
     }
@@ -320,9 +326,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
         )}
 
         {props.playlistModalMovie && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md">
-            <AddToPlaylistModal movie={props.playlistModalMovie} onClose={props.closePlaylistModal} />
-          </div>
+          <StudioAddToPlaylistSheet movie={props.playlistModalMovie} onClose={props.closePlaylistModal} />
         )}
 
         <div className="pointer-events-none fixed inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black to-transparent" />

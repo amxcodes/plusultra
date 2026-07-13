@@ -14,6 +14,7 @@ interface StudioRowProps {
   variant?: 'poster' | 'landscape';
   onMovieSelect: (movie: Movie) => void;
   onPlay?: (movie: Movie) => void;
+  onAddToPlaylist?: (movie: Movie) => void;
   onViewAll?: () => void;
 }
 
@@ -25,6 +26,7 @@ export const StudioRow: React.FC<StudioRowProps> = ({
   variant = 'poster',
   onMovieSelect,
   onPlay,
+  onAddToPlaylist,
   onViewAll,
 }) => {
   const [items, setItems] = useState<Movie[]>(movies || []);
@@ -89,7 +91,7 @@ export const StudioRow: React.FC<StudioRowProps> = ({
               ))
             : items.map(movie => (
                 <StudioCarouselItem key={`${movie.mediaType || 'movie'}-${movie.id}`} className={variant === 'landscape' ? 'basis-[78%] sm:basis-[48%] md:basis-[34%] lg:basis-[26%]' : undefined}>
-                  <StudioMediaCard movie={movie} variant={variant} onSelect={onMovieSelect} onPlay={onPlay} />
+                  <StudioMediaCard movie={movie} variant={variant} onSelect={onMovieSelect} onPlay={onPlay} onAddToPlaylist={onAddToPlaylist} />
                 </StudioCarouselItem>
               ))}
         </StudioCarousel>

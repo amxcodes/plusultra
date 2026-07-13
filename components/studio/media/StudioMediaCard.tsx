@@ -9,6 +9,7 @@ interface StudioMediaCardProps {
   movie: Movie;
   onSelect: (movie: Movie) => void;
   onPlay?: (movie: Movie) => void;
+  onAddToPlaylist?: (movie: Movie) => void;
   variant?: 'poster' | 'landscape';
 }
 
@@ -18,12 +19,17 @@ const getImage = (movie: Movie, variant: 'poster' | 'landscape') => (
     : movie.posterUrl || movie.imageUrl || movie.backdropUrl
 );
 
-export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelect, onPlay, variant = 'poster' }) => {
+const getScoreLabel = (score: number) => {
+  if (!score || score < 1) return null;
+  return score > 10 ? `${Math.round(score)}%` : `${score.toFixed(1)}/10`;
+};
+
+export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelect, onPlay, onAddToPlaylist, variant = 'poster' }) => {
   const image = getImage(movie, variant);
   const progress = typeof movie.progress === 'number'
     ? Math.min(Math.max(movie.progress > 1 ? movie.progress / 100 : movie.progress, 0), 1)
     : null;
-  const score = movie.match > 10 ? `${Math.round(movie.match)}%` : `${movie.match.toFixed(1)}/10`;
+  const score = getScoreLabel(movie.match);
 
   return (
     <article
@@ -49,22 +55,25 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
         </div>
       )}
 
-      <button
-        type="button"
-        className="studio-control-glass absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-white/80 opacity-0 transition-all hover:bg-white hover:text-black group-hover/card:opacity-100"
-        onClick={(event) => {
-          event.stopPropagation();
-        }}
-        aria-label="Add to list"
-      >
-        <BookmarkPlus size={14} />
-      </button>
+      {onAddToPlaylist && (
+        <button
+          type="button"
+          className="studio-control-glass absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full text-white/80 opacity-0 transition-all hover:bg-white hover:text-black group-hover/card:opacity-100"
+          onClick={(event) => {
+            event.stopPropagation();
+            onAddToPlaylist(movie);
+          }}
+          aria-label="Add to playlist"
+        >
+          <BookmarkPlus size={14} />
+        </button>
+      )}
 
       <div className="absolute bottom-0 left-0 right-0 translate-y-3 p-3 opacity-0 transition-all duration-300 group-hover/card:translate-y-0 group-hover/card:opacity-100">
         <div className="mb-2 line-clamp-2 min-h-[2.25rem] break-words text-sm font-semibold leading-[1.15] text-white">{movie.title}</div>
         <div className="mb-3 flex min-h-6 flex-wrap items-center gap-1.5 overflow-hidden">
           {movie.year && <StudioBadge>{movie.year}</StudioBadge>}
-          {movie.match > 0 && <StudioBadge tone="accent">{score}</StudioBadge>}
+          {score && <StudioBadge tone="accent">{score}</StudioBadge>}
         </div>
         {onPlay && (
           <StudioButton

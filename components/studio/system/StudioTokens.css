@@ -108,6 +108,17 @@
   -webkit-mask-image: linear-gradient(#000 58%, rgba(0, 0, 0, 0.72) 74%, transparent 100%);
 }
 
+.studio-classic-bridge > .min-h-screen {
+  min-height: auto;
+  padding-top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.studio-classic-bridge .sticky {
+  top: 5.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .studio-theme * {
     scroll-behavior: auto !important;

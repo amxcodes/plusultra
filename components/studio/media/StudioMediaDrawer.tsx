@@ -23,7 +23,7 @@ const formatRuntime = (duration?: string | number) => {
 };
 
 const formatScore = (score: number) => (
-  score > 10 ? `${Math.round(score)}%` : `${score.toFixed(1)}/10`
+  score >= 1 ? (score > 10 ? `${Math.round(score)}%` : `${score.toFixed(1)}/10`) : null
 );
 
 interface DetailItemProps {
@@ -103,7 +103,7 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                 )}
 
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  {activeMovie.match > 0 && (
+                  {formatScore(activeMovie.match) && (
                     <StudioBadge tone="accent">
                       <Star size={12} fill="currentColor" />
                       {formatScore(activeMovie.match)}
@@ -187,7 +187,7 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                     <DetailItem label={activeMovie.mediaType === 'tv' ? 'Created by' : 'Director'} value={activeMovie.director || 'Unknown'} />
                     <DetailItem label="Released" value={activeMovie.year} />
                     <DetailItem label="Runtime" value={runtime} />
-                    <DetailItem label="Score" value={activeMovie.match > 0 ? formatScore(activeMovie.match) : undefined} />
+                    <DetailItem label="Score" value={formatScore(activeMovie.match) || undefined} />
                   </div>
                 </div>
 
