@@ -78,6 +78,7 @@ interface StudioShellProps {
   onNavigate: (page: string, params?: any) => void;
   onConversationChange: (conversationId?: string) => void;
   onOfflineGroupSelect: (group: OfflineDownloadGroup) => void;
+  onSearchMovieSelect: (movie: Movie) => void;
 }
 
 const useStudioSmoothScroll = (preferences: UiPreferences, disabled: boolean) => {
@@ -337,7 +338,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
         />
 
         {props.isSearchOpen && (
-          <StudioSearchOverlay onClose={props.closeSearch} onMovieSelect={props.onMovieSelect} onNavigate={props.onNavigate} />
+          <StudioSearchOverlay onClose={props.closeSearch} onMovieSelect={props.onSearchMovieSelect} onNavigate={props.onNavigate} />
         )}
 
         {props.playlistModalMovie && (

@@ -33,11 +33,19 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
 
   return (
     <article
+      role="button"
+      tabIndex={0}
       className={cn(
         'group/card relative cursor-pointer overflow-hidden rounded-[var(--studio-radius-md)] border border-white/[0.055] bg-white/[0.045] shadow-[0_14px_38px_rgba(0,0,0,0.34)] transition-[transform,filter,box-shadow,border-color] duration-300 hover:z-10 hover:scale-[1.018] hover:brightness-110 hover:border-white/14 hover:shadow-[0_18px_48px_rgba(0,0,0,0.5)]',
         isLandscape ? 'aspect-video' : 'aspect-[2/3]'
       )}
       onClick={() => onSelect(movie)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect(movie);
+        }
+      }}
     >
       {image ? (
         <img src={image} alt={movie.title} className="h-full w-full object-cover" loading="lazy" />

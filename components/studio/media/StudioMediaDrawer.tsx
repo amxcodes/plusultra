@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpDown, BookmarkPlus, Calendar, ChevronDown, Clapperboard, Clock, Grid2X2, ListVideo, Play, Plus, Sparkles, Star, Tv, Users } from 'lucide-react';
 import { Movie } from '../../../types';
 import { TmdbService } from '../../../services/tmdb';
@@ -39,6 +39,8 @@ const formatScore = (score: number) => (
 );
 
 export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, open, onOpenChange, onPlay, onAddToPlaylist, onMovieSelect }) => {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [focusMovie, setFocusMovie] = useState<Movie | null>(movie);
   const [details, setDetails] = useState<Movie | null>(movie);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
@@ -49,25 +51,32 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
   const [episodeView, setEpisodeView] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
+    setFocusMovie(movie);
+  }, [movie]);
+
+  useEffect(() => {
     let cancelled = false;
 
-    if (!movie || !open) {
-      setDetails(movie);
+    if (!focusMovie || !open) {
+      setDetails(focusMovie);
       setDetailsLoading(false);
       return;
     }
 
-    setDetails(movie);
+    setDetails(focusMovie);
     setDetailsLoading(true);
+    setSelectedSeason(null);
+    setEpisodes([]);
+    setRecommendations([]);
 
-    const mediaType = movie.mediaType || 'movie';
-    TmdbService.getDetails(String(movie.tmdbId || movie.id), mediaType)
+    const mediaType = focusMovie.mediaType || 'movie';
+    TmdbService.getDetails(String(focusMovie.tmdbId || focusMovie.id), mediaType)
       .then(extraDetails => {
         if (cancelled) return;
-        setDetails({ ...movie, ...extraDetails } as Movie);
+        setDetails({ ...focusMovie, ...extraDetails } as Movie);
       })
       .catch(() => {
-        if (!cancelled) setDetails(movie);
+        if (!cancelled) setDetails(focusMovie);
       })
       .finally(() => {
         if (!cancelled) setDetailsLoading(false);
@@ -76,9 +85,9 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
     return () => {
       cancelled = true;
     };
-  }, [movie, open]);
+  }, [focusMovie, open]);
 
-  const activeMovie = details || movie;
+  const activeMovie = details || focusMovie;
   const runtime = formatRuntime(activeMovie?.duration);
   const cast = useMemo(() => activeMovie?.cast?.filter(Boolean) || [], [activeMovie?.cast]);
   const castProfiles = useMemo(() => activeMovie?.castProfiles?.filter(person => person.name) || [], [activeMovie?.castProfiles]);
@@ -151,11 +160,19 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
     };
   }, [activeMovie?.id, activeMovie?.mediaType, activeMovie?.tmdbId, open]);
 
+  const navigateInsideDrawer = (nextMovie: Movie) => {
+    setFocusMovie(nextMovie);
+    onMovieSelect?.(nextMovie);
+    window.requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  };
+
   return (
     <StudioDrawerRoot open={open} onOpenChange={onOpenChange}>
       <StudioDrawerContent>
         {activeMovie && (
-          <div className="studio-drawer-scroll max-h-[92dvh] overflow-y-auto">
+          <div ref={scrollRef} className="studio-drawer-scroll max-h-[92dvh] overflow-y-auto">
             <div className="relative min-h-[360px] overflow-hidden bg-black md:min-h-[460px]">
               {(activeMovie.backdropUrl || activeMovie.imageUrl) && (
                 <img
@@ -415,7 +432,7 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                           </button>
                           <button
                             type="button"
-                            onClick={() => onMovieSelect?.(item)}
+                            onClick={() => navigateInsideDrawer(item)}
                             className="block w-full text-left"
                           >
                             <div className="aspect-[2/3] overflow-hidden rounded-[22px] border border-white/8 bg-white/[0.045]">

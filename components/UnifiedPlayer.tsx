@@ -7,7 +7,7 @@ import { StatsService } from '../services/stats';
 import { ServerVotingModal } from './ServerVotingModal';
 import { VIEW_SESSION_HEARTBEAT_SECONDS } from '../lib/sessionTracking';
 import { DirectMediaPlayer } from './DirectMediaPlayer';
-import { getProviderAdapter, PLAYER_PROVIDER_DEFAULTS, Provider, ProviderContext } from '../lib/playerProviders';
+import { getProviderAdapter, PLAYER_PROVIDER_DEFAULTS, PlayerProviderAdapter, Provider, ProviderContext } from '../lib/playerProviders';
 import { usePlayerProviders } from '../hooks/usePlayerProviders';
 import { StreamDownloadPanel } from './StreamDownloadPanel';
 import { getTrackingContext } from '../lib/activityTracking';
@@ -63,6 +63,55 @@ const getServerFruit = (value: string) => {
     const sum = value.split('').reduce((total, char) => total + char.charCodeAt(0), 0);
     return SERVER_FRUITS[sum % SERVER_FRUITS.length];
 };
+
+const EMBED_SANDBOX_POLICY = [
+    'allow-scripts',
+    'allow-same-origin',
+    'allow-forms',
+    'allow-presentation',
+].join(' ');
+
+const EMBED_ALLOW_POLICY = [
+    'autoplay',
+    'fullscreen',
+    'encrypted-media',
+    'picture-in-picture',
+].join('; ');
+
+const EMBED_REFERRER_POLICY: React.IframeHTMLAttributes<HTMLIFrameElement>['referrerPolicy'] = 'no-referrer';
+
+const SANDBOX_INCOMPATIBLE_PROVIDER_PATTERNS = [
+    /honey/i,
+    /ice[-\s_]*candy/i,
+    /icecandy/i,
+];
+
+const requiresStrictEmbedSandbox = (provider: PlayerProviderAdapter) => {
+    const providerKey = `${provider.id} ${provider.name}`;
+    if (SANDBOX_INCOMPATIBLE_PROVIDER_PATTERNS.some(pattern => pattern.test(providerKey))) {
+        return false;
+    }
+
+    const tags = (provider.tags || []).map(tag => tag.trim().toLowerCase());
+    const hasRedirectTag = tags.some(tag => tag.includes('redirect'));
+    const hasExplicitAdRiskTag = tags.some(tag => (
+        tag === 'ads'
+        || tag === 'ad risk'
+        || tag === 'browser ads'
+        || tag === 'popups'
+        || tag === 'popup ads'
+    ));
+
+    return provider.riskLevel === 'high' || hasRedirectTag || hasExplicitAdRiskTag;
+};
+
+const getEmbedSandboxPolicy = (provider: PlayerProviderAdapter) => (
+    requiresStrictEmbedSandbox(provider) ? EMBED_SANDBOX_POLICY : undefined
+);
+
+const buildIframeSandboxAttribute = (sandboxPolicy?: string) => (
+    sandboxPolicy ? ` sandbox="${escapeHtml(sandboxPolicy)}"` : ''
+);
 
 export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     tmdbId,
@@ -289,6 +338,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         ? currentProvider.getDirectSources?.(providerContext) || []
         : [];
     const currentEmbedUrl = currentProvider.getEmbedUrl?.(providerContext) || '';
+    const embedSandboxPolicy = getEmbedSandboxPolicy(currentProvider);
     const playbackTargetKey = `${currentProvider.id}:${tmdbId}:${mediaType}:${season}:${episode}`;
     const directProgressStorageKey = useMemo(
         () => `plusultra:direct-progress:${user?.id || 'guest'}:${tmdbId}:${mediaType}:${season}:${episode}`,
@@ -352,6 +402,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             season,
             episode,
             mode: currentProvider.renderMode,
+            sandbox: embedSandboxPolicy ? 'strict' : 'compat',
             url: currentProvider.renderMode === 'direct'
                 ? directSources[0]?.src || ''
                 : currentEmbedUrl,
@@ -368,11 +419,12 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             mediaType,
             season,
             episode,
+            sandbox: embedSandboxPolicy ? 'strict' : 'compat',
             url: currentProvider.renderMode === 'direct'
                 ? directSources[0]?.src || ''
                 : currentEmbedUrl,
         });
-    }, [currentProvider.id, currentProvider.renderMode, currentEmbedUrl, directSources, tmdbId, mediaType, season, episode]);
+    }, [currentProvider.id, currentProvider.renderMode, currentEmbedUrl, directSources, embedSandboxPolicy, tmdbId, mediaType, season, episode]);
 
 
     useEffect(() => {
@@ -421,6 +473,22 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         providerAttemptFinishedRef.current = true;
         void StatsService.finishProviderAttempt(providerAttemptIdRef.current, reason);
     };
+
+    useEffect(() => {
+        const finishOnPageExit = () => {
+            finishProviderAttempt(
+                providerReadyMarkedRef.current ? 'page_unload' : 'page_unload_before_ready'
+            );
+        };
+
+        window.addEventListener('pagehide', finishOnPageExit);
+        window.addEventListener('beforeunload', finishOnPageExit);
+
+        return () => {
+            window.removeEventListener('pagehide', finishOnPageExit);
+            window.removeEventListener('beforeunload', finishOnPageExit);
+        };
+    }, [tmdbId, mediaType, season, episode, currentProvider.id]);
 
     useEffect(() => {
         providerAttemptIdRef.current = crypto.randomUUID();
@@ -812,7 +880,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         const popoutTitle = `${title || 'Plus Ultra Player'} - ${currentProvider.name}`;
         const content = currentProvider.renderMode === 'direct'
             ? `<video src="${escapeHtml(popoutUrl)}" controls autoplay playsinline style="width:100%;height:100%;background:#000;object-fit:contain"></video>`
-            : `<iframe src="${escapeHtml(popoutUrl)}" allowfullscreen allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *" referrerpolicy="no-referrer" style="width:100%;height:100%;border:0"></iframe>`;
+            : `<iframe src="${escapeHtml(popoutUrl)}" allowfullscreen allow="${escapeHtml(EMBED_ALLOW_POLICY)}" referrerpolicy="${escapeHtml(EMBED_REFERRER_POLICY)}"${buildIframeSandboxAttribute(embedSandboxPolicy)} style="width:100%;height:100%;border:0"></iframe>`;
 
         popout.document.open();
         popout.document.write(`<!doctype html>
@@ -821,9 +889,11 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(popoutTitle)}</title>
+<meta name="referrer" content="no-referrer" />
 <style>
 html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: hidden; }
 </style>
+<script>window.opener = null;</script>
 </head>
 <body>${content}</body>
 </html>`);
@@ -878,13 +948,13 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                     width="100%"
                     height="100%"
                     allowFullScreen
-                    allow="autoplay *; fullscreen *; encrypted-media *; picture-in-picture *"
+                    allow={EMBED_ALLOW_POLICY}
                     className="w-full h-full border-none"
                     title={`Player - ${provider}`}
                     id="unified-iframe"
                     onLoad={markProviderReady}
-                    referrerPolicy="no-referrer"
-                    sandbox={isDesktopRuntime ? 'allow-scripts allow-same-origin allow-forms allow-presentation' : undefined}
+                    referrerPolicy={EMBED_REFERRER_POLICY}
+                    sandbox={embedSandboxPolicy}
                 />
             )}
 
@@ -1090,6 +1160,15 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                             {availableProviders.map((p) => {
                                 const isActive = provider === p.id;
                                 const providerTag = (p.tags?.[0] || (p.renderMode === 'direct' ? 'Direct' : 'Embed')).replace('Redirect Issues', 'Redirects');
+                                const providerTags = (p.tags || []).map(tag => tag.trim().toLowerCase());
+                                const hasWarningTag = providerTags.some(tag => (
+                                    tag.includes('redirect')
+                                    || tag === 'ads'
+                                    || tag === 'ad risk'
+                                    || tag === 'browser ads'
+                                    || tag === 'popups'
+                                    || tag === 'popup ads'
+                                ));
                                 return (
                                     <button
                                         key={p.id}
@@ -1112,7 +1191,7 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                                                 {(p.tags?.[0] || p.renderMode === 'direct') && (
                                                     <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${isActive
                                                         ? 'bg-black/10 text-black/70'
-                                                        : (p.tags?.[0] || '').includes('Redirect') || (p.tags?.[0] || '').includes('Ads')
+                                                        : hasWarningTag
                                                             ? 'bg-red-500/20 text-red-400'
                                                             : p.renderMode === 'direct'
                                                                 ? 'bg-green-500/20 text-green-400'

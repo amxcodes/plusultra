@@ -44,6 +44,7 @@ export const StudioSearchPage: React.FC<StudioSearchPageProps> = ({ onClose, onM
   const [results, setResults] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(false);
   const [recents, setRecents] = useState<string[]>([]);
+  const [selectingId, setSelectingId] = useState<number | null>(null);
   const [preferences, setPreferences] = useState<UiPreferences>(() => getUiPreferences());
   const debouncedQuery = useDebounce(query, 350);
   const glass = glassTuning(preferences);
@@ -99,9 +100,9 @@ export const StudioSearchPage: React.FC<StudioSearchPageProps> = ({ onClose, onM
   };
 
   const selectMovie = (movie: Movie) => {
+    setSelectingId(movie.id);
     commitQuery(query);
     onMovieSelect(movie);
-    onClose();
   };
 
   return (
@@ -203,7 +204,12 @@ export const StudioSearchPage: React.FC<StudioSearchPageProps> = ({ onClose, onM
               ) : results.length > 0 ? (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                   {results.map(movie => (
-                    <StudioMediaCard key={`${movie.mediaType || 'movie'}-${movie.id}`} movie={movie} onSelect={selectMovie} />
+                    <div
+                      key={`${movie.mediaType || 'movie'}-${movie.id}`}
+                      className={selectingId === movie.id ? 'pointer-events-none opacity-70 transition-opacity' : undefined}
+                    >
+                      <StudioMediaCard movie={movie} onSelect={selectMovie} />
+                    </div>
                   ))}
                 </div>
               ) : (

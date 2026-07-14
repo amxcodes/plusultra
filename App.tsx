@@ -686,6 +686,17 @@ function StreamApp() {
     }), 'push', { scrollToTop: false });
   };
 
+  const handleSearchMovieSelect = (movie: Movie) => {
+    commitSnapshot(buildSnapshot({
+      isSearchOpen: false,
+      selectedMovie: movie,
+      selectedOfflineDownloads: null,
+      offlinePlaybackUrl: null,
+      selectedMessageConversationId: undefined,
+      isMobileMenuOpen: false,
+    }), 'replace', { scrollToTop: false });
+  };
+
   const handlePlay = (movie: Movie, season?: number, episode?: number) => {
     commitSnapshot(buildSnapshot({
       playerState: { movie, season, episode },
@@ -915,6 +926,7 @@ function StreamApp() {
         profile={profile}
         messageUnreadCount={messageUnreadCount}
         onMovieSelect={handleMovieSelect}
+        onSearchMovieSelect={handleSearchMovieSelect}
         onContinueWatchingSelect={handleContinueWatchingSelect}
         onPlay={handlePlay}
         onPlaylistSelect={handlePlaylistSelect}
