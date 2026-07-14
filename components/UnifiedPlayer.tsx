@@ -868,6 +868,17 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             return;
         }
 
+        if (window.desktop?.isDesktop) {
+            const result = await window.desktop.openPopoutPlayer({
+                url: popoutUrl,
+                title: `${title || 'Plus Ultra Player'} - ${currentProvider.name}`,
+            });
+            if (!result.ok) {
+                setPopoutError(result.message || 'Could not open the desktop mini player.');
+            }
+            return;
+        }
+
         const popout = withTrustedPopup(() => (
             window.open('', `plusultra-popout-${playbackTargetKey}`, 'popup=yes,width=960,height=540,resizable=yes,noopener=no')
         ));

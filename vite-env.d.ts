@@ -16,6 +16,8 @@ interface ImportMeta {
 interface DesktopCapturedMedia {
     url: string;
     resourceType: string;
+    mimeType?: string | null;
+    statusCode?: number | null;
     timestamp: number;
     captureKey: string;
     requestHeaders?: Record<string, string>;
@@ -38,7 +40,7 @@ interface DesktopBridge {
     startMediaCapture: (sessionInfo: DesktopMediaCaptureSession) => Promise<{ ok: boolean; captureKey?: string }>;
     stopMediaCapture: (captureKey: string) => Promise<{ ok: boolean }>;
     getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;
-    discoverDownloadSources: (url: string) => Promise<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' }>>;
+    discoverDownloadSources: (url: string) => Promise<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' | 'm3u8' | 'mpd' }>>;
     probePlaybackSource: (payload: {
         url: string;
         requiredHeaders?: Record<string, string>;
@@ -53,6 +55,7 @@ interface DesktopBridge {
     }>;
     startTurnstileCheck: (payload: { action: string; siteKey: string }) => Promise<{ ok: boolean; requestId?: string; message?: string }>;
     openExternal: (targetUrl: string) => Promise<void>;
+    openPopoutPlayer: (payload: { url: string; title: string }) => Promise<{ ok: boolean; message?: string }>;
     downloadOfflineMedia: (payload: {
         title: string;
         tmdbId: number;

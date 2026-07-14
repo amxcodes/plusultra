@@ -52,6 +52,14 @@ const isTauriRuntime = () => (
   && '__TAURI_INTERNALS__' in window
 );
 
+const getUpdaterTarget = () => {
+  if (typeof navigator !== 'undefined' && /windows/i.test(navigator.userAgent)) {
+    return 'windows-x86_64-nsis';
+  }
+
+  return undefined;
+};
+
 const statusMap: Record<string, OfflineDownloadEntry['status']> = {
   complete: 'completed',
   completed: 'completed',
@@ -126,7 +134,7 @@ export const installTauriDesktopBridge = async () => {
     }
 
     setUpdateState({ status: 'checking', message: null, downloadProgress: null });
-    const nextUpdate = await updater.check();
+    const nextUpdate = await updater.check({ target: getUpdaterTarget() });
     pendingUpdate = nextUpdate as TauriUpdateHandle | null;
     pendingUpdateDownloaded = false;
 
@@ -182,7 +190,7 @@ export const installTauriDesktopBridge = async () => {
     },
     discoverDownloadSources: async (url) => {
       try {
-        return await invoke<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' }>>('tauri_discover_offline_sources', { sourceUrl: url });
+        return await invoke<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' | 'm3u8' | 'mpd' }>>('tauri_discover_offline_sources', { sourceUrl: url });
       } catch {
         return [];
       }
@@ -208,6 +216,14 @@ export const installTauriDesktopBridge = async () => {
     },
     startTurnstileCheck: () => unsupported('Turnstile native check is not wired yet.', { ok: false, message: 'Tauri Turnstile check is not wired yet.' }),
     openExternal: (targetUrl) => openUrl(targetUrl),
+    openPopoutPlayer: async ({ url, title }) => {
+      try {
+        await invoke('tauri_open_popout_player', { targetUrl: url, title });
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : String(error) };
+      }
+    },
     downloadOfflineMedia: async (payload) => {
       try {
         const entry = await invoke<TauriDownloadEntry>('tauri_start_offline_download', {

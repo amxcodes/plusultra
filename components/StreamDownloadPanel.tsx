@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Download, ExternalLink, Info, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useToast } from '../lib/ToastContext';
-import { buildStreamDownloadCandidates, type StreamDownloadCandidate } from '../lib/streamDownloads';
+import { buildStreamDownloadCandidates, isInternalAppUrl, type StreamDownloadCandidate } from '../lib/streamDownloads';
 import { DirectPlaybackSource, MediaType, Provider } from '../lib/playerProviders';
 import { withTrustedPopup } from '../lib/popupGuard';
 
@@ -42,7 +42,7 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
 }) => {
     const { success, error, info } = useToast();
     const [desktopCapturedMedia, setDesktopCapturedMedia] = useState<DesktopCapturedMedia[]>([]);
-    const [documentSources, setDocumentSources] = useState<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' }>>([]);
+    const [documentSources, setDocumentSources] = useState<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' | 'm3u8' | 'mpd' }>>([]);
     const [verifyingCandidateId, setVerifyingCandidateId] = useState<string | null>(null);
     const candidates = buildStreamDownloadCandidates({
         providerId,
@@ -117,17 +117,23 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
     }, [currentEmbedUrl]);
 
     const desktopCandidates = useMemo<StreamDownloadCandidate[]>(() => (
-        desktopCapturedMedia.map((item) => ({
-            id: `desktop:${item.url}`,
-            label: 'Captured desktop stream',
-            url: item.url,
-            kind: item.url.toLowerCase().includes('.m3u8') ? 'playlist' : 'video',
-            source: 'detected' as const,
-            serverId: 'desktop-capture',
-            serverLabel: 'Desktop capture',
-            requiredHeaders: item.requestHeaders,
-            note: `Observed by the active desktop playback session as ${item.resourceType}`,
-        }))
+        desktopCapturedMedia
+            .filter((item) => !isInternalAppUrl(item.url))
+            .map((item) => ({
+                id: `desktop:${item.url}`,
+                label: 'Captured desktop stream',
+                url: item.url,
+                kind: item.resourceType === 'hls' || item.url.toLowerCase().includes('.m3u8') ? 'playlist' : 'video',
+                source: 'detected' as const,
+                serverId: 'desktop-capture',
+                serverLabel: 'Desktop capture',
+                requiredHeaders: item.requestHeaders,
+                note: [
+                    `Observed by WebView2 network events as ${item.resourceType}`,
+                    item.mimeType ? `MIME ${item.mimeType}` : null,
+                    item.statusCode ? `HTTP ${item.statusCode}` : null,
+                ].filter(Boolean).join(' · '),
+            }))
     ), [desktopCapturedMedia]);
 
     const documentCandidates = useMemo<StreamDownloadCandidate[]>(() => (
@@ -135,7 +141,7 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
             id: `document:${source.url}`,
             label: `Provider direct file${documentSources.length > 1 ? ` ${index + 1}` : ''}`,
             url: source.url,
-            kind: 'video' as const,
+            kind: source.sourceType === 'm3u8' || source.sourceType === 'mpd' ? 'playlist' as const : 'video' as const,
             source: 'detected' as const,
             serverId: 'provider-document',
             serverLabel: providerName,
@@ -168,6 +174,7 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
     const allCandidates = useMemo(() => (
         [...desktopCandidates, ...documentCandidates, ...candidates]
             .filter((candidate, index, list) => (
+                !isInternalAppUrl(candidate.url) &&
                 list.findIndex((entry) => entry.url === candidate.url) === index
             ))
             .sort((left, right) => getCandidateRank(left) - getCandidateRank(right))
@@ -178,7 +185,7 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
             return false;
         }
 
-        return candidate.kind === 'video';
+        return candidate.kind === 'video' || candidate.url.toLowerCase().includes('.m3u8');
     };
 
     const handleOpen = (url: string) => {
@@ -314,7 +321,12 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                                         {candidate.kind === 'download_page' ? 'Open Page' : 'Open Link'}
                                     </button>
                                 )}
-                                {canSaveOffline(candidate) && <span className="inline-flex items-center gap-1 text-[10px] text-white/38"><CheckCircle2 size={12} /> Direct only</span>}
+                                {canSaveOffline(candidate) && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] text-white/38">
+                                        <CheckCircle2 size={12} />
+                                        {candidate.url.toLowerCase().includes('.m3u8') ? 'Segment aware' : 'Direct only'}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     ))}

@@ -76,12 +76,31 @@ const isLikelyMediaUrl = (value: string) => {
     }
 };
 
+export const isInternalAppUrl = (value: string) => {
+    try {
+        const parsed = new URL(value);
+        const host = parsed.hostname.toLowerCase();
+        return (
+            host === 'ipc.localhost' ||
+            host === 'localhost' ||
+            host === '127.0.0.1' ||
+            host.endsWith('.localhost') ||
+            parsed.protocol === 'tauri:' ||
+            parsed.pathname.toLowerCase().includes('/tauri_')
+        );
+    } catch {
+        const lower = value.toLowerCase();
+        return lower.includes('ipc.localhost') || lower.includes('/tauri_');
+    }
+};
+
 const pushCandidate = (
     candidates: StreamDownloadCandidate[],
     dedupeUrls: Set<string>,
     candidate: Omit<StreamDownloadCandidate, 'id'>
 ) => {
     if (!candidate.url || dedupeUrls.has(candidate.url)) return;
+    if (isInternalAppUrl(candidate.url)) return;
     dedupeUrls.add(candidate.url);
 
     candidates.push({
@@ -135,6 +154,10 @@ const inspectUrl = (
     path: string[] = []
 ) => {
     const decodedValue = decodeRecursively(value);
+    if (isInternalAppUrl(decodedValue)) {
+        return;
+    }
+
     if (isLikelyMediaUrl(decodedValue)) {
         const kind = decodedValue.toLowerCase().includes('.m3u8') ? 'playlist' : 'video';
         const metadata = deriveServerMetadata(decodedValue, 'Detected');

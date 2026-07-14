@@ -4,8 +4,50 @@ mod shield;
 
 use tauri::{
     webview::{NewWindowResponse, WebviewWindowBuilder},
-    WebviewUrl,
+    Manager, WebviewUrl,
 };
+
+#[tauri::command]
+fn tauri_open_popout_player(
+    app: tauri::AppHandle,
+    target_url: String,
+    title: String,
+) -> Result<(), String> {
+    if !(target_url.starts_with("https://") || target_url.starts_with("http://")) {
+        return Err("Only http and https player URLs can be opened in the mini player.".to_string());
+    }
+
+    let parsed = target_url
+        .parse()
+        .map_err(|error| format!("Invalid player URL: {error}"))?;
+
+    if shield::should_block_url(&parsed) {
+        return Err("This player URL was blocked by the desktop shield.".to_string());
+    }
+
+    if let Some(existing) = app.get_webview_window("mini-player") {
+        let _ = existing.close();
+    }
+
+    WebviewWindowBuilder::new(&app, "mini-player", WebviewUrl::External(parsed))
+        .title(title)
+        .inner_size(520.0, 292.0)
+        .min_inner_size(360.0, 204.0)
+        .resizable(true)
+        .always_on_top(true)
+        .on_navigation(|url| !shield::should_block_url(url))
+        .on_new_window(|url, _features| {
+            if shield::should_block_url(&url) {
+                return NewWindowResponse::Deny;
+            }
+
+            NewWindowResponse::Deny
+        })
+        .build()
+        .map_err(|error| error.to_string())?;
+
+    Ok(())
+}
 
 pub fn run() {
     tauri::Builder::default()
@@ -22,6 +64,7 @@ pub fn run() {
             media_capture::tauri_start_media_capture,
             media_capture::tauri_stop_media_capture,
             media_capture::tauri_get_captured_media,
+            tauri_open_popout_player,
         ])
         .setup(|app| {
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))

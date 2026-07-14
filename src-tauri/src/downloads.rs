@@ -6,6 +6,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager};
+use reqwest::Url;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -117,7 +118,7 @@ fn infer_extension(source_url: &str, content_type: Option<&str>) -> &'static str
         .to_ascii_lowercase();
 
     if lower.ends_with(".m3u8") || content_type.is_some_and(|value| value.contains("mpegurl")) {
-        "m3u8"
+        "ts"
     } else if lower.ends_with(".mpd") {
         "mpd"
     } else if lower.ends_with(".webm") || content_type.is_some_and(|value| value.contains("webm")) {
@@ -129,6 +130,121 @@ fn infer_extension(source_url: &str, content_type: Option<&str>) -> &'static str
     } else {
         "mp4"
     }
+}
+
+#[derive(Clone, Debug)]
+struct HlsSegment {
+    url: String,
+    byte_range: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+struct HlsMediaPlaylist {
+    playlist_url: String,
+    init_segment: Option<HlsSegment>,
+    segments: Vec<HlsSegment>,
+}
+
+fn parse_attribute_value(line: &str, key: &str) -> Option<String> {
+    let marker = format!("{key}=");
+    let start = line.find(&marker)? + marker.len();
+    let rest = &line[start..];
+    if let Some(stripped) = rest.strip_prefix('"') {
+        return stripped.split('"').next().map(|value| value.to_string());
+    }
+
+    rest.split(',').next().map(|value| value.trim().to_string())
+}
+
+fn parse_bandwidth(line: &str) -> u64 {
+    parse_attribute_value(line, "BANDWIDTH")
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or_default()
+}
+
+fn resolve_url(base_url: &str, value: &str) -> Result<String, String> {
+    Url::parse(base_url)
+        .map_err(|error| format!("Invalid playlist URL: {error}"))?
+        .join(value.trim())
+        .map(|url| url.to_string())
+        .map_err(|error| format!("Invalid segment URL: {error}"))
+}
+
+fn select_hls_variant(playlist_url: &str, playlist: &str) -> Result<Option<String>, String> {
+    let mut best: Option<(u64, String)> = None;
+    let mut pending_bandwidth: Option<u64> = None;
+
+    for line in playlist.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if line.starts_with("#EXT-X-STREAM-INF") {
+            pending_bandwidth = Some(parse_bandwidth(line));
+            continue;
+        }
+
+        if line.starts_with('#') {
+            continue;
+        }
+
+        if let Some(bandwidth) = pending_bandwidth.take() {
+            let resolved = resolve_url(playlist_url, line)?;
+            if best.as_ref().is_none_or(|(current, _)| bandwidth > *current) {
+                best = Some((bandwidth, resolved));
+            }
+        }
+    }
+
+    Ok(best.map(|(_, url)| url))
+}
+
+fn parse_hls_media_playlist(playlist_url: &str, playlist: &str) -> Result<HlsMediaPlaylist, String> {
+    let mut segments = Vec::new();
+    let mut init_segment = None;
+    let mut next_byte_range: Option<String> = None;
+
+    for line in playlist.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if line.starts_with("#EXT-X-KEY") {
+            let method = parse_attribute_value(line, "METHOD").unwrap_or_default();
+            if !method.eq_ignore_ascii_case("NONE") {
+                return Err("This HLS stream is encrypted. Offline saving is limited to unencrypted HLS media.".to_string());
+            }
+            continue;
+        }
+
+        if line.starts_with("#EXT-X-MAP") {
+            if let Some(uri) = parse_attribute_value(line, "URI") {
+                init_segment = Some(HlsSegment {
+                    url: resolve_url(playlist_url, &uri)?,
+                    byte_range: parse_attribute_value(line, "BYTERANGE"),
+                });
+            }
+            continue;
+        }
+
+        if line.starts_with("#EXT-X-BYTERANGE") {
+            next_byte_range = line
+                .split_once(':')
+                .map(|(_, value)| value.trim().to_string());
+            continue;
+        }
+
+        if line.starts_with('#') {
+            continue;
+        }
+
+        segments.push(HlsSegment {
+            url: resolve_url(playlist_url, line)?,
+            byte_range: next_byte_range.take(),
+        });
+    }
+
+    if segments.is_empty() {
+        return Err("This HLS playlist did not expose media segments.".to_string());
+    }
+
+    Ok(HlsMediaPlaylist {
+        playlist_url: playlist_url.to_string(),
+        init_segment,
+        segments,
+    })
 }
 
 fn source_type(url: &str, content_type: Option<&str>) -> &'static str {
@@ -153,9 +269,19 @@ fn source_type(url: &str, content_type: Option<&str>) -> &'static str {
     }
 }
 
+fn is_internal_app_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    lower.starts_with("http://ipc.localhost/")
+        || lower.starts_with("https://ipc.localhost/")
+        || lower.starts_with("tauri://")
+        || lower.contains("/tauri_")
+        || lower.contains("127.0.0.1")
+        || lower.contains("localhost")
+}
+
 #[cfg(test)]
 mod tests {
-    use super::source_type;
+    use super::{is_internal_app_url, source_type};
 
     #[test]
     fn does_not_treat_a_script_url_as_media() {
@@ -171,6 +297,11 @@ mod tests {
             source_type("https://cdn.example.test/video.mp4?token=abc", None),
             "mp4"
         );
+    }
+
+    #[test]
+    fn rejects_tauri_internal_ipc_urls() {
+        assert!(is_internal_app_url("http://ipc.localhost/tauri_discover_offline_sources"));
     }
 }
 
@@ -229,9 +360,16 @@ fn collect_direct_media_urls(document: &str) -> Vec<NativeDiscoveredSource> {
         let url = candidate[..end]
             .trim_end_matches([')', ',', ';'])
             .to_string();
+        if is_internal_app_url(&url) {
+            remaining = &candidate[end..];
+            if remaining.is_empty() {
+                break;
+            }
+            continue;
+        }
         let kind = source_type(&url, None);
 
-        if matches!(kind, "mp4" | "webm" | "mkv")
+        if matches!(kind, "mp4" | "webm" | "mkv" | "m3u8" | "mpd")
             && !results
                 .iter()
                 .any(|entry: &NativeDiscoveredSource| entry.url == url)
@@ -255,6 +393,10 @@ fn collect_direct_media_urls(document: &str) -> Vec<NativeDiscoveredSource> {
 pub async fn tauri_discover_offline_sources(
     source_url: String,
 ) -> Result<Vec<NativeDiscoveredSource>, String> {
+    if is_internal_app_url(&source_url) {
+        return Ok(Vec::new());
+    }
+
     let client = reqwest::Client::builder()
         .user_agent("PlusUltraTauri/1.0")
         .redirect(reqwest::redirect::Policy::limited(8))
@@ -292,6 +434,10 @@ pub async fn tauri_discover_offline_sources(
 }
 
 async fn probe_download_source(source_url: &str) -> Result<NativeDownloadProbe, String> {
+    if is_internal_app_url(source_url) {
+        return Err("Internal app bridge URLs cannot be saved offline.".to_string());
+    }
+
     let client = reqwest::Client::builder()
         .user_agent("PlusUltraTauri/1.0")
         .redirect(reqwest::redirect::Policy::limited(8))
@@ -333,8 +479,17 @@ async fn probe_download_source(source_url: &str) -> Result<NativeDownloadProbe, 
     }
 
     let detected_type = source_type(&final_url, content_type.as_deref());
-    if matches!(detected_type, "m3u8" | "mpd") {
-        return Err("This is an adaptive stream manifest. Plus Ultra currently saves verified direct media files only.".to_string());
+    if detected_type == "m3u8" {
+        return Ok(NativeDownloadProbe {
+            final_url,
+            content_type,
+            content_length,
+            source_type: detected_type.to_string(),
+        });
+    }
+
+    if detected_type == "mpd" {
+        return Err("DASH manifests are detected, but offline saving currently supports direct files and unencrypted HLS.".to_string());
     }
 
     if !is_direct_media(
@@ -448,10 +603,15 @@ pub async fn tauri_start_offline_download(
 
     let download_app = app.clone();
     let source_url = probe.final_url;
+    let source_type = probe.source_type.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(message) =
+        let result = if source_type == "m3u8" {
+            download_hls_stream(download_app.clone(), id.clone(), source_url, file_path).await
+        } else {
             download_stream(download_app.clone(), id.clone(), source_url, file_path).await
-        {
+        };
+
+        if let Err(message) = result {
             let _ = fs::remove_file(
                 read_catalog(&download_app)
                     .ok()
@@ -482,6 +642,158 @@ pub fn tauri_remove_offline_download(
     write_catalog(&app, &catalog)?;
     emit_catalog(&app);
     Ok(catalog)
+}
+
+async fn fetch_playlist_text(client: &reqwest::Client, url: &str) -> Result<String, String> {
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|error| format!("Could not fetch HLS playlist: {error}"))?;
+
+    if !response.status().is_success() {
+        return Err(format!("HLS playlist returned {}", response.status()));
+    }
+
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.to_string());
+    let text = response
+        .text()
+        .await
+        .map_err(|error| format!("Could not read HLS playlist: {error}"))?;
+
+    if looks_like_html(text.as_bytes(), content_type.as_deref()) {
+        return Err("This source returned a page instead of an HLS playlist.".to_string());
+    }
+
+    if !text.contains("#EXTM3U") {
+        return Err("This source is not a valid HLS playlist.".to_string());
+    }
+
+    Ok(text)
+}
+
+fn hls_range_header(byte_range: Option<&str>) -> Result<Option<String>, String> {
+    let Some(byte_range) = byte_range else {
+        return Ok(None);
+    };
+    let Some((length, offset)) = byte_range.split_once('@') else {
+        return Err("This HLS playlist uses relative byte ranges, which cannot be saved safely yet.".to_string());
+    };
+    let length = length
+        .trim()
+        .parse::<u64>()
+        .map_err(|_| "Invalid HLS byte range length.".to_string())?;
+    let offset = offset
+        .trim()
+        .parse::<u64>()
+        .map_err(|_| "Invalid HLS byte range offset.".to_string())?;
+    let end = offset.saturating_add(length).saturating_sub(1);
+    Ok(Some(format!("bytes={offset}-{end}")))
+}
+
+async fn append_hls_segment(
+    client: &reqwest::Client,
+    file: &mut fs::File,
+    segment: &HlsSegment,
+) -> Result<u64, String> {
+    let mut request = client.get(&segment.url);
+    if let Some(range) = hls_range_header(segment.byte_range.as_deref())? {
+        request = request.header(reqwest::header::RANGE, range);
+    }
+
+    let mut response = request
+        .send()
+        .await
+        .map_err(|error| format!("Could not fetch HLS segment: {error}"))?;
+
+    if !response.status().is_success() && response.status() != reqwest::StatusCode::PARTIAL_CONTENT
+    {
+        return Err(format!("HLS segment returned {}", response.status()));
+    }
+
+    let mut written = 0_u64;
+    while let Some(chunk) = response.chunk().await.map_err(|error| error.to_string())? {
+        file.write_all(&chunk).map_err(|error| error.to_string())?;
+        written += chunk.len() as u64;
+    }
+
+    Ok(written)
+}
+
+async fn download_hls_stream(
+    app: AppHandle,
+    id: String,
+    source_url: String,
+    file_path: PathBuf,
+) -> Result<(), String> {
+    let client = reqwest::Client::builder()
+        .user_agent("PlusUltraTauri/1.0")
+        .redirect(reqwest::redirect::Policy::limited(8))
+        .build()
+        .map_err(|error| error.to_string())?;
+
+    let mut playlist_url = source_url;
+    let mut playlist = fetch_playlist_text(&client, &playlist_url).await?;
+    if let Some(variant_url) = select_hls_variant(&playlist_url, &playlist)? {
+        playlist_url = variant_url;
+        playlist = fetch_playlist_text(&client, &playlist_url).await?;
+    }
+
+    let media = parse_hls_media_playlist(&playlist_url, &playlist)?;
+    patch_entry(&app, &id, |entry| {
+        entry.mime_type = Some("video/mp2t".to_string());
+        entry.message = Some(format!(
+            "Saving {} HLS segments from {}",
+            media.segments.len(),
+            media.playlist_url
+        ));
+    })?;
+
+    let mut file = fs::File::create(&file_path).map_err(|error| error.to_string())?;
+    let mut bytes_received = 0_u64;
+    let total_segments = media.segments.len() + usize::from(media.init_segment.is_some());
+    let mut completed_segments = 0_usize;
+
+    if let Some(init_segment) = media.init_segment {
+        bytes_received += append_hls_segment(&client, &mut file, &init_segment).await?;
+        completed_segments += 1;
+        patch_entry(&app, &id, |entry| {
+            entry.bytes_received = Some(bytes_received);
+            entry.message = Some(format!(
+                "Saved {completed_segments}/{total_segments} HLS segments"
+            ));
+        })?;
+    }
+
+    for segment in media.segments {
+        bytes_received += append_hls_segment(&client, &mut file, &segment).await?;
+        completed_segments += 1;
+
+        if completed_segments % 3 == 0 || completed_segments == total_segments {
+            patch_entry(&app, &id, |entry| {
+                entry.bytes_received = Some(bytes_received);
+                entry.message = Some(format!(
+                    "Saved {completed_segments}/{total_segments} HLS segments"
+                ));
+            })?;
+        }
+    }
+
+    file.flush().map_err(|error| error.to_string())?;
+
+    patch_entry(&app, &id, |entry| {
+        entry.status = "completed".to_string();
+        entry.completed_at = Some(now_millis());
+        entry.bytes_received = Some(bytes_received);
+        entry.total_bytes = Some(bytes_received);
+        entry.file_size = Some(bytes_received);
+        entry.mime_type = Some("video/mp2t".to_string());
+        entry.message = None;
+    })
 }
 
 async fn download_stream(

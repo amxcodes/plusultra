@@ -19,6 +19,8 @@ pub struct MediaCaptureSession {
 pub struct CapturedMedia {
     pub url: String,
     pub resource_type: String,
+    pub mime_type: Option<String>,
+    pub status_code: Option<u16>,
     pub timestamp: u64,
     pub capture_key: String,
     pub media: CapturedMediaSession,
@@ -38,6 +40,24 @@ pub struct MediaCaptureState {
     captures: Mutex<HashMap<String, Vec<CapturedMedia>>>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CdpResponseReceived {
+    #[serde(default)]
+    r#type: String,
+    response: CdpResponse,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CdpResponse {
+    url: String,
+    #[serde(default)]
+    status: u16,
+    #[serde(default)]
+    mime_type: String,
+}
+
 #[derive(Clone)]
 struct ActiveCapture {
     key: String,
@@ -55,8 +75,66 @@ fn new_key() -> String {
     format!("capture-{}", timestamp())
 }
 
-pub fn record_media_request(app: &AppHandle, url: String) {
+fn is_internal_app_url(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    lower.starts_with("http://ipc.localhost/")
+        || lower.starts_with("https://ipc.localhost/")
+        || lower.starts_with("tauri://")
+        || lower.contains("/tauri_")
+        || lower.contains("127.0.0.1")
+        || lower.contains("localhost")
+}
+
+fn source_type(url: &str, mime_type: Option<&str>) -> &'static str {
+    let lower_url = url.to_ascii_lowercase();
+    let lower_type = mime_type.unwrap_or_default().to_ascii_lowercase();
+
+    if lower_url.contains(".m3u8")
+        || lower_type.contains("mpegurl")
+        || lower_type.contains("vnd.apple.mpegurl")
+    {
+        "hls"
+    } else if lower_url.contains(".mpd") || lower_type.contains("dash+xml") {
+        "dash"
+    } else if lower_url.contains(".mp4")
+        || lower_url.contains(".m4v")
+        || lower_type.contains("mp4")
+    {
+        "video"
+    } else if lower_url.contains(".webm") || lower_type.contains("webm") {
+        "video"
+    } else if lower_url.contains(".mkv") || lower_type.contains("matroska") {
+        "video"
+    } else if lower_type.starts_with("video/") {
+        "video"
+    } else if lower_type.starts_with("audio/") {
+        "audio"
+    } else {
+        "unknown"
+    }
+}
+
+fn should_capture_response(event_type: &str, url: &str, mime_type: Option<&str>) -> bool {
+    if is_internal_app_url(url) {
+        return false;
+    }
+
+    let resource_type = source_type(url, mime_type);
+    matches!(resource_type, "video" | "audio" | "hls" | "dash")
+        || event_type.eq_ignore_ascii_case("media")
+}
+
+fn record_media_event(
+    app: &AppHandle,
+    url: String,
+    resource_type: String,
+    mime_type: Option<String>,
+    status_code: Option<u16>,
+) {
     if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return;
+    }
+    if is_internal_app_url(&url) {
         return;
     }
 
@@ -71,7 +149,9 @@ pub fn record_media_request(app: &AppHandle, url: String) {
 
     let item = CapturedMedia {
         url: url.clone(),
-        resource_type: "media".to_string(),
+        resource_type,
+        mime_type,
+        status_code,
         timestamp: timestamp(),
         capture_key: active.key.clone(),
         media: CapturedMediaSession {
@@ -96,6 +176,35 @@ pub fn record_media_request(app: &AppHandle, url: String) {
     if inserted {
         let _ = app.emit("tauri-captured-media", item);
     }
+}
+
+pub fn record_media_request(app: &AppHandle, url: String) {
+    let resource_type = source_type(&url, None).to_string();
+    if resource_type == "unknown" && !url.to_ascii_lowercase().contains(".m3u8") {
+        return;
+    }
+
+    record_media_event(app, url, resource_type, None, None);
+}
+
+fn record_cdp_response(app: &AppHandle, payload_json: &str) {
+    let Ok(payload) = serde_json::from_str::<CdpResponseReceived>(payload_json) else {
+        return;
+    };
+
+    let mime_type = (!payload.response.mime_type.is_empty()).then_some(payload.response.mime_type);
+    if !should_capture_response(&payload.r#type, &payload.response.url, mime_type.as_deref()) {
+        return;
+    }
+
+    let resource_type = source_type(&payload.response.url, mime_type.as_deref()).to_string();
+    record_media_event(
+        app,
+        payload.response.url,
+        resource_type,
+        mime_type,
+        (payload.response.status > 0).then_some(payload.response.status),
+    );
 }
 
 #[tauri::command]
@@ -159,7 +268,10 @@ pub fn tauri_get_captured_media(
 pub fn install(app: AppHandle) -> Result<(), String> {
     use tauri::Manager;
     use webview2_com::Microsoft::Web::WebView2::Win32::COREWEBVIEW2_WEB_RESOURCE_CONTEXT_MEDIA;
-    use webview2_com::{take_pwstr, WebResourceRequestedEventHandler};
+    use webview2_com::{
+        take_pwstr, CallDevToolsProtocolMethodCompletedHandler,
+        DevToolsProtocolEventReceivedEventHandler, WebResourceRequestedEventHandler,
+    };
     use windows::core::{HSTRING, PWSTR};
 
     let window = app
@@ -181,6 +293,7 @@ pub fn install(app: AppHandle) -> Result<(), String> {
                     return;
                 }
 
+                let request_app = app.clone();
                 let mut token = 0;
                 let _ = webview.add_WebResourceRequested(
                     &WebResourceRequestedEventHandler::create(Box::new(move |_, args| {
@@ -191,11 +304,42 @@ pub fn install(app: AppHandle) -> Result<(), String> {
                         let mut uri = PWSTR::null();
                         request.Uri(&mut uri)?;
                         let url = take_pwstr(uri);
-                        record_media_request(&app, url);
+                        record_media_request(&request_app, url);
                         Ok(())
                     })),
                     &mut token,
                 );
+
+                let _ = webview.CallDevToolsProtocolMethod(
+                    &HSTRING::from("Network.enable"),
+                    &HSTRING::from("{}"),
+                    &CallDevToolsProtocolMethodCompletedHandler::create(Box::new(
+                        |_, _| Ok(()),
+                    )),
+                );
+
+                if let Ok(receiver) =
+                    webview.GetDevToolsProtocolEventReceiver(&HSTRING::from("Network.responseReceived"))
+                {
+                    let app = app.clone();
+                    let mut cdp_token = 0;
+                    let _ = receiver.add_DevToolsProtocolEventReceived(
+                        &DevToolsProtocolEventReceivedEventHandler::create(Box::new(
+                            move |_, args| {
+                                let Some(args) = args else {
+                                    return Ok(());
+                                };
+
+                                let mut payload = PWSTR::null();
+                                args.ParameterObjectAsJson(&mut payload)?;
+                                let json = take_pwstr(payload);
+                                record_cdp_response(&app, &json);
+                                Ok(())
+                            },
+                        )),
+                        &mut cdp_token,
+                    );
+                }
             }
         })
         .map_err(|error| error.to_string())?;
