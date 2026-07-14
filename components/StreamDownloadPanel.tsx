@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Download, ExternalLink, Info } from 'lucide-react';
+import { CheckCircle2, Download, ExternalLink, Info, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { useToast } from '../lib/ToastContext';
 import { buildStreamDownloadCandidates, type StreamDownloadCandidate } from '../lib/streamDownloads';
 import { DirectPlaybackSource, MediaType, Provider } from '../lib/playerProviders';
@@ -42,6 +42,8 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
 }) => {
     const { success, error, info } = useToast();
     const [desktopCapturedMedia, setDesktopCapturedMedia] = useState<DesktopCapturedMedia[]>([]);
+    const [documentSources, setDocumentSources] = useState<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' }>>([]);
+    const [verifyingCandidateId, setVerifyingCandidateId] = useState<string | null>(null);
     const candidates = buildStreamDownloadCandidates({
         providerId,
         providerName,
@@ -99,6 +101,21 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         };
     }, [desktopCaptureKey]);
 
+    useEffect(() => {
+        if (!window.desktop?.isDesktop || !currentEmbedUrl) {
+            setDocumentSources([]);
+            return;
+        }
+
+        let active = true;
+        void window.desktop.discoverDownloadSources(currentEmbedUrl).then((sources) => {
+            if (active) setDocumentSources(sources);
+        });
+        return () => {
+            active = false;
+        };
+    }, [currentEmbedUrl]);
+
     const desktopCandidates = useMemo<StreamDownloadCandidate[]>(() => (
         desktopCapturedMedia.map((item) => ({
             id: `desktop:${item.url}`,
@@ -109,9 +126,22 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
             serverId: 'desktop-capture',
             serverLabel: 'Desktop capture',
             requiredHeaders: item.requestHeaders,
-            note: `Observed in Electron network session as ${item.resourceType}`,
+            note: `Observed by the active desktop playback session as ${item.resourceType}`,
         }))
     ), [desktopCapturedMedia]);
+
+    const documentCandidates = useMemo<StreamDownloadCandidate[]>(() => (
+        documentSources.map((source, index) => ({
+            id: `document:${source.url}`,
+            label: `Provider direct file${documentSources.length > 1 ? ` ${index + 1}` : ''}`,
+            url: source.url,
+            kind: 'video' as const,
+            source: 'detected' as const,
+            serverId: 'provider-document',
+            serverLabel: providerName,
+            note: `Discovered in the ${providerName} provider document and awaiting verification.`,
+        }))
+    ), [documentSources, providerName]);
 
     const getCandidateRank = (candidate: StreamDownloadCandidate) => {
         const url = candidate.url.toLowerCase();
@@ -136,12 +166,12 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
     };
 
     const allCandidates = useMemo(() => (
-        [...desktopCandidates, ...candidates]
+        [...desktopCandidates, ...documentCandidates, ...candidates]
             .filter((candidate, index, list) => (
                 list.findIndex((entry) => entry.url === candidate.url) === index
             ))
             .sort((left, right) => getCandidateRank(left) - getCandidateRank(right))
-    ), [desktopCandidates, candidates]);
+    ), [desktopCandidates, documentCandidates, candidates]);
 
     const canSaveOffline = (candidate: StreamDownloadCandidate) => {
         if (!window.desktop?.isDesktop) {
@@ -164,23 +194,68 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         info('Opened download target in a new tab');
     };
 
+    const handleOfflineDownload = async (candidate: StreamDownloadCandidate) => {
+        if (!window.desktop || !title || !imageUrl) {
+            error('Offline download metadata is incomplete.');
+            return;
+        }
+
+        setVerifyingCandidateId(candidate.id);
+        try {
+            const probe = await window.desktop.probePlaybackSource({
+                url: candidate.url,
+                requiredHeaders: candidate.requiredHeaders,
+            });
+            if (!probe.ok || !probe.finalUrl) {
+                error(probe.message || 'This source is not a direct media file.');
+                return;
+            }
+
+            const result = await window.desktop.downloadOfflineMedia({
+                title,
+                tmdbId: Number(tmdbId),
+                mediaType,
+                sourceUrl: probe.finalUrl,
+                imageUrl,
+                backdropUrl,
+                description,
+                year,
+                genre,
+                season,
+                episode,
+                providerId,
+                providerName,
+            });
+            if (!result.ok) {
+                error(result.message || 'Failed to start offline download.');
+                return;
+            }
+
+            success('Verified download started');
+        } catch {
+            error('Could not verify this download source.');
+        } finally {
+            setVerifyingCandidateId(null);
+        }
+    };
+
     return (
-        <div className="bg-white/5 rounded-xl p-3 border border-white/5 flex flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-3 rounded-[18px] border border-white/10 bg-white/[0.045] p-3">
             <div className="flex items-start gap-2">
-                <div className="mt-0.5 text-zinc-400">
-                    <Download size={14} />
+                <div className="mt-0.5 text-white/55">
+                    <ShieldCheck size={15} />
                 </div>
                 <div className="min-w-0">
-                    <p className="text-sm font-semibold text-white">Auto-detected stream links</p>
-                    <p className="text-[11px] text-zinc-500">
-                        Derived from the active provider URL, direct sources, and current desktop playback session.
+                    <p className="text-sm font-semibold text-white">Verified download sources</p>
+                    <p className="text-[11px] leading-4 text-white/42">
+                        Direct files are checked before saving. Player pages and adaptive manifests stay out of your offline library.
                     </p>
                 </div>
             </div>
 
             {allCandidates.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-white/10 bg-black/20 p-3">
-                    <div className="flex items-start gap-2 text-zinc-400">
+                <div className="rounded-[14px] border border-dashed border-white/10 bg-black/20 p-3">
+                    <div className="flex items-start gap-2 text-white/46">
                         <Info size={14} className="mt-0.5" />
                         <p className="text-xs leading-relaxed">
                             No downloadable stream URL is visible for this title yet. Start playback on the current
@@ -189,9 +264,9 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col gap-2">
+                <div className="flex max-h-[min(42vh,360px)] flex-col gap-2 overflow-y-auto pr-1 studio-scrollbar">
                     {allCandidates.map(candidate => (
-                        <div key={candidate.id} className="rounded-lg border border-white/10 bg-black/20 p-3">
+                        <div key={candidate.id} className="min-w-0 rounded-[14px] border border-white/10 bg-black/20 p-3">
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <span className="text-xs font-semibold text-white">{candidate.label}</span>
                                 {canSaveOffline(candidate) && getCandidateRank(candidate) === 0 && (
@@ -210,7 +285,7 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                                 </span>
                             </div>
 
-                            <p className="text-[11px] text-zinc-500 break-all">{candidate.url}</p>
+                            <p className="truncate text-[11px] text-white/38" title={candidate.url}>{candidate.url}</p>
                             {candidate.note && (
                                 <p className="text-[11px] text-zinc-600 mt-1">{candidate.note}</p>
                             )}
@@ -220,54 +295,26 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                                 </p>
                             )}
 
-                            <div className="mt-3">
+                            <div className="mt-3 flex items-center gap-2">
                                 {canSaveOffline(candidate) ? (
                                     <button
-                                        onClick={() => {
-                                            if (!window.desktop || !title || !imageUrl) {
-                                                error('Offline download metadata is incomplete.');
-                                                return;
-                                            }
-
-                                            void window.desktop.downloadOfflineMedia({
-                                                title,
-                                                tmdbId: Number(tmdbId),
-                                                mediaType,
-                                                sourceUrl: candidate.url,
-                                                imageUrl,
-                                                backdropUrl,
-                                                description,
-                                                year,
-                                                genre,
-                                                season,
-                                                episode,
-                                                providerId,
-                                                providerName,
-                                            }).then((result) => {
-                                                if (!result.ok) {
-                                                    error(result.message || 'Failed to start offline download.');
-                                                    return;
-                                                }
-
-                                                success('Offline download started');
-                                            }).catch(() => {
-                                                error('Failed to start offline download.');
-                                            });
-                                        }}
-                                        className="inline-flex h-9 items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/15 px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-100 transition-colors hover:bg-emerald-500/20"
+                                        onClick={() => void handleOfflineDownload(candidate)}
+                                        disabled={verifyingCandidateId === candidate.id}
+                                        className="inline-flex h-9 items-center gap-2 rounded-full border border-white/16 bg-white px-3.5 text-[11px] font-bold text-black transition-transform hover:scale-[1.02] disabled:cursor-wait disabled:opacity-60"
                                     >
-                                        <Download size={12} />
-                                        Download Offline
+                                        {verifyingCandidateId === candidate.id ? <LoaderCircle size={13} className="animate-spin" /> : <Download size={13} />}
+                                        {verifyingCandidateId === candidate.id ? 'Checking source' : 'Save offline'}
                                     </button>
                                 ) : (
                                     <button
                                         onClick={() => handleOpen(candidate.url)}
-                                        className="inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-100 transition-colors hover:bg-white/10"
+                                        className="inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 text-[11px] font-bold text-white/88 transition-colors hover:bg-white/10"
                                     >
                                         <ExternalLink size={12} />
                                         {candidate.kind === 'download_page' ? 'Open Page' : 'Open Link'}
                                     </button>
                                 )}
+                                {canSaveOffline(candidate) && <span className="inline-flex items-center gap-1 text-[10px] text-white/38"><CheckCircle2 size={12} /> Direct only</span>}
                             </div>
                         </div>
                     ))}

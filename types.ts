@@ -59,6 +59,7 @@ export interface OfflineDownloadEntry {
   completedAt?: string;
   bytesReceived?: number;
   totalBytes?: number;
+  message?: string;
 }
 
 export interface SharedMoviePayload {

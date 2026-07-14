@@ -127,15 +127,14 @@
 .studio-shell-main {
   transform-origin: top center;
   transition:
-    transform 280ms var(--studio-ease),
-    filter 280ms var(--studio-ease),
-    opacity 280ms var(--studio-ease);
+    transform 220ms var(--studio-ease),
+    opacity 220ms var(--studio-ease);
 }
 
 .studio-shell-main--drawer-open {
-  transform: translateY(-8px) scale(0.986);
-  filter: brightness(0.72);
-  opacity: 0.88;
+  transform: translateY(-6px) scale(0.994);
+  opacity: 0.92;
+  will-change: transform, opacity;
 }
 
 .studio-hero-trailer {

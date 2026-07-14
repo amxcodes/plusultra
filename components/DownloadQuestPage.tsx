@@ -41,7 +41,7 @@ const getEntryTimestamp = (entry: OfflineDownloadEntry) => (
     new Date(entry.completedAt || entry.createdAt).getTime()
 );
 
-const groupOfflineDownloads = (entries: OfflineDownloadEntry[]): OfflineDownloadGroup[] => {
+export const groupOfflineDownloads = (entries: OfflineDownloadEntry[]): OfflineDownloadGroup[] => {
     const grouped = new Map<string, OfflineDownloadGroup>();
 
     entries.forEach((entry) => {

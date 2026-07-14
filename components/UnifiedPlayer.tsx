@@ -920,7 +920,7 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                 ? 'bg-white text-black'
                 : 'bg-black/50 text-white hover:bg-white/20'}`;
     const panelClassName = useStudioChrome
-        ? 'fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[90vw] md:w-80 mt-0 md:mt-2 rounded-[24px] border border-white/10 bg-[#09090b]/92 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.62)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] md:max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[70] md:z-[60]'
+        ? 'fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[min(22rem,calc(100vw-2rem))] mt-0 md:mt-2 rounded-[20px] border border-white/10 bg-[#09090b]/95 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.62)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100dvh-6rem)] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain studio-scrollbar flex flex-col gap-2 z-[70] md:z-[60]'
         : 'fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[90vw] md:w-80 mt-0 md:mt-2 bg-[#0f1014] md:bg-[#0f1014]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] md:max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[70] md:z-[60]';
 
 

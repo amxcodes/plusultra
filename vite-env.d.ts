@@ -38,6 +38,7 @@ interface DesktopBridge {
     startMediaCapture: (sessionInfo: DesktopMediaCaptureSession) => Promise<{ ok: boolean; captureKey?: string }>;
     stopMediaCapture: (captureKey: string) => Promise<{ ok: boolean }>;
     getCapturedMedia: (captureKey: string) => Promise<DesktopCapturedMedia[]>;
+    discoverDownloadSources: (url: string) => Promise<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' }>>;
     probePlaybackSource: (payload: {
         url: string;
         requiredHeaders?: Record<string, string>;
@@ -46,7 +47,7 @@ interface DesktopBridge {
         finalUrl?: string;
         contentType?: string;
         contentLength?: number | null;
-        sourceType?: 'mp4' | 'm3u8' | 'mpd' | 'unknown';
+        sourceType?: 'mp4' | 'webm' | 'mkv' | 'm3u8' | 'mpd' | 'unknown';
         expiresAt?: string | null;
         message?: string;
     }>;

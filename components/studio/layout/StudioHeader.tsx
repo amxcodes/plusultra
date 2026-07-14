@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Home, Search, Settings, Tv, Bookmark, Clapperboard, BarChart2, Newspaper, MessageSquarePlus, Shield, MessagesSquare } from 'lucide-react';
+import { Bell, CheckCircle2, Download, HardDriveDownload, Home, LoaderCircle, Search, Settings, Tv, Bookmark, Clapperboard, BarChart2, Newspaper, MessageSquarePlus, Shield, MessagesSquare } from 'lucide-react';
 import { NavItem, Profile } from '../../../types';
 import { StudioButton } from '../system/StudioButton';
 import { StudioDropdownContent, StudioDropdownItem, StudioDropdownRoot, StudioDropdownTrigger } from '../system/StudioControls';
@@ -30,6 +30,7 @@ const moreItems = [
   { item: NavItem.NEWS, icon: Newspaper },
   { item: NavItem.STATS, icon: BarChart2 },
   { item: NavItem.REQUESTS, icon: MessageSquarePlus },
+  { item: NavItem.DOWNLOAD_QUEST, icon: HardDriveDownload },
   { item: NavItem.ANNOUNCEMENTS, icon: Bell },
   { item: NavItem.ADMIN, icon: Shield },
 ];
@@ -43,6 +44,16 @@ const formatActivityTime = (value?: string | null) => {
   if (diffHours < 24) return `${diffHours}h`;
   return `${Math.floor(diffHours / 24)}d`;
 };
+
+type UpdateState = {
+  status: string;
+  currentVersion: string;
+  latestVersion: string | null;
+  message: string | null;
+  downloadProgress: number | null;
+};
+
+const idleUpdateState: UpdateState = { status: 'idle', currentVersion: '', latestVersion: null, message: null, downloadProgress: null };
 
 const glassTuning = (preferences: UiPreferences) => {
   const intensity = {
@@ -61,10 +72,12 @@ const glassTuning = (preferences: UiPreferences) => {
 export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActiveTab, onSearchClick, messageUnreadCount, profile, canStream }) => {
   const isDesktop = typeof window !== 'undefined' && Boolean(window.desktop?.isDesktop);
   const [preferences, setPreferences] = React.useState<UiPreferences>(() => getUiPreferences());
-  const [activityTab, setActivityTab] = React.useState<'notifications' | 'followers' | 'following'>('notifications');
+  const [activityTab, setActivityTab] = React.useState<'notifications' | 'followers' | 'following' | 'updates'>('notifications');
+  const [updateState, setUpdateState] = React.useState<UpdateState>(idleUpdateState);
   const { feedNotifications, requestNotifications, followers, following, isLoading } = useActivityFeed();
   const activityItems = [...requestNotifications, ...feedNotifications].slice(0, 6);
-  const activityCount = requestNotifications.length + feedNotifications.filter(item => !item.is_read).length;
+  const updateAvailable = ['available', 'downloading', 'downloaded'].includes(updateState.status);
+  const activityCount = requestNotifications.length + feedNotifications.filter(item => !item.is_read).length + (updateAvailable ? 1 : 0);
   const visibleMoreItems = moreItems.filter(({ item }) => (
     (item !== NavItem.ADMIN || profile?.role === 'admin') &&
     (item !== NavItem.REQUESTS || canStream) &&
@@ -72,7 +85,27 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
     (item !== NavItem.DOWNLOAD_QUEST || isDesktop)
   ));
   React.useEffect(() => subscribeToUiPreferences(setPreferences), []);
+  React.useEffect(() => {
+    if (!isDesktop || !window.desktop) return;
+    let active = true;
+    void window.desktop.getUpdateState().then((state) => active && setUpdateState(state));
+    const unsubscribe = window.desktop.onUpdateState((state) => active && setUpdateState(state));
+    void window.desktop.checkForUpdates();
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [isDesktop]);
   const glass = glassTuning(preferences);
+
+  const handleUpdateAction = async () => {
+    if (!window.desktop) return;
+    if (updateState.status === 'downloaded') {
+      await window.desktop.installUpdate();
+      return;
+    }
+    await window.desktop.downloadUpdate();
+  };
 
   return (
     <>
@@ -159,11 +192,12 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
               <div className="px-2 pb-2 pt-1">
                 <div className="text-[11px] font-bold uppercase text-white/42">Activity</div>
                 <div className="mt-1 text-sm font-semibold text-white">Quick panel</div>
-                <div className="mt-3 grid grid-cols-3 gap-1 rounded-full border border-white/8 bg-black/28 p-1">
+                <div className={`mt-3 grid gap-1 rounded-full border border-white/8 bg-black/28 p-1 ${isDesktop ? 'grid-cols-4' : 'grid-cols-3'}`}>
                   {[
                     ['notifications', 'Alerts'],
                     ['followers', 'Followers'],
                     ['following', 'Following'],
+                    ...(isDesktop ? [['updates', 'Updates']] : []),
                   ].map(([value, label]) => (
                     <button
                       key={value}
@@ -182,6 +216,26 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
                     {Array.from({ length: 3 }).map((_, index) => (
                       <div key={index} className="h-14 animate-pulse rounded-[18px] bg-white/[0.055]" />
                     ))}
+                  </div>
+                ) : activityTab === 'updates' && isDesktop ? (
+                  <div className="p-2">
+                    <div className="rounded-[16px] border border-white/10 bg-white/[0.045] p-3">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-white/78">
+                          {updateState.status === 'downloading' ? <LoaderCircle size={16} className="animate-spin" /> : updateState.status === 'downloaded' ? <CheckCircle2 size={16} /> : <Download size={16} />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-white">{updateAvailable ? `Plus Ultra ${updateState.latestVersion || ''}` : 'Plus Ultra is up to date'}</div>
+                          <div className="mt-1 text-xs leading-5 text-white/46">{updateState.message || `Version ${updateState.currentVersion || 'current'} is installed.`}</div>
+                        </div>
+                      </div>
+                      {updateState.status === 'downloading' && <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.08]"><div className="h-full rounded-full bg-white transition-[width] duration-300" style={{ width: `${updateState.downloadProgress || 8}%` }} /></div>}
+                      {updateAvailable && (
+                        <button type="button" onClick={() => void handleUpdateAction()} disabled={updateState.status === 'downloading' || updateState.status === 'installing'} className="mt-3 h-9 w-full rounded-full bg-white text-xs font-bold text-black transition-transform hover:scale-[1.01] disabled:cursor-wait disabled:opacity-60">
+                          {updateState.status === 'downloaded' ? 'Install and relaunch' : updateState.status === 'downloading' ? 'Downloading update' : 'Download update'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ) : activityTab === 'notifications' && activityItems.length > 0 ? (
                   activityItems.map(item => (

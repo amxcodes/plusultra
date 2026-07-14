@@ -84,6 +84,7 @@ const toOfflineEntry = (entry: TauriDownloadEntry): OfflineDownloadEntry => ({
   completedAt: entry.completedAt ? new Date(entry.completedAt).toISOString() : undefined,
   bytesReceived: entry.bytesReceived || undefined,
   totalBytes: entry.totalBytes || undefined,
+  message: entry.message || undefined,
 });
 
 export const installTauriDesktopBridge = async () => {
@@ -161,7 +162,32 @@ export const installTauriDesktopBridge = async () => {
     startMediaCapture: () => unsupported('Media capture is not wired yet.', { ok: false }),
     stopMediaCapture: () => unsupported('Media capture is not wired yet.', { ok: true }),
     getCapturedMedia: () => unsupported('Captured media is not wired yet.', []),
-    probePlaybackSource: () => unsupported('Playback probing is not wired yet.', { ok: false, message: 'Tauri playback probing is not wired yet.' }),
+    discoverDownloadSources: async (url) => {
+      try {
+        return await invoke<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' }>>('tauri_discover_offline_sources', { sourceUrl: url });
+      } catch {
+        return [];
+      }
+    },
+    probePlaybackSource: async ({ url }) => {
+      try {
+        const probe = await invoke<{
+          finalUrl: string;
+          contentType?: string | null;
+          contentLength?: number | null;
+          sourceType: 'mp4' | 'webm' | 'mkv' | 'm3u8' | 'mpd';
+        }>('tauri_probe_offline_download', { sourceUrl: url });
+        return {
+          ok: true,
+          finalUrl: probe.finalUrl,
+          contentType: probe.contentType || undefined,
+          contentLength: probe.contentLength || null,
+          sourceType: probe.sourceType,
+        };
+      } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : String(error) };
+      }
+    },
     startTurnstileCheck: () => unsupported('Turnstile native check is not wired yet.', { ok: false, message: 'Tauri Turnstile check is not wired yet.' }),
     openExternal: (targetUrl) => openUrl(targetUrl),
     downloadOfflineMedia: async (payload) => {

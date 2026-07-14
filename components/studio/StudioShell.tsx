@@ -29,7 +29,8 @@ import { CuratorLabPage } from '../CuratorLabPage';
 import { AnimePage } from '../AnimePage';
 import { AsianDramaPage } from '../AsianDramaPage';
 import { ForYouPage } from '../ForYouPage';
-import { DownloadQuestPage, type OfflineDownloadGroup } from '../DownloadQuestPage';
+import type { OfflineDownloadGroup } from '../DownloadQuestPage';
+import { StudioDownloadsPage } from './pages/StudioDownloadsPage';
 import { StudioAddToPlaylistSheet } from './media/StudioAddToPlaylistSheet';
 import { LatestTrailersByCountrySection } from '../LatestTrailersByCountrySection';
 import type { ActivityFeedTab } from '../../hooks/useActivityFeed';
@@ -83,7 +84,12 @@ interface StudioShellProps {
 
 const useStudioSmoothScroll = (preferences: UiPreferences, disabled: boolean) => {
   useEffect(() => {
-    if (disabled || !preferences.smoothScroll || preferences.reduceMotion) return;
+    if (
+      disabled
+      || !preferences.smoothScroll
+      || preferences.reduceMotion
+      || !window.matchMedia('(pointer: fine)').matches
+    ) return;
 
     let lenis: any;
     let frame = 0;
@@ -92,13 +98,13 @@ const useStudioSmoothScroll = (preferences: UiPreferences, disabled: boolean) =>
     import('lenis').then(({ default: Lenis }) => {
       if (cancelled) return;
       lenis = new Lenis({
-        duration: 0.92,
+        duration: 0.68,
         smoothWheel: true,
-        wheelMultiplier: 0.85,
+        wheelMultiplier: 0.8,
       });
 
       const raf = (time: number) => {
-        lenis?.raf(time);
+        if (!document.hidden) lenis?.raf(time);
         frame = window.requestAnimationFrame(raf);
       };
 
@@ -303,7 +309,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       case NavItem.FOR_YOU:
         return <StudioPageFrame className="studio-classic-bridge"><ForYouPage onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
       case NavItem.DOWNLOAD_QUEST:
-        return <StudioPageFrame className="studio-classic-bridge"><DownloadQuestPage onSelectGroup={props.onOfflineGroupSelect} /></StudioPageFrame>;
+        return <StudioDownloadsPage onSelectGroup={props.onOfflineGroupSelect} />;
       default:
         return renderHome();
     }

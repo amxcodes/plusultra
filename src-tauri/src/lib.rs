@@ -13,6 +13,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             downloads::tauri_list_offline_downloads,
+            downloads::tauri_discover_offline_sources,
+            downloads::tauri_probe_offline_download,
             downloads::tauri_start_offline_download,
             downloads::tauri_remove_offline_download,
         ])
