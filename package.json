@@ -1,11 +1,12 @@
 {
   "name": "plusultra",
   "private": true,
-  "version": "1.0.45",
+  "version": "1.0.46",
   "type": "module",
   "packageManager": "npm@10",
   "scripts": {
     "dev": "vite",
+    "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:signer:generate": "tauri signer generate",
