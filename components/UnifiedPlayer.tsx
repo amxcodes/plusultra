@@ -906,21 +906,21 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
     const showControlLabels = !useStudioChrome || uiPreferences.playerControlLabels;
     const controlIconSize = compactControls ? 16 : 18;
     const toolbarClassName = useStudioChrome
-        ? `absolute right-4 top-3 z-50 flex items-center gap-2 rounded-full border border-white/12 bg-black/78 p-2 text-white shadow-[0_16px_46px_rgba(0,0,0,0.58)] backdrop-blur-2xl transition-opacity duration-200 ${uiPreferences.playerAutoHideControls ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'opacity-100'}`
+        ? `studio-control-glass absolute right-3 top-3 z-50 flex items-center gap-1.5 rounded-full p-1.5 text-white transition-opacity duration-200 sm:right-4 sm:gap-2 sm:p-2 ${uiPreferences.playerAutoHideControls ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'opacity-100'}`
         : 'absolute top-6 right-6 md:right-[calc(2cm+1.5rem)] z-50 flex gap-4 transition-opacity duration-200';
     const controlButtonClassName = (active = false, disabled = false) => useStudioChrome
-        ? `${compactControls ? 'h-10 min-w-10 px-2.5' : 'h-11 min-w-11 px-3'} inline-flex items-center justify-center gap-1.5 rounded-full border text-xs font-semibold backdrop-blur-md transition-colors ${disabled
+        ? `${compactControls ? 'h-9 min-w-9 px-2 sm:h-10 sm:min-w-10 sm:px-2.5' : 'h-11 min-w-11 px-3'} inline-flex items-center justify-center gap-1.5 rounded-full border text-xs font-semibold transition-colors ${disabled
             ? 'cursor-not-allowed border-white/8 bg-white/[0.035] text-white/32'
             : active
-                ? 'border-white/18 bg-white text-black'
-                : 'border-white/10 bg-white/[0.055] text-white/82 hover:bg-white/[0.12] hover:text-white'}`
+                ? 'border-white/18 bg-white text-black shadow-[0_8px_22px_rgba(255,255,255,0.1)]'
+                : 'border-white/[0.08] bg-white/[0.045] text-white/78 hover:border-white/16 hover:bg-white/[0.095] hover:text-white'}`
         : `flex items-center gap-2 p-2 md:px-4 md:py-2 rounded-full border border-white/10 backdrop-blur-md transition-all ${disabled
             ? 'bg-black/30 text-white/50 cursor-not-allowed'
             : active
                 ? 'bg-white text-black'
                 : 'bg-black/50 text-white hover:bg-white/20'}`;
     const panelClassName = useStudioChrome
-        ? 'fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[min(22rem,calc(100vw-2rem))] mt-0 md:mt-2 rounded-[20px] border border-white/10 bg-[#09090b]/95 p-2 shadow-[0_24px_80px_rgba(0,0,0,0.62)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100dvh-6rem)] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain studio-scrollbar flex flex-col gap-2 z-[70] md:z-[60]'
+        ? 'studio-glass fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[min(22rem,calc(100vw-2rem))] mt-0 md:mt-2 rounded-[20px] p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[calc(100dvh-6rem)] min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain studio-scrollbar flex flex-col gap-2 z-[70] md:z-[60]'
         : 'fixed md:absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:translate-x-0 md:translate-y-0 md:left-auto md:top-full md:right-0 w-[90vw] md:w-80 mt-0 md:mt-2 bg-[#0f1014] md:bg-[#0f1014]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 max-h-[60vh] md:max-h-[400px] overflow-y-auto custom-scrollbar flex flex-col gap-2 z-[70] md:z-[60]';
 
 
@@ -964,7 +964,7 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
 
             {useStudioChrome && (
                 <div className={`pointer-events-none absolute left-3 top-3 z-50 max-w-[min(680px,calc(100%-13rem))] transition-opacity duration-200 ${uiPreferences.playerAutoHideControls ? 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100' : 'opacity-100'}`}>
-                    <div className="line-clamp-1 min-h-12 rounded-full border border-white/12 bg-black/82 px-5 py-3 text-sm font-bold text-white/86 shadow-[0_14px_38px_rgba(0,0,0,0.52)] backdrop-blur-2xl">
+                    <div className="studio-control-glass line-clamp-1 min-h-11 rounded-full px-4 py-2.5 text-sm font-bold text-white/86 sm:min-h-12 sm:px-5 sm:py-3">
                         {title || tmdbId}
                         <span className="ml-2 text-white/42">{getServerFruit(currentProvider.name)} {currentProvider.name}</span>
                     </div>

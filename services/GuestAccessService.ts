@@ -104,6 +104,16 @@ export const GuestAccessService = {
         return data;
     },
 
+    async secureGuestAccountDirect(email: string, password: string) {
+        const { data, error } = await supabase.rpc('secure_guest_account_direct', {
+            p_email: email,
+            p_password: password,
+        });
+
+        if (error) throw error;
+        return data;
+    },
+
     async extendGuestAccess(userId: string, expiresAt: string) {
         const { error } = await supabase.rpc('admin_extend_guest_access', {
             p_user_id: userId,

@@ -40,30 +40,37 @@ export const StudioCarousel: React.FC<StudioCarouselProps> = ({ children, classN
         </div>
       </div>
 
-      {canScrollPrev && (
-        <StudioButton
-          type="button"
-          size="icon"
-          variant="glass"
-          className="absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 md:inline-flex"
-          onClick={() => emblaApi?.scrollPrev()}
-          aria-label="Scroll left"
-        >
-          <ChevronLeft size={18} />
-        </StudioButton>
-      )}
-
-      {canScrollNext && (
-        <StudioButton
-          type="button"
-          size="icon"
-          variant="glass"
-          className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 md:inline-flex"
-          onClick={() => emblaApi?.scrollNext()}
-          aria-label="Scroll right"
-        >
-          <ChevronRight size={18} />
-        </StudioButton>
+      {(canScrollPrev || canScrollNext) && (
+        <div className="pointer-events-none absolute inset-x-2 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-between md:flex">
+          <StudioButton
+            type="button"
+            size="icon"
+            variant="glass"
+            className={cn(
+              'pointer-events-auto transition-opacity',
+              canScrollPrev ? 'opacity-0 group-hover:opacity-100' : 'pointer-events-none opacity-0'
+            )}
+            onClick={() => emblaApi?.scrollPrev()}
+            aria-label="Scroll left"
+            tabIndex={canScrollPrev ? 0 : -1}
+          >
+            <ChevronLeft size={18} />
+          </StudioButton>
+          <StudioButton
+            type="button"
+            size="icon"
+            variant="glass"
+            className={cn(
+              'pointer-events-auto transition-opacity',
+              canScrollNext ? 'opacity-0 group-hover:opacity-100' : 'pointer-events-none opacity-0'
+            )}
+            onClick={() => emblaApi?.scrollNext()}
+            aria-label="Scroll right"
+            tabIndex={canScrollNext ? 0 : -1}
+          >
+            <ChevronRight size={18} />
+          </StudioButton>
+        </div>
       )}
     </div>
   );

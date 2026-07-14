@@ -1,4 +1,5 @@
 mod downloads;
+mod media_capture;
 mod shield;
 
 use tauri::{
@@ -8,6 +9,7 @@ use tauri::{
 
 pub fn run() {
     tauri::Builder::default()
+        .manage(media_capture::MediaCaptureState::default())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -17,6 +19,9 @@ pub fn run() {
             downloads::tauri_probe_offline_download,
             downloads::tauri_start_offline_download,
             downloads::tauri_remove_offline_download,
+            media_capture::tauri_start_media_capture,
+            media_capture::tauri_stop_media_capture,
+            media_capture::tauri_get_captured_media,
         ])
         .setup(|app| {
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
@@ -33,6 +38,8 @@ pub fn run() {
                     NewWindowResponse::Deny
                 })
                 .build()?;
+
+            media_capture::install(app.handle().clone()).map_err(std::io::Error::other)?;
 
             Ok(())
         })

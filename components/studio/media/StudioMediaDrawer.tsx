@@ -10,7 +10,7 @@ interface StudioMediaDrawerProps {
   movie: Movie | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPlay: (movie: Movie, season?: number, episode?: number) => void;
+  onPlay?: (movie: Movie, season?: number, episode?: number) => void;
   onAddToPlaylist?: (movie: Movie) => void;
   onMovieSelect?: (movie: Movie) => void;
 }
@@ -210,10 +210,12 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <StudioButton variant="glass" size="md" onClick={() => onPlay(activeMovie)} className="px-4">
-                    <Play size={15} fill="currentColor" />
-                    {activeMovie.mediaType === 'tv' ? 'S1 E1' : 'Play'}
-                  </StudioButton>
+                  {onPlay && (
+                    <StudioButton variant="glass" size="md" onClick={() => onPlay(activeMovie)} className="px-4">
+                      <Play size={15} fill="currentColor" />
+                      {activeMovie.mediaType === 'tv' ? 'S1 E1' : 'Play'}
+                    </StudioButton>
+                  )}
                   {onAddToPlaylist && (
                     <StudioButton variant="ghost" size="icon" onClick={() => onAddToPlaylist(activeMovie)} aria-label="Save to playlist">
                       <BookmarkPlus size={17} />
@@ -346,8 +348,9 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                           <button
                             key={episode.id}
                             type="button"
-                            onClick={() => onPlay(activeMovie, selectedSeason, episode.episode_number)}
-                            className="group/episode grid w-full grid-cols-[32px_96px_minmax(0,1fr)] items-center gap-3 border-b border-white/7 px-3 py-4 text-left transition-colors last:border-b-0 hover:bg-white/[0.055] md:grid-cols-[44px_132px_minmax(0,1fr)_auto] md:gap-4 md:px-4"
+                            onClick={() => onPlay?.(activeMovie, selectedSeason, episode.episode_number)}
+                            disabled={!onPlay}
+                            className="group/episode grid w-full grid-cols-[32px_96px_minmax(0,1fr)] items-center gap-3 border-b border-white/7 px-3 py-4 text-left transition-colors last:border-b-0 hover:bg-white/[0.055] disabled:cursor-default disabled:hover:bg-transparent md:grid-cols-[44px_132px_minmax(0,1fr)_auto] md:gap-4 md:px-4"
                           >
                             <div className="text-center text-xl font-black text-white/45">
                               {episode.episode_number}
@@ -361,9 +364,11 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                                 </div>
                               )}
                               <div className="absolute inset-0 flex items-center justify-center bg-black/24 opacity-0 transition-opacity group-hover/episode:opacity-100">
-                                <span className="studio-control-glass flex h-9 w-9 items-center justify-center rounded-full text-white">
-                                  <Play size={14} fill="currentColor" />
-                                </span>
+                                {onPlay && (
+                                  <span className="studio-control-glass flex h-9 w-9 items-center justify-center rounded-full text-white">
+                                    <Play size={14} fill="currentColor" />
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="min-w-0 flex-1">
@@ -383,8 +388,9 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                           <button
                             key={episode.id}
                             type="button"
-                            onClick={() => onPlay(activeMovie, selectedSeason, episode.episode_number)}
-                            className="group/episode overflow-hidden rounded-[22px] border border-white/8 bg-black/45 text-left transition-colors hover:border-white/18 hover:bg-white/[0.055]"
+                            onClick={() => onPlay?.(activeMovie, selectedSeason, episode.episode_number)}
+                            disabled={!onPlay}
+                            className="group/episode overflow-hidden rounded-[22px] border border-white/8 bg-black/45 text-left transition-colors hover:border-white/18 hover:bg-white/[0.055] disabled:cursor-default disabled:hover:border-white/8 disabled:hover:bg-black/45"
                           >
                             <div className="relative aspect-video bg-white/[0.055]">
                               {episode.still_path ? (

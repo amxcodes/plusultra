@@ -149,6 +149,7 @@ export enum NavItem {
   PLAYLISTS = 'Playlists',
   STATS = 'Stats',
   NEWS = 'News',
+  SPORTS = 'Sports',
   REQUESTS = 'Requests'
 }
 

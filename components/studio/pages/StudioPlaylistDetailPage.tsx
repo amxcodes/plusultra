@@ -15,7 +15,7 @@ interface StudioPlaylistDetailPageProps {
   playlistId: string;
   onBack: () => void;
   onMovieSelect: (movie: Movie) => void;
-  onPlay: (movie: Movie) => void;
+  onPlay?: (movie: Movie) => void;
   onAddToPlaylist: (movie: Movie) => void;
 }
 

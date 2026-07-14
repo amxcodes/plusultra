@@ -7,7 +7,7 @@ import { getUiPreferences, subscribeToUiPreferences, UiPreferences } from '../..
 
 interface StudioHeroProps {
   movie: HeroMovie | null;
-  onPlay: (movie: Movie) => void;
+  onPlay?: (movie: Movie) => void;
   onInfo: (movie: Movie) => void;
   onAddToPlaylist?: (movie: Movie) => void;
 }
@@ -58,9 +58,9 @@ export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, o
       )}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_45%,rgba(255,255,255,0.08),transparent_34%),linear-gradient(to_top,#000_4%,rgba(0,0,0,0.72)_35%,rgba(0,0,0,0.22)_100%)]" />
 
-      <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-center px-5 pt-16 md:px-8">
+      <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-end px-5 pb-24 pt-28 md:px-8 md:pb-28 md:pt-32">
         <div className="max-w-2xl">
-          <h1 className="max-w-[780px] break-words text-5xl font-black leading-[0.95] tracking-tight text-white drop-shadow-2xl md:text-7xl">
+          <h1 className="line-clamp-2 min-h-[5.7rem] max-w-[780px] break-words text-5xl font-black leading-[0.95] tracking-normal text-white drop-shadow-2xl md:min-h-[8.15rem] md:text-6xl lg:text-7xl">
             {movie.title}
           </h1>
 
@@ -77,24 +77,31 @@ export const StudioHero: React.FC<StudioHeroProps> = ({ movie, onPlay, onInfo, o
           </div>
 
           {movie.description && (
-            <p className="mt-5 max-w-xl text-sm leading-6 text-white/70 md:text-base md:leading-7">
+            <p className="mt-5 line-clamp-3 min-h-[4.5rem] max-w-xl text-sm leading-6 text-white/76 md:line-clamp-4 md:min-h-[7rem] md:text-base md:leading-7">
               {movie.description}
             </p>
           )}
 
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <StudioButton variant="glass" size="md" onClick={() => onPlay(movie as Movie)} className="h-11 px-5">
-              <Play size={17} fill="currentColor" />
-              Play
-            </StudioButton>
-            <StudioButton variant="glass" size="md" onClick={() => onInfo(movie as Movie)} className="h-11 px-4">
-              <Info size={17} />
-            </StudioButton>
-            {onAddToPlaylist && (
-              <StudioButton variant="glass" size="icon" onClick={() => onAddToPlaylist(movie as Movie)} aria-label="Add to playlist" className="h-11 w-11">
-                <BookmarkPlus size={17} />
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            {onPlay && (
+              <StudioButton variant="glass" size="md" onClick={() => onPlay(movie as Movie)} className="h-11 px-5">
+                <Play size={17} fill="currentColor" />
+                Play
               </StudioButton>
             )}
+            <div className="studio-control-glass studio-hero-action-group" role="group" aria-label="Title actions">
+              <button type="button" onClick={() => onInfo(movie as Movie)} aria-label="View details" title="View details">
+                <Info size={18} />
+              </button>
+              {onAddToPlaylist && (
+                <>
+                  <span className="studio-hero-action-group__divider" />
+                  <button type="button" onClick={() => onAddToPlaylist(movie as Movie)} aria-label="Add to playlist" title="Add to playlist">
+                    <BookmarkPlus size={18} />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -115,12 +115,15 @@ export const TmdbService = {
         }
     },
 
-    getByProvider: async (providerId: number): Promise<Movie[]> => {
+    getByProvider: async (providerId: number, mediaType: 'movie' | 'tv' = 'movie'): Promise<Movie[]> => {
         if (!API_KEY) return [];
         try {
-            const res = await fetch(`${BASE_URL}${requests.fetchByProvider}${providerId}`);
+            const endpoint = mediaType === 'tv'
+                ? requests.fetchByProvider.replace('/discover/movie', '/discover/tv')
+                : requests.fetchByProvider;
+            const res = await fetch(`${BASE_URL}${endpoint}${providerId}`);
             const data = await res.json();
-            return data.results.map((i: any) => mapTmdbToMovie(i, 'movie'));
+            return data.results.map((i: any) => mapTmdbToMovie(i, mediaType));
         } catch (e) {
             return [];
         }

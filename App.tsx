@@ -64,6 +64,7 @@ import { setActivityMode, type ActivityMode } from './lib/activityTracking';
 import type { ActivityFeedTab } from './hooks/useActivityFeed';
 import { getUiPreferences, subscribeToUiPreferences, UiPreferences } from './lib/uiPreferences';
 import { StudioShell } from './components/studio/StudioShell';
+import { StudioThemeProvider } from './components/studio/system/StudioThemeProvider';
 
 type ViewAllCategoryState = {
   title: string;
@@ -698,6 +699,8 @@ function StreamApp() {
   };
 
   const handlePlay = (movie: Movie, season?: number, episode?: number) => {
+    if (!canStream) return;
+
     commitSnapshot(buildSnapshot({
       playerState: { movie, season, episode },
       offlinePlaybackUrl: null,
@@ -753,6 +756,7 @@ function StreamApp() {
   };
 
   const handlePlayOffline = async (download: OfflineDownloadEntry) => {
+    if (!canStream) return;
     if (!window.desktop) return;
 
     const playback = await window.desktop.getOfflinePlaybackUrl(download.id);
@@ -878,7 +882,7 @@ function StreamApp() {
 
   // Render Player Page if active AND user has streaming permission
   if (playerState && canStream) {
-    return (
+    const playerPage = (
       <PlayerPage
         movie={playerState.movie}
         season={playerState.season}
@@ -893,6 +897,12 @@ function StreamApp() {
         }}
       />
     );
+
+    if (uiPreferences.layoutMode === 'studio') {
+      return <StudioThemeProvider>{playerPage}</StudioThemeProvider>;
+    }
+
+    return playerPage;
   }
 
   if (uiPreferences.layoutMode === 'studio') {

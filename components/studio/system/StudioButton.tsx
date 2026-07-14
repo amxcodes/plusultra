@@ -7,10 +7,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'border border-white/85 bg-white text-black shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_12px_34px_rgba(255,255,255,0.16)] hover:bg-zinc-100 hover:shadow-[inset_0_1px_0_rgba(255,255,255,1),0_14px_42px_rgba(255,255,255,0.20)]',
-        glass: 'studio-control-glass text-white hover:border-white/24 hover:bg-white/[0.14] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_14px_36px_rgba(0,0,0,0.36)]',
-        ghost: 'border border-transparent text-white/70 hover:bg-white/[0.075] hover:text-white',
-        subtle: 'border border-white/10 bg-white/[0.075] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-white/18 hover:bg-white/[0.12]',
+        primary: 'studio-button-glass studio-button-glass--emphasis text-white hover:text-white',
+        glass: 'studio-button-glass text-white hover:text-white',
+        ghost: 'studio-button-glass studio-button-glass--quiet text-white/76 hover:text-white',
+        subtle: 'studio-button-glass studio-button-glass--quiet text-white/82 hover:text-white',
         danger: 'border border-red-400/22 bg-red-500/10 text-red-100 hover:bg-red-500/18 hover:border-red-300/30',
       },
       size: {

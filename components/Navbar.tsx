@@ -26,6 +26,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   HardDriveDownload,
+  Trophy,
   RefreshCw,
   X
 } from 'lucide-react';
@@ -43,6 +44,7 @@ const NAV_ICONS: Record<NavItem, React.ElementType> = {
   [NavItem.DOWNLOAD_QUEST]: HardDriveDownload,
   [NavItem.MESSAGES]: MessagesSquare,
   [NavItem.NEWS]: Newspaper, // High priority
+  [NavItem.SPORTS]: Trophy,
   [NavItem.MOVIES]: Clapperboard,
   [NavItem.SERIES]: MonitorPlay,
   [NavItem.ANIME]: Ghost,

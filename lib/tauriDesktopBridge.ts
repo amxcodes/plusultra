@@ -159,9 +159,27 @@ export const installTauriDesktopBridge = async () => {
   window.desktop = {
     isDesktop: true,
     showNotification: (payload) => unsupported(`Notification skipped: ${payload.title}`, { ok: false, message: 'Tauri notifications are not wired yet.' }),
-    startMediaCapture: () => unsupported('Media capture is not wired yet.', { ok: false }),
-    stopMediaCapture: () => unsupported('Media capture is not wired yet.', { ok: true }),
-    getCapturedMedia: () => unsupported('Captured media is not wired yet.', []),
+    startMediaCapture: async (sessionInfo) => {
+      try {
+        return await invoke<{ ok: boolean; captureKey?: string }>('tauri_start_media_capture', { sessionInfo });
+      } catch {
+        return { ok: false };
+      }
+    },
+    stopMediaCapture: async (captureKey) => {
+      try {
+        return await invoke<{ ok: boolean }>('tauri_stop_media_capture', { captureKey });
+      } catch {
+        return { ok: false };
+      }
+    },
+    getCapturedMedia: async (captureKey) => {
+      try {
+        return await invoke<DesktopCapturedMedia[]>('tauri_get_captured_media', { captureKey });
+      } catch {
+        return [];
+      }
+    },
     discoverDownloadSources: async (url) => {
       try {
         return await invoke<Array<{ url: string; sourceType: 'mp4' | 'webm' | 'mkv' }>>('tauri_discover_offline_sources', { sourceUrl: url });
@@ -301,8 +319,26 @@ export const installTauriDesktopBridge = async () => {
       }
     },
     getUpdateState: async () => updateState,
-    onCapturedMedia: () => emptyUnsubscribe,
-    onCapturedMediaReset: () => emptyUnsubscribe,
+    onCapturedMedia: (listener) => {
+      let disposed = false;
+      const unlistenPromise = listen<DesktopCapturedMedia>('tauri-captured-media', (event) => {
+        if (!disposed) listener(event.payload);
+      });
+      return () => {
+        disposed = true;
+        void unlistenPromise.then((unlisten) => unlisten());
+      };
+    },
+    onCapturedMediaReset: (listener) => {
+      let disposed = false;
+      const unlistenPromise = listen<{ captureKey: string }>('tauri-captured-media-reset', (event) => {
+        if (!disposed) listener(event.payload);
+      });
+      return () => {
+        disposed = true;
+        void unlistenPromise.then((unlisten) => unlisten());
+      };
+    },
     onTurnstileToken: () => emptyUnsubscribe,
     onUpdateState: (listener) => {
       updateListeners.add(listener);

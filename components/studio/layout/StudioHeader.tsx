@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, CheckCircle2, Download, HardDriveDownload, Home, LoaderCircle, Search, Settings, Tv, Bookmark, Clapperboard, BarChart2, Newspaper, MessageSquarePlus, Shield, MessagesSquare } from 'lucide-react';
+import { Bell, CheckCircle2, Download, HardDriveDownload, Home, LoaderCircle, Search, Settings, Tv, Bookmark, Clapperboard, BarChart2, Newspaper, MessageSquarePlus, Shield, MessagesSquare, Trophy } from 'lucide-react';
 import { NavItem, Profile } from '../../../types';
 import { StudioButton } from '../system/StudioButton';
 import { StudioDropdownContent, StudioDropdownItem, StudioDropdownRoot, StudioDropdownTrigger } from '../system/StudioControls';
@@ -28,6 +28,7 @@ const primaryItems = [
 const moreItems = [
   { item: NavItem.MESSAGES, icon: MessagesSquare },
   { item: NavItem.NEWS, icon: Newspaper },
+  { item: NavItem.SPORTS, icon: Trophy },
   { item: NavItem.STATS, icon: BarChart2 },
   { item: NavItem.REQUESTS, icon: MessageSquarePlus },
   { item: NavItem.DOWNLOAD_QUEST, icon: HardDriveDownload },
@@ -82,6 +83,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
     (item !== NavItem.ADMIN || profile?.role === 'admin') &&
     (item !== NavItem.REQUESTS || canStream) &&
     (item !== NavItem.STATS || canStream) &&
+    (item !== NavItem.SPORTS || canStream) &&
     (item !== NavItem.DOWNLOAD_QUEST || isDesktop)
   ));
   React.useEffect(() => subscribeToUiPreferences(setPreferences), []);

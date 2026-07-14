@@ -143,8 +143,34 @@ fn source_type(url: &str, content_type: Option<&str>) -> &'static str {
         "webm"
     } else if lower_url.contains(".mkv") || lower_type.contains("matroska") {
         "mkv"
-    } else {
+    } else if lower_url.contains(".mp4")
+        || lower_type.contains("mp4")
+        || lower_type.starts_with("video/")
+    {
         "mp4"
+    } else {
+        "unknown"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::source_type;
+
+    #[test]
+    fn does_not_treat_a_script_url_as_media() {
+        assert_eq!(
+            source_type("https://www.googletagmanager.com/gtag/js?id=G-123", None),
+            "unknown"
+        );
+    }
+
+    #[test]
+    fn recognizes_a_direct_video_url() {
+        assert_eq!(
+            source_type("https://cdn.example.test/video.mp4?token=abc", None),
+            "mp4"
+        );
     }
 }
 
