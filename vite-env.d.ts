@@ -55,7 +55,8 @@ interface DesktopBridge {
     }>;
     startTurnstileCheck: (payload: { action: string; siteKey: string }) => Promise<{ ok: boolean; requestId?: string; message?: string }>;
     openExternal: (targetUrl: string) => Promise<void>;
-    openPopoutPlayer: (payload: { url: string; title: string }) => Promise<{ ok: boolean; message?: string }>;
+    enterCompactPlayer: () => Promise<{ ok: boolean; message?: string }>;
+    restorePlayerWindow: () => Promise<{ ok: boolean; message?: string }>;
     downloadOfflineMedia: (payload: {
         title: string;
         tmdbId: number;

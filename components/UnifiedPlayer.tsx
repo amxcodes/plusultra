@@ -220,7 +220,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const playerShellRef = useRef<HTMLDivElement>(null);
     const popoutWindowRef = useRef<Window | null>(null);
+    const compactPlayerActiveRef = useRef(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isCompactPlayer, setIsCompactPlayer] = useState(false);
     const [popoutError, setPopoutError] = useState<string | null>(null);
 
     // Fetch specific episode image (screenshot) if TV
@@ -229,6 +231,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const [currentMovieBackdrop, setCurrentMovieBackdrop] = useState<string>(backdropUrl || '');
 
     useEffect(() => subscribeToUiPreferences(setUiPreferences), []);
+
+    useEffect(() => () => {
+        if (compactPlayerActiveRef.current && window.desktop?.isDesktop) {
+            compactPlayerActiveRef.current = false;
+            void window.desktop.restorePlayerWindow();
+        }
+    }, []);
 
     useEffect(() => {
         if (mediaType === 'tv' && season && episode) {
@@ -847,6 +856,21 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const handlePopout = async () => {
         setPopoutError(null);
 
+        if (window.desktop?.isDesktop) {
+            const result = isCompactPlayer
+                ? await window.desktop.restorePlayerWindow()
+                : await window.desktop.enterCompactPlayer();
+
+            if (!result.ok) {
+                setPopoutError(result.message || 'Could not resize the desktop player window.');
+                return;
+            }
+
+            compactPlayerActiveRef.current = !isCompactPlayer;
+            setIsCompactPlayer(!isCompactPlayer);
+            return;
+        }
+
         if (currentProvider.renderMode === 'direct') {
             const video = directVideoRef.current;
             if (video && 'requestPictureInPicture' in video && !video.disablePictureInPicture) {
@@ -865,17 +889,6 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
         if (!popoutUrl) {
             setPopoutError('No stream URL is ready yet.');
-            return;
-        }
-
-        if (window.desktop?.isDesktop) {
-            const result = await window.desktop.openPopoutPlayer({
-                url: popoutUrl,
-                title: `${title || 'Plus Ultra Player'} - ${currentProvider.name}`,
-            });
-            if (!result.ok) {
-                setPopoutError(result.message || 'Could not open the desktop mini player.');
-            }
             return;
         }
 
@@ -988,11 +1001,11 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                     <button
                         onClick={handlePopout}
                         className={controlButtonClassName()}
-                        title={currentProvider.renderMode === 'direct' ? 'Open picture-in-picture' : 'Open popout player'}
+                        title={isDesktopRuntime ? (isCompactPlayer ? 'Restore player window' : 'Compact player window') : (currentProvider.renderMode === 'direct' ? 'Open picture-in-picture' : 'Open popout player')}
                     >
                         <PictureInPicture2 size={controlIconSize} />
                         {showControlLabels && <span className="hidden text-sm font-medium md:inline">
-                            {currentProvider.renderMode === 'direct' ? 'PiP' : 'Popout'}
+                            {isDesktopRuntime ? (isCompactPlayer ? 'Restore' : 'Compact') : (currentProvider.renderMode === 'direct' ? 'PiP' : 'Popout')}
                         </span>}
                     </button>
                 )}

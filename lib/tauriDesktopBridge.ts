@@ -216,9 +216,17 @@ export const installTauriDesktopBridge = async () => {
     },
     startTurnstileCheck: () => unsupported('Turnstile native check is not wired yet.', { ok: false, message: 'Tauri Turnstile check is not wired yet.' }),
     openExternal: (targetUrl) => openUrl(targetUrl),
-    openPopoutPlayer: async ({ url, title }) => {
+    enterCompactPlayer: async () => {
       try {
-        await invoke('tauri_open_popout_player', { targetUrl: url, title });
+        await invoke('tauri_enter_compact_player');
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, message: error instanceof Error ? error.message : String(error) };
+      }
+    },
+    restorePlayerWindow: async () => {
+      try {
+        await invoke('tauri_restore_player_window');
         return { ok: true };
       } catch (error) {
         return { ok: false, message: error instanceof Error ? error.message : String(error) };
