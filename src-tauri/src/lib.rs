@@ -64,6 +64,36 @@ fn tauri_restore_player_window(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+fn desktop_cache_repair_script() -> String {
+    format!(
+        r#"(function () {{
+  var epoch = "{version}";
+  var key = "plusultra-desktop-cache-epoch";
+  try {{
+    if (!window.__TAURI_INTERNALS__ || window.localStorage.getItem(key) === epoch) return;
+    window.localStorage.setItem(key, epoch);
+    var jobs = [];
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {{
+      jobs.push(navigator.serviceWorker.getRegistrations().then(function (regs) {{
+        return Promise.all(regs.map(function (reg) {{ return reg.unregister(); }}));
+      }}));
+    }}
+    if (window.caches && caches.keys) {{
+      jobs.push(caches.keys().then(function (keys) {{
+        return Promise.all(keys.map(function (cacheKey) {{ return caches.delete(cacheKey); }}));
+      }}));
+    }}
+    Promise.allSettled(jobs).then(function () {{
+      var url = new URL(window.location.href);
+      url.searchParams.set("desktopCacheEpoch", epoch);
+      window.location.replace(url.toString());
+    }});
+  }} catch (_) {{}}
+}})();"#,
+        version = env!("CARGO_PKG_VERSION")
+    )
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(media_capture::MediaCaptureState::default())
@@ -90,6 +120,7 @@ pub fn run() {
                 .inner_size(1280.0, 820.0)
                 .min_inner_size(960.0, 620.0)
                 .resizable(true)
+                .initialization_script(desktop_cache_repair_script())
                 .on_navigation(|url| !shield::should_block_url(url))
                 .on_new_window(|url, _features| {
                     if shield::should_block_url(&url) {

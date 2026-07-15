@@ -1,6 +1,6 @@
 [package]
 name = "plusultra-tauri"
-version = "1.0.53"
+version = "1.0.54"
 description = "Plus Ultra Tauri app"
 authors = ["amxcodes"]
 license = ""
