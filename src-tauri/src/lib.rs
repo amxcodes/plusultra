@@ -67,7 +67,9 @@ pub fn run() {
             tauri_open_popout_player,
         ])
         .setup(|app| {
-            WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
+            let entry_url = format!("index.html?desktopBuild={}", env!("CARGO_PKG_VERSION"));
+
+            WebviewWindowBuilder::new(app, "main", WebviewUrl::App(entry_url.into()))
                 .title("Plus Ultra")
                 .inner_size(1280.0, 820.0)
                 .min_inner_size(960.0, 620.0)
