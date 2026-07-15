@@ -138,31 +138,32 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
     };
 
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-in fade-in duration-200" onClick={onClose}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 px-4 backdrop-blur-xl animate-in fade-in duration-200" onClick={onClose}>
             <div 
-                className="w-full max-w-2xl bg-[#121214] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh] md:max-h-[85vh] m-4"
+                className="studio-glass flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-[30px] border border-white/12 shadow-[0_30px_120px_rgba(0,0,0,0.72)] animate-in zoom-in-95 duration-200"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-zinc-900/50">
+                <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-black/24 px-5 py-4">
                     <div>
-                        <h3 className="font-bold text-white text-lg">{isEditing ? 'Edit Provider' : 'Add Provider'}</h3>
-                        <p className="text-zinc-400 text-xs mt-1">
+                        <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">Routing source</div>
+                        <h3 className="mt-1 text-xl font-black tracking-tight text-white">{isEditing ? 'Edit Provider' : 'Add Provider'}</h3>
+                        <p className="mt-1 text-xs text-white/45">
                             Create new providers or tune existing ones without changing code.
                         </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 bg-black/40 hover:bg-black/80 rounded-full text-white/70 hover:text-white transition-colors"
+                        className="rounded-full border border-white/10 bg-white/[0.06] p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
                     >
                         <X size={18} />
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className="p-5 overflow-y-auto custom-scrollbar flex-1">
+                <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
                     {errorMsg && (
-                        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                        <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-sm font-semibold text-red-200">
                             {errorMsg}
                         </div>
                     )}
@@ -174,7 +175,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                                 value={form.id}
                                 onChange={(e) => setForm(prev => ({ ...prev, id: e.target.value }))}
                                 disabled={isEditing}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="w-full rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                                 placeholder="example-provider"
                             />
                         </label>
@@ -183,7 +184,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                             <input
                                 value={form.name}
                                 onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none transition-all"
+                                className="w-full rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                                 placeholder="Server 8"
                             />
                         </label>
@@ -192,7 +193,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                             <select
                                 value={form.render_mode}
                                 onChange={(e) => setForm(prev => ({ ...prev, render_mode: e.target.value as 'embed' | 'direct' }))}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none transition-all appearance-none"
+                                className="w-full appearance-none rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                             >
                                 <option value="embed">Embed</option>
                                 <option value="direct">Direct</option>
@@ -204,7 +205,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                                 type="number"
                                 value={form.sort_order}
                                 onChange={(e) => setForm(prev => ({ ...prev, sort_order: Number(e.target.value) }))}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none transition-all"
+                                className="w-full rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                             />
                         </label>
                         <label className="space-y-2">
@@ -212,7 +213,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                             <select
                                 value={form.risk_level}
                                 onChange={(e) => setForm(prev => ({ ...prev, risk_level: e.target.value as 'low' | 'medium' | 'high' }))}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none transition-all appearance-none"
+                                className="w-full appearance-none rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -224,7 +225,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                             <input
                                 value={form.tags}
                                 onChange={(e) => setForm(prev => ({ ...prev, tags: e.target.value }))}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none transition-all"
+                                className="w-full rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                                 placeholder="Fast, No Ads"
                             />
                         </label>
@@ -233,7 +234,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                             <input
                                 value={form.best_for}
                                 onChange={(e) => setForm(prev => ({ ...prev, best_for: e.target.value }))}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none transition-all"
+                                className="w-full rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                                 placeholder="Backup, Best Quality, Direct HLS"
                             />
                         </label>
@@ -248,7 +249,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                                 value={form.movie_embed_template}
                                 onChange={(e) => setForm(prev => ({ ...prev, movie_embed_template: e.target.value }))}
                                 rows={compact ? 2 : 2}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none resize-y transition-all font-mono"
+                                className="w-full resize-y rounded-2xl border border-white/10 bg-black/28 px-4 py-3 font-mono text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                                 placeholder="https://example.com/movie/{{tmdbId}}"
                             />
                         </label>
@@ -258,7 +259,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                                 value={form.tv_embed_template}
                                 onChange={(e) => setForm(prev => ({ ...prev, tv_embed_template: e.target.value }))}
                                 rows={compact ? 2 : 2}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none resize-y transition-all font-mono"
+                                className="w-full resize-y rounded-2xl border border-white/10 bg-black/28 px-4 py-3 font-mono text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                                 placeholder="https://example.com/tv/{{tmdbId}}/{{season}}/{{episode}}"
                             />
                         </label>
@@ -268,7 +269,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                                 value={form.movie_direct_template}
                                 onChange={(e) => setForm(prev => ({ ...prev, movie_direct_template: e.target.value }))}
                                 rows={compact ? 2 : 2}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none resize-y transition-all font-mono"
+                                className="w-full resize-y rounded-2xl border border-white/10 bg-black/28 px-4 py-3 font-mono text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                                 placeholder="https://cdn.example.com/movie/{{tmdbId}}.m3u8"
                             />
                         </label>
@@ -278,7 +279,7 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                                 value={form.tv_direct_template}
                                 onChange={(e) => setForm(prev => ({ ...prev, tv_direct_template: e.target.value }))}
                                 rows={compact ? 2 : 2}
-                                className="w-full bg-[#09090b] text-sm text-white px-4 py-3 rounded-xl border border-zinc-800 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none resize-y transition-all font-mono"
+                                className="w-full resize-y rounded-2xl border border-white/10 bg-black/28 px-4 py-3 font-mono text-sm text-white outline-none transition-all focus:border-white/25 focus:ring-2 focus:ring-white/10"
                                 placeholder="https://cdn.example.com/tv/{{tmdbId}}/{{season}}/{{episode}}.m3u8"
                             />
                         </label>
@@ -313,17 +314,17 @@ export const ProviderFormModal: React.FC<ProviderFormModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 bg-[#18181b] border-t border-white/5 shrink-0 flex items-center justify-end gap-3">
+                <div className="flex shrink-0 items-center justify-end gap-3 border-t border-white/10 bg-black/24 p-4">
                     <button
                         onClick={onClose}
-                        className="px-5 py-2.5 rounded-xl text-zinc-400 text-sm font-medium hover:text-white hover:bg-white/5 transition-colors"
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-semibold text-white/62 transition-colors hover:bg-white/10 hover:text-white"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={handleSaveClick}
                         disabled={saving}
-                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-white text-black text-sm font-bold hover:bg-zinc-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-white/5 active:scale-[0.98]"
+                        className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-black text-black shadow-lg shadow-white/5 transition-all hover:bg-zinc-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {saving ? (
                             <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />

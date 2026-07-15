@@ -14,6 +14,7 @@ import { getTrackingContext } from '../lib/activityTracking';
 import { useAuth } from '../lib/AuthContext';
 import { withTrustedPopup } from '../lib/popupGuard';
 import { getUiPreferences, subscribeToUiPreferences, UiPreferences } from '../lib/uiPreferences';
+import { trackAnalyticsEvent } from '../lib/analyticsEvents';
 
 interface UnifiedPlayerProps {
     tmdbId: string;
@@ -349,6 +350,31 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const currentEmbedUrl = currentProvider.getEmbedUrl?.(providerContext) || '';
     const embedSandboxPolicy = getEmbedSandboxPolicy(currentProvider);
     const playbackTargetKey = `${currentProvider.id}:${tmdbId}:${mediaType}:${season}:${episode}`;
+    const trackPlayerEvent = (
+        eventName: string,
+        payload: Record<string, unknown> = {},
+        options: { flush?: boolean; providerId?: string; attemptId?: string } = {}
+    ) => {
+        trackAnalyticsEvent({
+            eventName,
+            eventCategory: 'player',
+            sessionId: sessionIdRef.current,
+            attemptId: options.attemptId ?? providerAttemptIdRef.current,
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            providerId: options.providerId ?? currentProvider.id,
+            payload: {
+                title,
+                providerName: currentProvider.name,
+                renderMode: currentProvider.renderMode,
+                sandboxMode: embedSandboxPolicy ? 'strict' : 'compat',
+                ...payload,
+            },
+            flush: options.flush,
+        });
+    };
     const directProgressStorageKey = useMemo(
         () => `plusultra:direct-progress:${user?.id || 'guest'}:${tmdbId}:${mediaType}:${season}:${episode}`,
         [episode, mediaType, season, tmdbId, user?.id]
@@ -391,6 +417,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             setProvider(availableProviders[0].id);
         }
     }, [availableProviders, provider]);
+
+    useEffect(() => {
+        trackPlayerEvent('player_opened', {
+            providerCount: availableProviders.length,
+            hasDirectSources: directSources.length > 0,
+        });
+    }, [playbackTargetKey]);
 
     useEffect(() => {
         const syncFullscreenState = () => {
@@ -480,6 +513,11 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
     const finishProviderAttempt = (reason: string) => {
         if (providerAttemptFinishedRef.current) return;
         providerAttemptFinishedRef.current = true;
+        trackPlayerEvent('provider_attempt_finished', {
+            reason,
+            ready: providerReadyMarkedRef.current,
+            activeMs: Date.now() - providerAttemptStartedAtRef.current,
+        }, { flush: reason.includes('unload') || reason.includes('exit') });
         void StatsService.finishProviderAttempt(providerAttemptIdRef.current, reason);
     };
 
@@ -504,6 +542,11 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         providerAttemptStartedAtRef.current = Date.now();
         providerAttemptFinishedRef.current = false;
         providerReadyMarkedRef.current = false;
+        trackPlayerEvent('provider_attempt_started', {
+            providerName: currentProvider.name,
+            renderMode: currentProvider.renderMode,
+            sandboxMode: embedSandboxPolicy ? 'strict' : 'compat',
+        }, { attemptId: providerAttemptIdRef.current, providerId: currentProvider.id });
 
         void StatsService.startProviderAttempt({
             attemptId: providerAttemptIdRef.current,
@@ -553,6 +596,9 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         if (providerReadyMarkedRef.current) return;
         providerReadyMarkedRef.current = true;
         setIsProviderReady(true);
+        trackPlayerEvent('provider_iframe_ready', {
+            loadMs: Date.now() - providerAttemptStartedAtRef.current,
+        });
         void StatsService.markProviderAttemptReady(providerAttemptIdRef.current);
     };
 
@@ -563,6 +609,12 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         }
 
         const elapsed = Date.now() - providerAttemptStartedAtRef.current;
+        trackPlayerEvent('provider_switched', {
+            fromProviderId: provider,
+            toProviderId: nextProviderId,
+            elapsedMs: elapsed,
+            ready: providerReadyMarkedRef.current,
+        }, { providerId: provider, flush: true });
         finishProviderAttempt(elapsed < 45000 ? 'switched_provider_early' : 'switched_provider');
         setProvider(nextProviderId);
         setShowServers(false);
@@ -630,6 +682,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 const eventType = eventData?.type;
 
                 if (eventType === 'cinesrc:error') {
+                    trackPlayerEvent('provider_media_error', { source: 'postmessage', providerEvent: eventType }, { flush: true });
                     finishProviderAttempt('media_error');
                     return;
                 }
@@ -673,6 +726,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
                 const eventType = eventData?.event;
 
                 if (eventType === 'player_error') {
+                    trackPlayerEvent('provider_media_error', { source: 'postmessage', providerEvent: eventType }, { flush: true });
                     finishProviderAttempt('media_error');
                     return;
                 }
@@ -844,12 +898,15 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         try {
             if (document.fullscreenElement) {
                 await document.exitFullscreen();
+                trackPlayerEvent('player_control_used', { control: 'fullscreen_exit' });
                 return;
             }
 
             await playerShellRef.current?.requestFullscreen({ navigationUI: 'hide' });
+            trackPlayerEvent('player_control_used', { control: 'fullscreen_enter' });
         } catch (err) {
             console.error('[UnifiedPlayer] Failed to toggle fullscreen', err);
+            trackPlayerEvent('player_control_failed', { control: 'fullscreen', reason: err instanceof Error ? err.message : String(err) });
         }
     };
 
@@ -863,11 +920,13 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
             if (!result.ok) {
                 setPopoutError(result.message || 'Could not resize the desktop player window.');
+                trackPlayerEvent('player_control_failed', { control: 'compact_player', reason: result.message || 'desktop_bridge_failed' }, { flush: true });
                 return;
             }
 
             compactPlayerActiveRef.current = !isCompactPlayer;
             setIsCompactPlayer(!isCompactPlayer);
+            trackPlayerEvent('player_control_used', { control: isCompactPlayer ? 'compact_restore' : 'compact_enter' });
             return;
         }
 
@@ -876,6 +935,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
             if (video && 'requestPictureInPicture' in video && !video.disablePictureInPicture) {
                 try {
                     await video.requestPictureInPicture();
+                    trackPlayerEvent('player_control_used', { control: 'native_picture_in_picture' });
                     return;
                 } catch (err) {
                     console.warn('[UnifiedPlayer] Native PiP failed, opening popout window instead', err);
@@ -889,6 +949,7 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
 
         if (!popoutUrl) {
             setPopoutError('No stream URL is ready yet.');
+            trackPlayerEvent('player_control_failed', { control: 'popout', reason: 'missing_url' }, { flush: true });
             return;
         }
 
@@ -897,10 +958,12 @@ export const UnifiedPlayer: React.FC<UnifiedPlayerProps> = ({
         ));
         if (!popout) {
             setPopoutError('Popout was blocked by the browser.');
+            trackPlayerEvent('player_control_failed', { control: 'popout', reason: 'blocked' }, { flush: true });
             return;
         }
 
         popoutWindowRef.current = popout;
+        trackPlayerEvent('player_control_used', { control: 'popout', mode: currentProvider.renderMode });
         const popoutTitle = `${title || 'Plus Ultra Player'} - ${currentProvider.name}`;
         const content = currentProvider.renderMode === 'direct'
             ? `<video src="${escapeHtml(popoutUrl)}" controls autoplay playsinline style="width:100%;height:100%;background:#000;object-fit:contain"></video>`
@@ -959,6 +1022,7 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                     videoRef={directVideoRef}
                     onReady={markProviderReady}
                     onError={() => {
+                        trackPlayerEvent('provider_media_error', { source: 'direct_player' }, { flush: true });
                         finishProviderAttempt('media_error');
                     }}
                     badge="Direct Playback"
@@ -977,6 +1041,10 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                     title={`Player - ${provider}`}
                     id="unified-iframe"
                     onLoad={markProviderReady}
+                    onError={() => {
+                        trackPlayerEvent('provider_media_error', { source: 'iframe_error' }, { flush: true });
+                        finishProviderAttempt('iframe_error');
+                    }}
                     referrerPolicy={EMBED_REFERRER_POLICY}
                     sandbox={embedSandboxPolicy}
                 />
@@ -1025,6 +1093,11 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                     <button
                         onClick={() => {
                             if (nextEpisodeTarget) {
+                                trackPlayerEvent('player_control_used', {
+                                    control: 'next_episode',
+                                    nextSeason: nextEpisodeTarget.season,
+                                    nextEpisode: nextEpisodeTarget.episode,
+                                }, { flush: true });
                                 onPlayEpisode(nextEpisodeTarget.season, nextEpisodeTarget.episode);
                             }
                         }}
@@ -1048,7 +1121,16 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
                 {/* Community / Downloads Button */}
                 <div className="relative">
                     <button
-                        onClick={() => setShowCommunity(!showCommunity)}
+                        onClick={() => {
+                            const nextOpen = !showCommunity;
+                            setShowCommunity(nextOpen);
+                            if (nextOpen) {
+                                trackPlayerEvent('player_control_used', {
+                                    control: 'download_panel_open',
+                                    communityLinkCount: communityLinks.length,
+                                });
+                            }
+                        }}
                         className={controlButtonClassName(showCommunity)}
                         title="Downloads"
                     >
@@ -1157,7 +1239,16 @@ html, body { width: 100%; height: 100%; margin: 0; background: #000; overflow: h
 
                 <div className="relative" id="server-menu">
                     <button
-                        onClick={() => setShowServers(!showServers)}
+                        onClick={() => {
+                            const nextOpen = !showServers;
+                            setShowServers(nextOpen);
+                            if (nextOpen) {
+                                trackPlayerEvent('player_control_used', {
+                                    control: 'server_menu_open',
+                                    providerCount: availableProviders.length,
+                                });
+                            }
+                        }}
                         className={controlButtonClassName(showServers)}
                         title="Servers"
                     >

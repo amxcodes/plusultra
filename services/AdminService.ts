@@ -66,6 +66,38 @@ export interface AdminProviderAnalytics {
     last_attempt_at: string | null;
 }
 
+export interface AdminAnalyticsSummary {
+    total_events: number;
+    unique_users: number;
+    player_events: number;
+    provider_events: number;
+    search_events: number;
+    download_events: number;
+    content_events: number;
+    playlist_events: number;
+    navigation_events: number;
+    failure_events: number;
+}
+
+export interface AdminAnalyticsEvent {
+    id: string;
+    event_name: string;
+    event_category: string;
+    username: string | null;
+    user_id: string;
+    session_id: string | null;
+    attempt_id: string | null;
+    tmdb_id: string | null;
+    media_type: 'movie' | 'tv' | 'sports' | null;
+    season: number | null;
+    episode: number | null;
+    provider_id: string | null;
+    page_path: string | null;
+    client_context: Record<string, any>;
+    payload: Record<string, any>;
+    occurred_at: string;
+}
+
 export const AdminService = {
     async getAdminStats() {
         // Parallel fetch for overview stats
@@ -300,5 +332,45 @@ export const AdminService = {
 
         if (error) throw error;
         return (data || []) as AdminProviderAnalytics[];
+    },
+
+    async getAnalyticsSummary(days = 7) {
+        const { data, error } = await supabase
+            .rpc('admin_get_analytics_summary', {
+                p_days: days
+            });
+
+        if (error) throw error;
+
+        const fallback: AdminAnalyticsSummary = {
+            total_events: 0,
+            unique_users: 0,
+            player_events: 0,
+            provider_events: 0,
+            search_events: 0,
+            download_events: 0,
+            content_events: 0,
+            playlist_events: 0,
+            navigation_events: 0,
+            failure_events: 0
+        };
+
+        return ((data || [])[0] || fallback) as AdminAnalyticsSummary;
+    },
+
+    async getAnalyticsEvents(options?: {
+        limit?: number;
+        category?: string | null;
+        search?: string | null;
+    }) {
+        const { data, error } = await supabase
+            .rpc('admin_get_analytics_events', {
+                p_limit: options?.limit ?? 120,
+                p_category: options?.category ?? null,
+                p_search: options?.search ?? null
+            });
+
+        if (error) throw error;
+        return (data || []) as AdminAnalyticsEvent[];
     }
 };

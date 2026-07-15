@@ -23,7 +23,7 @@ const getScoreLabel = (score: number) => {
   return score > 10 ? `${Math.round(score)}%` : `${score.toFixed(1)}/10`;
 };
 
-export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelect, onPlay, onAddToPlaylist, variant = 'poster' }) => {
+const StudioMediaCardComponent: React.FC<StudioMediaCardProps> = ({ movie, onSelect, onPlay, onAddToPlaylist, variant = 'poster' }) => {
   const image = getImage(movie, variant);
   const progress = typeof movie.progress === 'number'
     ? Math.min(Math.max(movie.progress > 1 ? movie.progress / 100 : movie.progress, 0), 1)
@@ -36,7 +36,7 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
       role="button"
       tabIndex={0}
       className={cn(
-        'group/card relative cursor-pointer overflow-hidden rounded-[var(--studio-radius-md)] border border-white/[0.055] bg-white/[0.045] shadow-[0_14px_38px_rgba(0,0,0,0.34)] transition-[transform,filter,box-shadow,border-color] duration-300 hover:z-10 hover:scale-[1.018] hover:brightness-110 hover:border-white/14 hover:shadow-[0_18px_48px_rgba(0,0,0,0.5)]',
+        'studio-render-contained group/card relative cursor-pointer overflow-hidden rounded-[var(--studio-radius-md)] border border-white/[0.055] bg-white/[0.045] shadow-[0_14px_38px_rgba(0,0,0,0.34)] transition-[transform,filter,box-shadow,border-color] duration-300 hover:z-10 hover:scale-[1.018] hover:brightness-110 hover:border-white/14 hover:shadow-[0_18px_48px_rgba(0,0,0,0.5)]',
         isLandscape ? 'aspect-video' : 'aspect-[2/3]'
       )}
       onClick={() => onSelect(movie)}
@@ -48,7 +48,7 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
       }}
     >
       {image ? (
-        <img src={image} alt={movie.title} className="h-full w-full object-cover" loading="lazy" />
+        <img src={image} alt={movie.title} className="h-full w-full object-cover" loading="lazy" decoding="async" />
       ) : (
         <div className="flex h-full w-full items-center justify-center bg-white/[0.04] p-4 text-center text-xs font-semibold leading-snug text-white/45">
           <span className="line-clamp-4 break-words">{movie.title}</span>
@@ -81,11 +81,11 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
       )}
 
       {isLandscape ? (
-        <div className="absolute inset-0 flex translate-y-1 items-center justify-center gap-2 opacity-0 transition-all duration-300 group-hover/card:translate-y-0 group-hover/card:opacity-100">
+        <div className="studio-card-action-layer absolute inset-0 flex translate-y-1 items-center justify-center gap-2 opacity-0 transition-all duration-300 group-hover/card:translate-y-0 group-hover/card:opacity-100">
           {onPlay && (
             <button
               type="button"
-              className="studio-control-glass flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform hover:scale-105 hover:bg-white/[0.16]"
+              className="studio-control-glass studio-card-play-control flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform hover:scale-105"
               onClick={(event) => {
                 event.stopPropagation();
                 onPlay(movie);
@@ -107,7 +107,7 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
             {onPlay && (
               <button
                 type="button"
-                className="studio-control-glass flex h-9 w-9 items-center justify-center rounded-full text-white transition-transform hover:scale-105 hover:bg-white/[0.16]"
+                className="studio-control-glass studio-card-play-control flex h-9 w-9 items-center justify-center rounded-full text-white transition-transform hover:scale-105"
                 onClick={(event) => {
                   event.stopPropagation();
                   onPlay(movie);
@@ -123,3 +123,7 @@ export const StudioMediaCard: React.FC<StudioMediaCardProps> = ({ movie, onSelec
     </article>
   );
 };
+
+StudioMediaCardComponent.displayName = 'StudioMediaCard';
+
+export const StudioMediaCard = React.memo(StudioMediaCardComponent);

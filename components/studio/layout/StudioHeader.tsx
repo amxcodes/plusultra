@@ -137,7 +137,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
                 type="button"
                 onClick={() => setActiveTab(item)}
                 className={cn(
-                  'flex h-10 items-center rounded-none border-0 bg-transparent px-0 text-sm font-semibold transition-colors duration-200',
+                  'flex h-10 items-center rounded-none border-0 bg-transparent px-0 text-sm font-semibold outline-none transition-colors duration-200 focus-visible:text-white',
                   active
                     ? 'text-white'
                     : 'text-white/64 hover:text-white'
@@ -152,7 +152,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
             type="button"
             onClick={onSearchClick}
             aria-label="Search"
-            className="h-10 rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-white/64 transition-colors hover:text-white"
+            className="h-10 rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-white/64 outline-none transition-colors hover:text-white focus-visible:text-white"
           >
             Search
           </button>
@@ -162,7 +162,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
               <button
                 type="button"
                 aria-label="More"
-                className="h-10 rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-white/64 transition-colors hover:text-white"
+                className="h-10 rounded-none border-0 bg-transparent px-0 text-sm font-semibold text-white/64 outline-none transition-colors hover:text-white focus-visible:text-white"
               >
                 More
               </button>
@@ -184,7 +184,7 @@ export const StudioHeader: React.FC<StudioHeaderProps> = ({ activeTab, setActive
               <button
                 type="button"
                 aria-label="Activity"
-                className="relative flex h-10 w-7 items-center justify-center rounded-none border-0 bg-transparent text-white/64 transition-colors hover:text-white"
+                className="relative flex h-10 w-7 items-center justify-center rounded-none border-0 bg-transparent text-white/64 outline-none transition-colors hover:text-white focus-visible:text-white"
               >
                 <Bell size={17} />
                 {activityCount > 0 && <span className="absolute right-0 top-2 h-1.5 w-1.5 rounded-full bg-white" />}

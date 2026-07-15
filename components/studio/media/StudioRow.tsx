@@ -18,7 +18,7 @@ interface StudioRowProps {
   onViewAll?: () => void;
 }
 
-export const StudioRow: React.FC<StudioRowProps> = ({
+const StudioRowComponent: React.FC<StudioRowProps> = ({
   title,
   fetchUrl,
   movies,
@@ -67,7 +67,7 @@ export const StudioRow: React.FC<StudioRowProps> = ({
   if (!loading && items.length === 0) return null;
 
   return (
-    <section className="py-3 md:py-5">
+    <section className="studio-render-contained py-3 md:py-5">
       <div className="mx-auto mb-1 flex max-w-[1500px] items-center justify-between px-4 md:px-8">
         <h2 className="text-xl font-semibold tracking-tight text-white md:text-2xl">{title}</h2>
         {onViewAll && (
@@ -99,3 +99,7 @@ export const StudioRow: React.FC<StudioRowProps> = ({
     </section>
   );
 };
+
+StudioRowComponent.displayName = 'StudioRow';
+
+export const StudioRow = React.memo(StudioRowComponent);

@@ -181,7 +181,7 @@ export const StudioMediaDrawer: React.FC<StudioMediaDrawerProps> = ({ movie, ope
                   className="absolute inset-0 h-full w-full object-cover object-top opacity-82"
                 />
               )}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.12),transparent_30%),linear-gradient(to_top,#000_0%,rgba(0,0,0,0.88)_30%,rgba(0,0,0,0.32)_100%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.12),transparent_30%),linear-gradient(to_top,#000_0%,rgba(0,0,0,0.86)_24%,rgba(0,0,0,0.54)_48%,rgba(0,0,0,0.18)_100%)]" />
               <div className="absolute bottom-0 left-0 right-0 p-5 md:p-8">
                 <StudioDrawerTitle className="max-w-4xl break-words text-4xl font-black leading-[0.95] tracking-tight text-white md:text-6xl">
                   {activeMovie.title}

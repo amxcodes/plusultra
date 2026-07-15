@@ -12,7 +12,7 @@ export const StudioDrawerContent: React.FC<React.ComponentProps<typeof Drawer.Co
     <Drawer.Overlay className="fixed inset-0 z-[80] bg-black/42 backdrop-blur-[1.5px] transition-opacity duration-200 data-[state=closed]:opacity-0 data-[state=open]:opacity-100" />
     <Drawer.Content
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-[90] mx-auto flex max-h-[92dvh] max-w-[1180px] flex-col overflow-hidden rounded-t-[28px] border border-b-0 border-white/10 bg-black shadow-[0_-24px_80px_rgba(0,0,0,0.64)] outline-none md:rounded-t-[32px]',
+        'fixed bottom-0 left-0 right-0 z-[90] mx-auto flex max-h-[92dvh] max-w-[1180px] flex-col overflow-hidden rounded-t-[28px] border border-b-0 border-white/10 bg-black shadow-[0_-24px_80px_rgba(0,0,0,0.64)] outline-none transition-[opacity,transform,filter] duration-[260ms] ease-out data-[state=closed]:translate-y-6 data-[state=closed]:opacity-0 data-[state=closed]:blur-[1px] data-[state=open]:translate-y-0 data-[state=open]:opacity-100 data-[state=open]:blur-0 md:rounded-t-[32px]',
         className
       )}
       {...props}

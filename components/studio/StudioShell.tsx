@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { LibraryBig } from 'lucide-react';
 import { HeroMovie, Movie, NavItem, Playlist, Profile } from '../../types';
 import { requests } from '../../services/tmdb';
@@ -18,7 +19,7 @@ import { StudioPageFrame } from './system/StudioPageFrame';
 import { StudioSurface } from './system/StudioSurface';
 import { StudioButton } from './system/StudioButton';
 import { StudioPlaylistCard, StudioPlaylistsPage } from './pages/StudioPlaylistsPage';
-import { AdminDashboard } from '../AdminDashboard';
+import { StudioAdminDashboard } from './pages/StudioAdminDashboard';
 import { ActivityPage } from '../ActivityPage';
 import { MessagesPage } from '../MessagesPage';
 import { AnnouncementsPage } from '../AnnouncementsPage';
@@ -38,6 +39,7 @@ import { LatestTrailersByCountrySection } from '../LatestTrailersByCountrySectio
 import type { ActivityFeedTab } from '../../hooks/useActivityFeed';
 import type { CountryTrailerGroup } from '../../services/latestTrailers';
 import type { OfflineDownloadEntry } from '../../types';
+import { trackAnalyticsEvent } from '../../lib/analyticsEvents';
 
 type ViewAllCategoryState = {
   title: string;
@@ -100,9 +102,10 @@ const useStudioSmoothScroll = (preferences: UiPreferences, disabled: boolean) =>
     import('lenis').then(({ default: Lenis }) => {
       if (cancelled) return;
       lenis = new Lenis({
-        duration: 0.68,
+        duration: 0.48,
         smoothWheel: true,
-        wheelMultiplier: 0.8,
+        wheelMultiplier: 1,
+        prevent: (node: HTMLElement) => Boolean(node.closest('[data-studio-native-scroll="true"]')),
       });
 
       const raf = (time: number) => {
@@ -124,12 +127,56 @@ const useStudioSmoothScroll = (preferences: UiPreferences, disabled: boolean) =>
 export const StudioShell: React.FC<StudioShellProps> = (props) => {
   const [preferences, setPreferences] = useState<UiPreferences>(() => getUiPreferences());
   const drawerOpen = Boolean(props.selectedMovie);
+  const [bottomFadeVisible, setBottomFadeVisible] = useState(!drawerOpen);
+  const pageTransitionKey = [
+    props.activeTab,
+    props.selectedPlaylistId || '',
+    props.selectedProfileId || '',
+    props.viewAllCategory?.title || '',
+  ].join(':');
   useStudioSmoothScroll(preferences, props.isSearchOpen || drawerOpen);
 
   useEffect(() => subscribeToUiPreferences(setPreferences), []);
 
+  useEffect(() => {
+    if (drawerOpen) {
+      setBottomFadeVisible(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setBottomFadeVisible(true), 280);
+    return () => window.clearTimeout(timer);
+  }, [drawerOpen]);
+
+  useEffect(() => {
+    trackAnalyticsEvent({
+      eventName: 'studio_page_viewed',
+      eventCategory: 'navigation',
+      payload: {
+        activeTab: props.activeTab,
+        selectedPlaylistId: props.selectedPlaylistId || null,
+        selectedProfileId: props.selectedProfileId || null,
+        viewAllTitle: props.viewAllCategory?.title || null,
+        canStream: props.canStream,
+      },
+    });
+  }, [pageTransitionKey, props.activeTab, props.canStream, props.selectedPlaylistId, props.selectedProfileId, props.viewAllCategory?.title]);
+
   const playTitle = (movie: Movie, season?: number, episode?: number) => {
     if (!props.canStream) return;
+    trackAnalyticsEvent({
+      eventName: 'play_requested',
+      eventCategory: 'content',
+      tmdbId: movie.id,
+      mediaType: movie.mediaType === 'tv' ? 'tv' : 'movie',
+      season: movie.mediaType === 'tv' ? (season || movie.season || 1) : undefined,
+      episode: movie.mediaType === 'tv' ? (episode || movie.episode || 1) : undefined,
+      payload: {
+        title: movie.title,
+        source: 'studio_theme',
+      },
+      flush: true,
+    });
 
     if (movie.mediaType === 'tv') {
       props.onPlay(movie, season || movie.season || 1, episode || movie.episode || 1);
@@ -139,6 +186,32 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
     props.onPlay(movie);
   };
   const studioPlay = props.canStream ? playTitle : undefined;
+  const selectMovie = (movie: Movie) => {
+    trackAnalyticsEvent({
+      eventName: 'content_opened',
+      eventCategory: 'content',
+      tmdbId: movie.id,
+      mediaType: movie.mediaType === 'tv' ? 'tv' : 'movie',
+      payload: {
+        title: movie.title,
+        source: 'studio_theme',
+      },
+    });
+    props.onMovieSelect(movie);
+  };
+  const addToPlaylist = (movie: Movie) => {
+    trackAnalyticsEvent({
+      eventName: 'playlist_save_intent',
+      eventCategory: 'playlist',
+      tmdbId: movie.id,
+      mediaType: movie.mediaType === 'tv' ? 'tv' : 'movie',
+      payload: {
+        title: movie.title,
+        source: 'studio_theme',
+      },
+    });
+    props.openPlaylistModal(movie);
+  };
 
   const homeRows = useMemo(() => [
     { title: 'Trending Now', fetchUrl: requests.fetchTrending },
@@ -152,8 +225,8 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       <StudioHero
         movie={props.heroMovie}
         onPlay={studioPlay}
-        onInfo={props.onMovieSelect}
-        onAddToPlaylist={props.openPlaylistModal}
+        onInfo={selectMovie}
+        onAddToPlaylist={addToPlaylist}
       />
       <div className="relative z-10 -mt-16 pb-20">
         {props.continueWatching.length > 0 && props.canStream && (
@@ -163,23 +236,23 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             variant="landscape"
             onMovieSelect={props.onContinueWatchingSelect}
             onPlay={props.onContinueWatchingSelect}
-            onAddToPlaylist={props.openPlaylistModal}
+            onAddToPlaylist={addToPlaylist}
             onViewAll={() => props.openViewAll({ title: 'Continue Watching', movies: props.continueWatching })}
           />
         )}
         {props.canStream && (
           <>
-            <StudioProviderRow mediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
-            <StudioProviderRow mediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={playTitle} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioProviderRow mediaType="movie" onMovieSelect={selectMovie} onPlay={playTitle} onAddToPlaylist={addToPlaylist} />
+            <StudioProviderRow mediaType="tv" onMovieSelect={selectMovie} onPlay={playTitle} onAddToPlaylist={addToPlaylist} />
           </>
         )}
         {props.featuredMovies.length > 0 && (
           <StudioRow
             title="Featured Movies"
             movies={props.featuredMovies}
-            onMovieSelect={props.onMovieSelect}
+            onMovieSelect={selectMovie}
             onPlay={studioPlay}
-            onAddToPlaylist={props.openPlaylistModal}
+            onAddToPlaylist={addToPlaylist}
             onViewAll={() => props.openViewAll({ title: 'Featured Movies', movies: props.featuredMovies })}
           />
         )}
@@ -199,9 +272,9 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
           <StudioRow
             title="Trending With Users"
             movies={props.communityTrending}
-            onMovieSelect={props.onMovieSelect}
+            onMovieSelect={selectMovie}
             onPlay={studioPlay}
-            onAddToPlaylist={props.openPlaylistModal}
+            onAddToPlaylist={addToPlaylist}
             onViewAll={() => props.openViewAll({ title: 'Trending With Users', movies: props.communityTrending })}
           />
         )}
@@ -211,9 +284,9 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             key={row.title}
             title={row.title}
             fetchUrl={row.fetchUrl}
-            onMovieSelect={props.onMovieSelect}
+            onMovieSelect={selectMovie}
             onPlay={studioPlay}
-            onAddToPlaylist={props.openPlaylistModal}
+            onAddToPlaylist={addToPlaylist}
             onViewAll={() => props.openViewAll({ title: row.title, fetchUrl: row.fetchUrl })}
           />
         ))}
@@ -226,7 +299,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       {movies.length > 0 ? (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7">
           {movies.map(movie => (
-            <StudioMediaCard key={`${movie.mediaType || 'movie'}-${movie.id}`} movie={movie} onSelect={props.onMovieSelect} onPlay={studioPlay} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioMediaCard key={`${movie.mediaType || 'movie'}-${movie.id}`} movie={movie} onSelect={selectMovie} onPlay={studioPlay} onAddToPlaylist={addToPlaylist} />
           ))}
         </div>
       ) : (
@@ -244,10 +317,10 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
         <StudioPageFrame>
           <StudioPlaylistDetailPage
             playlistId={props.selectedPlaylistId}
-            onMovieSelect={props.onMovieSelect}
+            onMovieSelect={selectMovie}
             onBack={() => props.setActiveTab(NavItem.DASHBOARD)}
             onPlay={studioPlay}
-            onAddToPlaylist={props.openPlaylistModal}
+            onAddToPlaylist={addToPlaylist}
           />
         </StudioPageFrame>
       );
@@ -262,9 +335,9 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             initialMovies={props.viewAllCategory.movies}
             forcedMediaType={props.viewAllCategory.forcedMediaType}
             onBack={props.closeViewAll}
-            onMovieSelect={props.viewAllCategory.title === 'Continue Watching' ? props.onContinueWatchingSelect : props.onMovieSelect}
+            onMovieSelect={props.viewAllCategory.title === 'Continue Watching' ? props.onContinueWatchingSelect : selectMovie}
             onPlay={props.canStream ? (props.viewAllCategory.title === 'Continue Watching' ? props.onContinueWatchingSelect : playTitle) : undefined}
-            onAddToPlaylist={props.openPlaylistModal}
+            onAddToPlaylist={addToPlaylist}
           />
         </StudioPageFrame>
       );
@@ -276,17 +349,17 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       case NavItem.MOVIES:
         return (
           <StudioPageFrame title="Movies" subtitle="Browse">
-            <StudioRow title="Now Playing" fetchUrl={requests.fetchNowPlaying} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={studioPlay} onAddToPlaylist={props.openPlaylistModal} />
-            <StudioRow title="Top Rated Movies" fetchUrl={requests.fetchTopRated} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={studioPlay} onAddToPlaylist={props.openPlaylistModal} />
-            <StudioRow title="Action" fetchUrl={requests.fetchActionMovies} forcedMediaType="movie" onMovieSelect={props.onMovieSelect} onPlay={studioPlay} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioRow title="Now Playing" fetchUrl={requests.fetchNowPlaying} forcedMediaType="movie" onMovieSelect={selectMovie} onPlay={studioPlay} onAddToPlaylist={addToPlaylist} />
+            <StudioRow title="Top Rated Movies" fetchUrl={requests.fetchTopRated} forcedMediaType="movie" onMovieSelect={selectMovie} onPlay={studioPlay} onAddToPlaylist={addToPlaylist} />
+            <StudioRow title="Action" fetchUrl={requests.fetchActionMovies} forcedMediaType="movie" onMovieSelect={selectMovie} onPlay={studioPlay} onAddToPlaylist={addToPlaylist} />
           </StudioPageFrame>
         );
       case NavItem.SERIES:
         return (
           <StudioPageFrame title="Series" subtitle="Browse">
-            <StudioRow title="Popular Series" fetchUrl={requests.fetchTvPopular} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={studioPlay} onAddToPlaylist={props.openPlaylistModal} />
-            <StudioRow title="Airing Today" fetchUrl={requests.fetchAiringToday} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={studioPlay} onAddToPlaylist={props.openPlaylistModal} />
-            <StudioRow title="On The Air" fetchUrl={requests.fetchOnTheAir} forcedMediaType="tv" onMovieSelect={props.onMovieSelect} onPlay={studioPlay} onAddToPlaylist={props.openPlaylistModal} />
+            <StudioRow title="Popular Series" fetchUrl={requests.fetchTvPopular} forcedMediaType="tv" onMovieSelect={selectMovie} onPlay={studioPlay} onAddToPlaylist={addToPlaylist} />
+            <StudioRow title="Airing Today" fetchUrl={requests.fetchAiringToday} forcedMediaType="tv" onMovieSelect={selectMovie} onPlay={studioPlay} onAddToPlaylist={addToPlaylist} />
+            <StudioRow title="On The Air" fetchUrl={requests.fetchOnTheAir} forcedMediaType="tv" onMovieSelect={selectMovie} onPlay={studioPlay} onAddToPlaylist={addToPlaylist} />
           </StudioPageFrame>
         );
       case NavItem.MY_LIST:
@@ -298,7 +371,7 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
       case NavItem.PROFILE:
         return <StudioPageFrame><StudioProfilePage userId={props.selectedProfileId} onPlaylistSelect={props.onPlaylistSelect} onMovieSelect={props.onMovieSelect} /></StudioPageFrame>;
       case NavItem.ADMIN:
-        return <StudioPageFrame className="studio-classic-bridge"><AdminDashboard onNavigate={props.onNavigate} /></StudioPageFrame>;
+        return <StudioAdminDashboard onNavigate={props.onNavigate} />;
       case NavItem.ACTIVITY:
         return <StudioPageFrame className="studio-classic-bridge"><ActivityPage onNavigate={props.onNavigate} initialTab={props.selectedActivityTab} /></StudioPageFrame>;
       case NavItem.MESSAGES:
@@ -342,7 +415,17 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
         <StudioBottomDock activeTab={props.activeTab} setActiveTab={props.setActiveTab} messageUnreadCount={props.messageUnreadCount} />
 
         <main className={drawerOpen ? 'studio-shell-main studio-shell-main--drawer-open' : 'studio-shell-main'}>
-          {renderActivePage()}
+          <AnimatePresence mode="sync" initial={false}>
+            <motion.div
+              key={pageTransitionKey}
+              initial={preferences.reduceMotion ? false : { opacity: 0.96 }}
+              animate={{ opacity: 1 }}
+              exit={preferences.reduceMotion ? { opacity: 0 } : { opacity: 0.96 }}
+              transition={{ duration: preferences.reduceMotion ? 0 : 0.08, ease: 'linear' }}
+            >
+              {renderActivePage()}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         <StudioMediaDrawer
@@ -352,8 +435,8 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
             if (!open) props.closeDetail();
           }}
           onPlay={studioPlay}
-          onAddToPlaylist={props.openPlaylistModal}
-          onMovieSelect={props.onMovieSelect}
+          onAddToPlaylist={addToPlaylist}
+          onMovieSelect={selectMovie}
         />
 
         {props.isSearchOpen && (
@@ -364,7 +447,11 @@ export const StudioShell: React.FC<StudioShellProps> = (props) => {
           <StudioAddToPlaylistSheet movie={props.playlistModalMovie} onClose={props.closePlaylistModal} />
         )}
 
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black to-transparent" />
+        <div
+          className={`pointer-events-none fixed inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black to-transparent transition-opacity duration-300 ease-out ${
+            bottomFadeVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
       </div>
     </StudioThemeProvider>
   );

@@ -8,6 +8,7 @@ import { StudioMediaCard } from '../media/StudioMediaCard';
 import { StudioSkeleton } from '../system/StudioSkeleton';
 import { GlassSurface } from '../system/GlassSurface';
 import { getUiPreferences, subscribeToUiPreferences, UiPreferences } from '../../../lib/uiPreferences';
+import { trackAnalyticsEvent } from '../../../lib/analyticsEvents';
 
 interface StudioSearchPageProps {
   onClose: () => void;
@@ -71,12 +72,39 @@ export const StudioSearchPage: React.FC<StudioSearchPageProps> = ({ onClose, onM
     }
 
     setLoading(true);
+    const startedAt = Date.now();
     TmdbService.search(trimmed, { type })
       .then(items => {
-        if (!cancelled) setResults(items.slice(0, 30));
+        if (!cancelled) {
+          const nextResults = items.slice(0, 30);
+          setResults(nextResults);
+          trackAnalyticsEvent({
+            eventName: 'search_performed',
+            eventCategory: 'search',
+            payload: {
+              query: trimmed.slice(0, 120),
+              searchType: type,
+              resultCount: nextResults.length,
+              durationMs: Date.now() - startedAt,
+              surface: 'studio_overlay',
+            },
+          });
+        }
       })
       .catch(() => {
-        if (!cancelled) setResults([]);
+        if (!cancelled) {
+          setResults([]);
+          trackAnalyticsEvent({
+            eventName: 'search_failed',
+            eventCategory: 'search',
+            payload: {
+              query: trimmed.slice(0, 120),
+              searchType: type,
+              durationMs: Date.now() - startedAt,
+              surface: 'studio_overlay',
+            },
+          });
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -94,6 +122,15 @@ export const StudioSearchPage: React.FC<StudioSearchPageProps> = ({ onClose, onM
     const next = value.trim();
     if (!next) return;
     setQuery(next);
+    trackAnalyticsEvent({
+      eventName: 'search_committed',
+      eventCategory: 'search',
+      payload: {
+        query: next.slice(0, 120),
+        searchType: type,
+        surface: 'studio_overlay',
+      },
+    });
     const updated = [next, ...recents.filter(item => item.toLowerCase() !== next.toLowerCase())].slice(0, 6);
     setRecents(updated);
     localStorage.setItem('studioRecentSearches', JSON.stringify(updated));
@@ -102,6 +139,19 @@ export const StudioSearchPage: React.FC<StudioSearchPageProps> = ({ onClose, onM
   const selectMovie = (movie: Movie) => {
     setSelectingId(movie.id);
     commitQuery(query);
+    trackAnalyticsEvent({
+      eventName: 'search_result_clicked',
+      eventCategory: 'search',
+      tmdbId: movie.id,
+      mediaType: movie.mediaType === 'tv' ? 'tv' : 'movie',
+      payload: {
+        query: query.trim().slice(0, 120),
+        title: movie.title,
+        resultMediaType: movie.mediaType || 'movie',
+        surface: 'studio_overlay',
+      },
+      flush: true,
+    });
     onMovieSelect(movie);
   };
 

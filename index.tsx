@@ -8,6 +8,9 @@ installPopupGuard();
 import { installTauriDesktopBridge } from './lib/tauriDesktopBridge';
 void installTauriDesktopBridge();
 
+import { installAnalyticsFlushHandlers } from './lib/analyticsEvents';
+installAnalyticsFlushHandlers();
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';

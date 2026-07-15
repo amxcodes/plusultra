@@ -4,6 +4,7 @@ import { useToast } from '../lib/ToastContext';
 import { buildStreamDownloadCandidates, isInternalAppUrl, type StreamDownloadCandidate } from '../lib/streamDownloads';
 import { DirectPlaybackSource, MediaType, Provider } from '../lib/playerProviders';
 import { withTrustedPopup } from '../lib/popupGuard';
+import { trackAnalyticsEvent } from '../lib/analyticsEvents';
 
 interface StreamDownloadPanelProps {
     providerId: Provider;
@@ -180,6 +181,26 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
             .sort((left, right) => getCandidateRank(left) - getCandidateRank(right))
     ), [desktopCandidates, documentCandidates, candidates]);
 
+    useEffect(() => {
+        trackAnalyticsEvent({
+            eventName: 'download_candidates_rendered',
+            eventCategory: 'download',
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            providerId,
+            payload: {
+                providerName,
+                totalCandidates: allCandidates.length,
+                desktopCandidates: desktopCandidates.length,
+                documentCandidates: documentCandidates.length,
+                generatedCandidates: candidates.length,
+                directSources: directSources.length,
+            },
+        });
+    }, [allCandidates.length, candidates.length, desktopCandidates.length, directSources.length, documentCandidates.length, episode, mediaType, providerId, providerName, season, tmdbId]);
+
     const canSaveOffline = (candidate: StreamDownloadCandidate) => {
         if (!window.desktop?.isDesktop) {
             return false;
@@ -189,6 +210,20 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
     };
 
     const handleOpen = (url: string) => {
+        trackAnalyticsEvent({
+            eventName: 'download_target_opened',
+            eventCategory: 'download',
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            providerId,
+            payload: {
+                providerName,
+                targetKind: url.toLowerCase().includes('.m3u8') ? 'playlist' : 'page_or_file',
+                desktop: Boolean(window.desktop?.isDesktop),
+            },
+        });
         if (window.desktop?.isDesktop) {
             void window.desktop.openExternal(url);
             info('Opened download target outside the app');
@@ -208,12 +243,43 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
         }
 
         setVerifyingCandidateId(candidate.id);
+        trackAnalyticsEvent({
+            eventName: 'download_probe_started',
+            eventCategory: 'download',
+            tmdbId,
+            mediaType,
+            season,
+            episode,
+            providerId,
+            payload: {
+                providerName,
+                candidateKind: candidate.kind,
+                candidateSource: candidate.source,
+                serverLabel: candidate.serverLabel,
+            },
+        });
         try {
             const probe = await window.desktop.probePlaybackSource({
                 url: candidate.url,
                 requiredHeaders: candidate.requiredHeaders,
             });
             if (!probe.ok || !probe.finalUrl) {
+                trackAnalyticsEvent({
+                    eventName: 'download_probe_failed',
+                    eventCategory: 'download',
+                    tmdbId,
+                    mediaType,
+                    season,
+                    episode,
+                    providerId,
+                    payload: {
+                        providerName,
+                        candidateKind: candidate.kind,
+                        candidateSource: candidate.source,
+                        message: probe.message || 'not_direct_media',
+                    },
+                    flush: true,
+                });
                 error(probe.message || 'This source is not a direct media file.');
                 return;
             }
@@ -234,12 +300,60 @@ export const StreamDownloadPanel: React.FC<StreamDownloadPanelProps> = ({
                 providerName,
             });
             if (!result.ok) {
+                trackAnalyticsEvent({
+                    eventName: 'download_start_failed',
+                    eventCategory: 'download',
+                    tmdbId,
+                    mediaType,
+                    season,
+                    episode,
+                    providerId,
+                    payload: {
+                        providerName,
+                        sourceType: probe.sourceType,
+                        message: result.message || 'download_bridge_failed',
+                    },
+                    flush: true,
+                });
                 error(result.message || 'Failed to start offline download.');
                 return;
             }
 
+            trackAnalyticsEvent({
+                eventName: 'download_started',
+                eventCategory: 'download',
+                tmdbId,
+                mediaType,
+                season,
+                episode,
+                providerId,
+                payload: {
+                    providerName,
+                    sourceType: probe.sourceType,
+                    contentLength: probe.contentLength,
+                    candidateKind: candidate.kind,
+                    candidateSource: candidate.source,
+                },
+                flush: true,
+            });
             success('Verified download started');
-        } catch {
+        } catch (err) {
+            trackAnalyticsEvent({
+                eventName: 'download_probe_failed',
+                eventCategory: 'download',
+                tmdbId,
+                mediaType,
+                season,
+                episode,
+                providerId,
+                payload: {
+                    providerName,
+                    candidateKind: candidate.kind,
+                    candidateSource: candidate.source,
+                    message: err instanceof Error ? err.message : String(err),
+                },
+                flush: true,
+            });
             error('Could not verify this download source.');
         } finally {
             setVerifyingCandidateId(null);

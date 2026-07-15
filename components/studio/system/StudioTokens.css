@@ -221,6 +221,29 @@
   -webkit-backdrop-filter: blur(calc(var(--studio-glass-blur) * 0.88)) saturate(1.28);
 }
 
+.studio-card-action-layer {
+  will-change: opacity, transform;
+}
+
+.studio-card-play-control {
+  background:
+    radial-gradient(130% 160% at 14% 0%, rgba(255, 255, 255, 0.14), transparent 43%),
+    radial-gradient(110% 140% at 88% 100%, rgba(255, 255, 255, 0.045), transparent 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.026)),
+    rgba(12, 12, 14, 0.56);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 10px 28px rgba(0, 0, 0, 0.34);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.studio-card-play-control:hover {
+  background:
+    radial-gradient(130% 160% at 14% 0%, rgba(255, 255, 255, 0.16), transparent 43%),
+    radial-gradient(110% 140% at 88% 100%, rgba(255, 255, 255, 0.055), transparent 52%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.032)),
+    rgba(18, 18, 20, 0.62);
+}
+
 .studio-button-glass {
   position: relative;
   isolation: isolate;
@@ -537,6 +560,10 @@
 .studio-edge-fade {
   mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 36px), transparent 100%);
   -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 36px), transparent 100%);
+}
+
+.studio-render-contained {
+  contain: layout style;
 }
 
 .studio-messages-bridge {

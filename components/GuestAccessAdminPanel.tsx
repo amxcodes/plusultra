@@ -35,16 +35,34 @@ const normalizeBaseUrl = (value?: string | null) => {
 const isLocalDesktopOrigin = (value: string) => {
     try {
         const url = new URL(value);
-        return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+        return (
+            url.hostname === 'localhost' ||
+            url.hostname === '127.0.0.1' ||
+            url.hostname === 'tauri.localhost' ||
+            url.hostname === 'ipc.localhost' ||
+            url.hostname.endsWith('.localhost')
+        );
     } catch {
         return false;
     }
 };
 
-const resolveGuestAccessBaseUrl = (configuredSiteUrl?: string | null) => {
-    const configuredOrigin = normalizeBaseUrl(configuredSiteUrl);
-    if (configuredOrigin) {
-        return configuredOrigin;
+const resolveGuestAccessBaseUrl = (settings?: Record<string, string | undefined | null>) => {
+    const candidates = [
+        settings?.site_url,
+        settings?.public_site_url,
+        settings?.public_url,
+        settings?.app_url,
+        import.meta.env.VITE_PUBLIC_SITE_URL,
+        import.meta.env.VITE_SITE_URL,
+        import.meta.env.VITE_APP_URL,
+    ];
+
+    for (const candidate of candidates) {
+        const configuredOrigin = normalizeBaseUrl(candidate);
+        if (configuredOrigin && !isLocalDesktopOrigin(configuredOrigin)) {
+            return configuredOrigin;
+        }
     }
 
     const currentOrigin = normalizeBaseUrl(window.location.origin);
@@ -97,7 +115,7 @@ export const GuestAccessAdminPanel: React.FC<GuestAccessAdminPanelProps> = ({ co
         setIsCreating(true);
         try {
             const settings = await SocialService.getAppSettings() as Record<string, string>;
-            const baseUrl = resolveGuestAccessBaseUrl(settings.site_url);
+            const baseUrl = resolveGuestAccessBaseUrl(settings);
             if (!baseUrl) {
                 throw new Error('Set the public site URL in Admin Settings before generating guest links from the desktop app.');
             }
